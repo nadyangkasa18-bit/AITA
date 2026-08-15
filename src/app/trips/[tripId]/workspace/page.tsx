@@ -1,90 +1,68 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useTrip } from "@/lib/store";
+import { Photo } from "@/components/photo";
 import {
   Button,
   buttonClass,
-  Card,
   ConfidenceLabel,
+  Eyebrow,
   EmptyState,
   PrototypeBadge,
-  TradeoffNote,
   useToast,
 } from "@/components/ui";
-import { PRODUCT } from "@/config/product";
+import type { DestinationProposal } from "@/lib/types";
 
-interface SlotDef {
-  key: string;
-  label: string;
-  summary: string;
-  detail: string;
-  seg: string;
-  estimate: string;
-}
+type ModuleId = "stay" | "flights" | "experiences";
 
-function slotsFor(): SlotDef[] {
-  return [
-    {
-      key: "flights",
-      label: "Flights",
-      summary: "Daytime, fewest stops",
-      detail: "Held to your daytime-departure preference. Fares are illustrative until you book.",
-      seg: "flights",
-      estimate: "≈ $620 pp",
-    },
-    {
-      key: "stay",
-      label: "Stay",
-      summary: "The design-led resort",
-      detail: "The resort this whole direction was chosen around — one held option, one backup.",
-      seg: "stays",
-      estimate: "≈ $940 pp",
-    },
-    {
-      key: "transport",
-      label: "Ground transport",
-      summary: "Car-free, door to door",
-      detail: "Private transfers and rail so nobody in the group has to drive.",
-      seg: "transport",
-      estimate: "≈ $180 pp",
-    },
-    {
-      key: "experiences",
-      label: "Experiences",
-      summary: "A light, unpacked few",
-      detail: "One signature moment, one indulgence, and plenty left open on purpose.",
-      seg: "experiences",
-      estimate: "included / optional",
-    },
-  ];
-}
-
-function BookingSlot({ tripId, slot }: { tripId: string; slot: SlotDef }) {
+function Module({
+  id,
+  title,
+  status,
+  decided,
+  open,
+  onToggle,
+  children,
+}: {
+  id: ModuleId;
+  title: string;
+  status: string;
+  decided: boolean;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <Card className="flex flex-col gap-3 p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-display text-lg tracking-[-0.02em]">{slot.label}</h3>
-            <span className="rounded-full bg-paper-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
-              next
-            </span>
-          </div>
-          <p className="mt-0.5 text-[13px] font-medium text-accent">{slot.summary}</p>
+    <div className="overflow-hidden rounded-card border border-hair bg-surface">
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={`mod-${id}`}
+        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="font-display text-xl tracking-[-0.02em]">{title}</span>
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${
+              decided ? "bg-accent-tint text-accent" : "bg-amber-tint text-amber"
+            }`}
+          >
+            {status}
+          </span>
         </div>
-        <span className="whitespace-nowrap font-display text-sm tracking-[-0.01em] text-ink-soft">
-          {slot.estimate}
+        <span aria-hidden className={`text-faint transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
+          ⌄
         </span>
-      </div>
-      <p className="text-[14px] leading-relaxed text-muted">{slot.detail}</p>
-      <div className="mt-auto pt-1">
-        <Link href={`/trips/${tripId}/${slot.seg}`} className={buttonClass("ghost", "sm")}>
-          Open {slot.label.toLowerCase()} →
-        </Link>
-      </div>
-    </Card>
+      </button>
+      {open && (
+        <div id={`mod-${id}`} className="disclose border-t border-hair-2 px-6 pb-6 pt-5">
+          {children}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -92,210 +70,234 @@ export default function WorkspacePage() {
   const { tripId } = useParams<{ tripId: string }>();
   const { trip, hydrated } = useTrip(tripId);
   const { toast } = useToast();
+  const [openModule, setOpenModule] = useState<ModuleId>("stay");
 
   if (!hydrated || !trip) {
     return (
       <div className="grid gap-5">
-        <div className="h-10 w-80 rounded-lg shimmer" />
+        <div className="h-[42vh] rounded-card shimmer" />
+        <div className="h-24 rounded-card shimmer" />
         <div className="h-40 rounded-card shimmer" />
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="h-44 rounded-card shimmer" />
-          <div className="h-44 rounded-card shimmer" />
-        </div>
       </div>
     );
   }
 
-  const selectedId = trip.selectedProposalId;
-  const selected = trip.destinationProposals.find((p) => p.id === selectedId);
-  const version = trip.tripVersions.find((v) => v.destinationId === selectedId) ?? trip.tripVersions.at(-1);
+  const selected: DestinationProposal | undefined = trip.destinationProposals.find(
+    (p) => p.id === trip.selectedProposalId
+  );
 
   if (!selected) {
     return (
-      <div>
-        <header className="mb-6 max-w-3xl">
-          <p className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-            Booking Workspace
-          </p>
-          <h1 className="font-display text-4xl tracking-[-0.035em] md:text-5xl">
-            Nothing built yet
-          </h1>
-        </header>
-        <EmptyState
-          title="Pick a direction first"
-          body="Choose one of the three destinations and press “Build this trip.” I'll assemble a coordinated version here — flights, stay, transport and a light plan — all in one place."
-          action={
-            <Link href={`/trips/${trip.id}/destinations`} className={buttonClass("ink", "sm")}>
-              See where I&apos;d go →
-            </Link>
-          }
-        />
-      </div>
+      <EmptyState
+        title="Your trip isn't started yet"
+        body="Pick a direction and press “Start with this trip.” I'll assemble a coordinated plan here — stay, flights and a light rhythm, all in one place."
+        action={
+          <Link href={`/trips/${trip.id}/destinations`} className={buttonClass("accent", "sm")}>
+            See my recommendation →
+          </Link>
+        }
+      />
     );
   }
 
-  const musts = trip.brief.items.filter((i) => i.level === "must");
-  const priorities = trip.brief.items.filter((i) => i.level === "prioritize");
-  const slots = slotsFor();
+  const toggle = (m: ModuleId) => setOpenModule((cur) => (cur === m ? cur : m));
 
   return (
     <div>
-      <header className="mb-6 max-w-3xl">
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-            Booking Workspace
-          </p>
-          <span className="rounded-full bg-paper-2 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-faint">
-            Next feature
-          </span>
-          <PrototypeBadge />
-        </div>
-        <h1 className="font-display text-4xl tracking-[-0.035em] md:text-5xl">
-          Your {selected.destination} version
-        </h1>
-        <p className="mt-3 text-lg leading-relaxed text-muted">
-          One coordinated plan, not four separate bookings. This is the shell — {PRODUCT.name} will fill
-          in flights, stay and transport together so they actually fit each other, and so nothing
-          quietly breaks a “must.”
-        </p>
-      </header>
-
-      {/* summary band */}
-      <div className={`relative mb-6 overflow-hidden rounded-card ${selected.heroTone} p-6`}>
-        <div className="absolute inset-0 bg-gradient-to-r from-[rgba(20,22,18,0.55)] to-transparent" />
-        <div className="relative flex flex-wrap items-end justify-between gap-4 text-white">
+      {/* hero */}
+      <div className="relative">
+        <Photo
+          image={selected.heroImage}
+          ratio="hero"
+          tone={selected.heroTone}
+          width={1800}
+          rounded="rounded-card"
+          priority
+          className="max-h-[44vh]"
+        />
+        <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 text-white">
           <div>
-            <div className="text-[12px] uppercase tracking-[0.12em] opacity-85">
-              {selected.region} · {selected.recommendedWindow}
-            </div>
-            <h2 className="mt-1 max-w-[22ch] font-display text-2xl leading-tight tracking-[-0.02em] md:text-3xl">
-              {selected.conceptTitle}
-            </h2>
-            {version && (
-              <p className="mt-2 text-[13px] opacity-85">
-                Working from “{version.label}” · saved {new Date(version.createdAt).toLocaleDateString()}
-              </p>
-            )}
+            <span className="rounded-full bg-[rgba(20,22,18,0.5)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] backdrop-blur">
+              Trip started
+            </span>
+            <h1 className="mt-2 font-display text-[clamp(26px,4vw,40px)] leading-tight tracking-[-0.03em] drop-shadow">
+              {selected.destination}
+            </h1>
           </div>
           <Link
             href={`/trips/${trip.id}/destinations/${selected.id}`}
-            className="rounded-full bg-[rgba(255,255,255,0.16)] px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-[rgba(255,255,255,0.26)]"
+            className="hidden rounded-full bg-[rgba(255,255,255,0.18)] px-4 py-2 text-[13px] font-semibold backdrop-blur transition hover:bg-[rgba(255,255,255,0.28)] sm:block"
           >
             Revisit the proposal
           </Link>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* left: the build */}
-        <div className="grid gap-6">
+      {/* status + recommended next action */}
+      <div className="measure mt-8">
+        <div className="flex flex-wrap items-center gap-3">
+          <Eyebrow>Trip workspace</Eyebrow>
+          <ConfidenceLabel confidence={selected.confidence} />
+          <PrototypeBadge />
+        </div>
+        <p className="mt-3 text-[18px] leading-relaxed text-ink-soft">
+          Your {selected.destination} trip now exists as a draft. Here&apos;s what&apos;s in place and the
+          one thing I&apos;d decide next — nothing is booked or charged.
+        </p>
+
+        <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3">
           <div>
-            <h2 className="mb-3 font-display text-xl tracking-[-0.02em]">What I&apos;d coordinate</h2>
-            <div className="grid gap-5 sm:grid-cols-2">
-              {slots.map((s) => (
-                <BookingSlot key={s.key} tripId={trip.id} slot={s} />
-              ))}
+            <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-faint">
+              Estimated total
+            </div>
+            <div className="mt-1 font-display text-2xl tracking-[-0.02em]">
+              {selected.indicativePrice}
             </div>
           </div>
-
-          <Card className="p-6">
-            <h2 className="mb-3 font-display text-lg tracking-[-0.02em]">Why this version works</h2>
-            <div className="grid gap-2.5">
-              {selected.fitReasons.thisTrip.map((r) => (
-                <p key={r} className="flex items-start gap-2 text-[14.5px] text-ink-soft">
-                  <span aria-hidden className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  {r}
-                </p>
-              ))}
+          <div>
+            <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-faint">
+              Selected
             </div>
-            {selected.tradeoffs.length > 0 && (
-              <div className="mt-4 border-t border-hair pt-4">
-                {selected.tradeoffs.map((t) => (
-                  <TradeoffNote key={t}>{t}</TradeoffNote>
-                ))}
-              </div>
-            )}
-          </Card>
+            <div className="mt-1 text-[15px] text-ink">The {selected.destination} direction</div>
+          </div>
+          <div>
+            <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-faint">
+              Still to decide
+            </div>
+            <div className="mt-1 text-[15px] text-ink">Stay · flights · experiences</div>
+          </div>
         </div>
 
-        {/* right: the trip tray */}
-        <aside className="lg:sticky lg:top-24 lg:h-fit">
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-lg tracking-[-0.02em]">Trip Tray</h2>
-              <ConfidenceLabel confidence={selected.confidence} />
-            </div>
-            <p className="mt-1 text-[13px] text-muted">
-              Everything held together for {trip.travelers} travelers.
-            </p>
-
-            <dl className="mt-4 grid gap-2 text-[14px]">
-              {slots.map((s) => (
-                <div key={s.key} className="flex items-center justify-between gap-3">
-                  <dt className="text-muted">{s.label}</dt>
-                  <dd className="text-ink-soft">{s.estimate}</dd>
-                </div>
-              ))}
-            </dl>
-
-            <div className="mt-4 border-t border-hair pt-4">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[13px] font-semibold uppercase tracking-[0.1em] text-faint">
-                  Estimated total
-                </span>
-                <span className="font-display text-xl tracking-[-0.02em]">
-                  {selected.indicativePrice}
-                </span>
+        {/* one recommended next action */}
+        <div className="mt-7 rounded-card border border-accent-line bg-accent-tint/50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-accent">
+                Recommended next
               </div>
-              <p className="mt-1 text-[11.5px] text-faint">
-                Illustrative prototype pricing — not a quote, nothing is booked or charged.
+              <p className="mt-1 text-[16px] text-ink">
+                Confirm your stay — it&apos;s the choice everything else fits around.
               </p>
             </div>
-
-            <div className="mt-5 grid gap-2.5">
-              <Button
-                variant="accent"
-                onClick={() =>
-                  toast("Prototype — I'd take you to review before anything is confirmed.")
-                }
-              >
-                Review this version
-              </Button>
-              <Link href={`/trips/${trip.id}/versions`} className={buttonClass("ghost", "sm")}>
-                Compare versions
-              </Link>
-            </div>
-
-            <p className="mt-4 text-[11.5px] leading-relaxed text-faint">
-              I won&apos;t book anything or move money without your say-so — this is a planning shell only.
-            </p>
-          </Card>
-
-          <div className="mt-4">
-            <h3 className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-              Still protecting
-            </h3>
-            <ul className="grid gap-1.5">
-              {musts.slice(0, 4).map((m) => (
-                <li key={m.id} className="flex items-start gap-2 text-[13.5px] text-ink-soft">
-                  <span aria-hidden className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
-                  {m.statement}
-                </li>
-              ))}
-              {priorities.slice(0, 2).map((m) => (
-                <li key={m.id} className="flex items-start gap-2 text-[13.5px] text-muted">
-                  <span aria-hidden className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  {m.statement}
-                </li>
-              ))}
-            </ul>
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={() => {
+                setOpenModule("stay");
+                toast("Prototype — I'd walk you through confirming the stay here.");
+              }}
+            >
+              Review the stay
+            </Button>
           </div>
-        </aside>
+        </div>
       </div>
 
-      <p className="mt-8 text-[13px] text-faint">
-        Booking Workspace is the next feature to be built out — flights, stays, transport and experiences
-        are designed placeholders here so the full architecture is visible.
+      {/* modules */}
+      <div className="measure mt-8 grid gap-4">
+        <Module
+          id="stay"
+          title="Stay"
+          status="Needs a decision"
+          decided={false}
+          open={openModule === "stay"}
+          onToggle={() => toggle("stay")}
+        >
+          <Photo
+            image={selected.stay.image}
+            ratio="hero"
+            tone={selected.heroTone}
+            width={1200}
+            rounded="rounded-lg"
+            className="max-h-[40vh]"
+          />
+          <div className="mt-4">
+            <div className="font-display text-lg tracking-[-0.02em]">{selected.stay.name}</div>
+            <div className="text-[13px] text-muted">{selected.stay.location}</div>
+            <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">{selected.stay.why}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <span className="font-display text-lg tracking-[-0.02em]">{selected.stay.price}</span>
+              <Link href={`/trips/${trip.id}/stays`} className="text-[14px] font-semibold text-accent">
+                Open stay details →
+              </Link>
+            </div>
+          </div>
+        </Module>
+
+        <Module
+          id="flights"
+          title="Flights"
+          status="Held to daytime"
+          decided={false}
+          open={openModule === "flights"}
+          onToggle={() => toggle("flights")}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="font-display text-lg tracking-[-0.02em]">{selected.flight.route}</div>
+              <div className="text-[13px] text-muted">{selected.flight.airline}</div>
+            </div>
+            <span className="font-display text-lg tracking-[-0.02em]">{selected.flight.price}</span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[13px]">
+            <div className="rounded-lg bg-surface-2 py-2">
+              <div className="font-semibold text-ink">{selected.flight.depart}</div>
+              <div className="text-[11px] text-faint">Depart</div>
+            </div>
+            <div className="rounded-lg bg-surface-2 py-2">
+              <div className="font-semibold text-ink">{selected.flight.duration}</div>
+              <div className="text-[11px] text-faint">{selected.flight.stops}</div>
+            </div>
+            <div className="rounded-lg bg-surface-2 py-2">
+              <div className="font-semibold text-ink">{selected.flight.arrive}</div>
+              <div className="text-[11px] text-faint">Arrive</div>
+            </div>
+          </div>
+          <Link
+            href={`/trips/${trip.id}/flights`}
+            className="mt-4 inline-block text-[14px] font-semibold text-accent"
+          >
+            Open flight options →
+          </Link>
+        </Module>
+
+        <Module
+          id="experiences"
+          title="Experiences"
+          status="A light few"
+          decided={false}
+          open={openModule === "experiences"}
+          onToggle={() => toggle("experiences")}
+        >
+          <div className="grid gap-4 sm:grid-cols-3">
+            {selected.moments.map((m) => (
+              <figure key={m.title}>
+                <Photo
+                  image={m.image}
+                  ratio="4/3"
+                  tone={selected.heroTone}
+                  width={700}
+                  rounded="rounded-lg"
+                />
+                <figcaption className="mt-2">
+                  <div className="text-[14px] font-semibold text-ink">{m.title}</div>
+                  <p className="text-[13px] leading-snug text-muted">{m.note}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <Link
+            href={`/trips/${trip.id}/experiences`}
+            className="mt-4 inline-block text-[14px] font-semibold text-accent"
+          >
+            Open experiences →
+          </Link>
+        </Module>
+      </div>
+
+      <p className="measure mt-8 text-[13px] text-faint">
+        Booking Workspace is the next feature to be built out — these modules are designed placeholders,
+        and nothing here is booked or charged.
       </p>
     </div>
   );

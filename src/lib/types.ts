@@ -86,19 +86,70 @@ export interface RhythmDay {
   summary: string;
 }
 
+/* -------------------- Imagery + editorial content -------------------- */
+
+export interface ImageRef {
+  /** Fixed images.unsplash.com/photo-... URL (query params added by the loader). */
+  url: string;
+  alt: string;
+  /** object-position, e.g. "center 40%" */
+  position?: string;
+  /** Attribution / caption shown subtly where appropriate. */
+  credit?: string;
+}
+
+export interface StayPreview {
+  name: string;
+  location: string;
+  image: ImageRef;
+  attributes: string[]; // exactly three essential attributes
+  price: string; // clearly indicative
+  why: string; // one sentence tying it to the traveler
+}
+
+export interface FlightPreview {
+  airline: string;
+  route: string; // "CGK → HND"
+  depart: string;
+  arrive: string;
+  duration: string;
+  stops: string; // "Direct" | "1 stop"
+  fareType: string;
+  price: string;
+}
+
+export interface TripMoment {
+  title: string; // "Slow morning"
+  note: string; // one short sentence
+  image: ImageRef;
+}
+
+export interface DiningPreview {
+  name: string;
+  note: string;
+  image: ImageRef;
+}
+
 export interface DestinationProposal {
   id: string; // "hakone" | "perth" | "queenstown"
   destination: string;
   region: string;
   recommendationType: RecommendationType;
   conceptTitle: string;
+  /** One-sentence trip thesis: why this fits, said plainly. */
+  thesis: string;
   recommendedWindow: string;
   indicativePrice: string; // "per person" range, clearly prototype
+  flightTime: string; // for the essential-facts row
   weatherComfort: string;
   journeyEffort: string;
   mobilityFit: string; // car-free confidence
   resortFit: string;
   confidence: Confidence;
+  /** Short, verifiable proof points for the confidence strip. */
+  confidenceChips: string[];
+  /** Up to three short, specific reasons for the "Why this fits" disclosure. */
+  whyThisFits: string[];
   fitReasons: FitReasons;
   tradeoffs: string[];
   externalSignals: { label: string; value: string }[];
@@ -108,7 +159,12 @@ export interface DestinationProposal {
   localPleasure: string;
   protectedDowntime: string;
   stillUnconfirmed: string[];
-  heroTone: string; // gradient class hint for the mock hero
+  heroTone: string; // gradient class hint / graceful image fallback
+  heroImage: ImageRef; // 16:9+ proposal hero
+  stay: StayPreview;
+  flight: FlightPreview;
+  moments: TripMoment[]; // three image-led rhythm moments
+  dining: DiningPreview;
   status: "suggested" | "saved" | "selected" | "rejected";
 }
 

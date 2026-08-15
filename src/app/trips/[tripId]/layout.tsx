@@ -1,10 +1,3 @@
-import { TripNavigation } from "@/components/shell";
-
 export default function TripLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div>
-      <TripNavigation />
-      <div className="mx-auto max-w-[1200px] px-5 py-8 md:py-10">{children}</div>
-    </div>
-  );
+  return <div className="mx-auto max-w-[1180px] px-5 pb-28 pt-8 md:px-8 md:pt-12">{children}</div>;
 }

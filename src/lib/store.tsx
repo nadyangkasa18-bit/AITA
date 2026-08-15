@@ -23,15 +23,21 @@ interface PersistShape {
   trips: Record<string, Trip>;
   order: Record<string, string[]>;
   reactions: Record<string, string[]>;
+  /** Which proposal is currently being shown as "the one I'd choose". */
+  featured: Record<string, string>;
 }
 
-const empty: PersistShape = { trips: {}, order: {}, reactions: {} };
+const empty: PersistShape = { trips: {}, order: {}, reactions: {}, featured: {} };
 
 interface StoreValue {
   hydrated: boolean;
   trips: Record<string, Trip>;
   order: Record<string, string[]>;
   reactions: Record<string, string[]>;
+  featured: Record<string, string>;
+  getFeaturedId: (id: string) => string | null;
+  showAnother: (id: string) => DestinationProposal | null;
+  resetFeatured: (id: string) => void;
   createTripFromPrompt: (prompt: string) => string;
   ensureSeedTrip: () => void;
   getTrip: (id: string) => Trip | undefined;
@@ -102,6 +108,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       trips: { ...s.trips, [trip.id]: trip },
       order: { ...s.order, [trip.id]: trip.destinationProposals.map((p) => p.id) },
       reactions: { ...s.reactions, [trip.id]: [] },
+      featured: { ...s.featured, [trip.id]: trip.destinationProposals[0]?.id ?? "" },
     }));
     return trip.id;
   }, []);
@@ -115,6 +122,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         trips: { ...s.trips, [trip.id]: trip },
         order: { ...s.order, [trip.id]: trip.destinationProposals.map((p) => p.id) },
         reactions: { ...s.reactions, [trip.id]: [] },
+        featured: { ...s.featured, [trip.id]: trip.destinationProposals[0]?.id ?? "" },
       };
     });
   }, []);
@@ -136,6 +144,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       trips: state.trips,
       order: state.order,
       reactions: state.reactions,
+      featured: state.featured,
+      getFeaturedId: (id) => {
+        const t = state.trips[id];
+        if (!t) return null;
+        return state.featured[id] ?? t.destinationProposals[0]?.id ?? null;
+      },
+      showAnother: (id) => {
+        const t = state.trips[id];
+        if (!t) return null;
+        const list = t.destinationProposals;
+        if (list.length < 2) return null;
+        const currentId = state.featured[id] ?? list[0].id;
+        const idx = list.findIndex((p) => p.id === currentId);
+        const next = list[(idx + 1) % list.length];
+        setState((s) => ({ ...s, featured: { ...s.featured, [id]: next.id } }));
+        return next;
+      },
+      resetFeatured: (id) => {
+        const t = state.trips[id];
+        if (!t) return;
+        setState((s) => ({
+          ...s,
+          featured: { ...s.featured, [id]: t.destinationProposals[0]?.id ?? "" },
+        }));
+      },
       createTripFromPrompt,
       ensureSeedTrip,
       getTrip: (id) => state.trips[id],

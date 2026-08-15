@@ -11,9 +11,8 @@ import { reasoningSteps, SAMPLE_PROMPT } from "@/lib/mock/seed";
 
 const EXAMPLES = [
   SAMPLE_PROMPT,
-  "A long weekend somewhere under five hours, nothing too busy.",
-  "Japan in November — good food, slow pace, no driving.",
-  "Somewhere the four of us can just switch off by the water.",
+  "A long weekend under five hours, nothing too busy.",
+  "Somewhere the four of us can switch off by the water.",
 ];
 
 export default function Home() {
@@ -95,17 +94,19 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="mx-auto mt-10 grid w-full max-w-[900px] gap-3 sm:grid-cols-2">
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            onClick={() => submit(ex)}
-            className="flex items-start justify-between gap-3 rounded-2xl border border-hair bg-surface p-4 text-left text-[14.5px] leading-snug text-ink-soft transition hover:-translate-y-0.5 hover:border-ink hover:shadow-[var(--shadow-card)]"
-          >
-            <span>{ex}</span>
-            <span aria-hidden className="text-faint">→</span>
-          </button>
-        ))}
+      <div className="mx-auto mt-8 flex w-full max-w-[720px] flex-col items-center gap-2">
+        <span className="text-[12px] text-faint">Or start from an idea</span>
+        <div className="flex flex-wrap justify-center gap-2">
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              onClick={() => submit(ex)}
+              className="rounded-full border border-hair-2 bg-transparent px-3.5 py-2 text-left text-[13.5px] leading-snug text-muted transition hover:border-ink hover:text-ink"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,118 +1,83 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { PRODUCT } from "@/config/product";
 import { Orb, useToast } from "@/components/ui";
+import { useStore } from "@/lib/store";
 
-/* -------------------- Global navigation -------------------- */
-const GLOBAL_LINKS = [
-  { href: "/explore", label: "Explore" },
-  { href: "/trips", label: "Trips" },
-  { href: "/saved", label: "Saved" },
-  { href: "/profile", label: "Traveler Profile" },
-];
-
+/* -------------------- Minimal header --------------------
+   Wordmark · current draft name · Saved ideas · Traveler Profile.
+   No exploratory wizard/stepper — that made the flow feel like a
+   long required form. Transactional steps appear later, at checkout. */
 export function GlobalNavigation() {
   const pathname = usePathname();
+  const store = useStore();
+
+  const tripMatch = pathname.match(/^\/trips\/([^/]+)/);
+  const tripId = tripMatch?.[1];
+  const draftName = tripId ? store.trips[tripId]?.name : undefined;
+
+  const savedCount = Object.values(store.trips).reduce(
+    (n, t) => n + t.savedProposalIds.length,
+    0
+  );
+
+  const link = (href: string, label: ReactNode, active: boolean) => (
+    <Link
+      href={href}
+      className={`rounded-full px-3 py-1.5 text-[13.5px] font-medium transition ${
+        active ? "text-ink" : "text-muted hover:text-ink"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+
   return (
-    <header className="sticky top-0 z-50 border-b border-hair bg-[rgba(244,242,236,0.82)] backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5">
-        <Link href="/" className="font-display text-[22px] font-extrabold tracking-[-0.03em]">
+    <header className="sticky top-0 z-50 border-b border-hair-2 bg-[rgba(244,242,236,0.8)] backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-[1180px] items-center gap-3 px-5 md:px-8">
+        <Link
+          href="/"
+          className="font-display text-[21px] font-extrabold tracking-[-0.03em] text-ink"
+        >
           {PRODUCT.name}
         </Link>
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Global">
-          {GLOBAL_LINKS.map((l) => {
-            const active = pathname === l.href || pathname.startsWith(l.href + "/");
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`rounded-full px-3.5 py-2 text-sm font-medium transition ${
-                  active ? "bg-surface text-ink shadow-[var(--shadow-card)]" : "text-muted hover:text-ink"
-                }`}
-              >
-                {l.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="ml-auto flex items-center gap-3">
-          <Link
-            href="/settings"
-            className="hidden text-sm text-muted transition hover:text-ink sm:block"
-          >
-            Settings
-          </Link>
-          <Link href="/profile" aria-label="Traveler Profile" className="grid place-items-center">
-            <Orb size={30} />
-          </Link>
-        </div>
-      </div>
-      {/* mobile global nav */}
-      <nav
-        className="flex items-center gap-1 overflow-x-auto border-t border-hair px-3 py-2 md:hidden"
-        aria-label="Global mobile"
-      >
-        {GLOBAL_LINKS.map((l) => {
-          const active = pathname === l.href || pathname.startsWith(l.href + "/");
-          return (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium ${
-                active ? "bg-surface text-ink" : "text-muted"
-              }`}
-            >
-              {l.label}
-            </Link>
-          );
-        })}
-      </nav>
-    </header>
-  );
-}
+        {draftName && (
+          <span className="hidden items-center gap-2 text-[14px] text-muted sm:flex">
+            <span aria-hidden className="text-hair">/</span>
+            <span className="text-ink-soft">{draftName}</span>
+          </span>
+        )}
 
-/* -------------------- Contextual trip navigation -------------------- */
-const TRIP_TABS = [
-  { seg: "brief", label: "Brief", ready: true },
-  { seg: "destinations", label: "Destinations", ready: true },
-  { seg: "workspace", label: "Workspace", ready: true },
-  { seg: "plan", label: "Plan", ready: false },
-  { seg: "bookings", label: "Bookings", ready: false },
-  { seg: "readiness", label: "Readiness", ready: false },
-];
-
-export function TripNavigation() {
-  const pathname = usePathname();
-  const params = useParams<{ tripId: string }>();
-  const tripId = params?.tripId ?? "girls-getaway";
-  return (
-    <div className="border-b border-hair bg-paper/60">
-      <div className="mx-auto flex max-w-[1200px] items-center gap-1 overflow-x-auto px-5 py-2">
-        {TRIP_TABS.map((t) => {
-          const href = `/trips/${tripId}/${t.seg}`;
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={t.seg}
-              href={href}
-              className={`flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13.5px] font-medium transition ${
-                active ? "bg-surface text-ink shadow-[var(--shadow-card)]" : "text-muted hover:text-ink"
-              }`}
-            >
-              {t.label}
-              {!t.ready && (
-                <span className="rounded-full bg-paper-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
-                  next
+        <nav className="ml-auto flex items-center gap-1" aria-label="Primary">
+          {link("/trips", "Trips", pathname === "/trips")}
+          {link(
+            "/saved",
+            <span className="flex items-center gap-1.5">
+              Saved ideas
+              {savedCount > 0 && (
+                <span className="grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-[#f3f6f1]">
+                  {savedCount}
                 </span>
               )}
-            </Link>
-          );
-        })}
+            </span>,
+            pathname.startsWith("/saved")
+          )}
+          <Link
+            href="/profile"
+            aria-label="Traveler Profile"
+            className={`ml-1 flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[13.5px] font-medium transition ${
+              pathname.startsWith("/profile") ? "text-ink" : "text-muted hover:text-ink"
+            }`}
+          >
+            <Orb size={26} />
+            <span className="hidden sm:inline">Profile</span>
+          </Link>
+        </nav>
       </div>
-    </div>
+    </header>
   );
 }
 
@@ -131,15 +96,13 @@ export function AssistantComposer() {
 
   return (
     <div className="fixed bottom-5 right-5 z-40 print:hidden">
-      <div
-        className={`flex items-center rounded-full border border-hair bg-surface p-1.5 shadow-[var(--shadow-pop)] transition-all duration-[400ms] [transition-timing-function:var(--ease-spring)]`}
-      >
+      <div className="flex items-center rounded-full border border-hair bg-surface p-1.5 shadow-[var(--shadow-pop)] transition-all duration-[400ms] [transition-timing-function:var(--ease-spring)]">
         <button
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close assistant" : "Ask Roam"}
           className="grid place-items-center rounded-full p-0.5"
         >
-          <Orb size={40} />
+          <Orb size={38} />
         </button>
         <div
           className={`flex items-center overflow-hidden transition-all duration-[400ms] [transition-timing-function:var(--ease-spring)] ${

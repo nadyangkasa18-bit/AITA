@@ -1,105 +1,126 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTrip, useStore } from "@/lib/store";
-import { DestinationProposalCard, RuledOutSection } from "@/components/destinations";
-import { PrototypeBadge, QuickReaction, useToast } from "@/components/ui";
-import { quickReactions } from "@/lib/mock/seed";
-import type { ProtectChoice } from "@/lib/types";
+import { ProposalView } from "@/components/proposal";
+import { RuledOutSection } from "@/components/destinations";
+import { Eyebrow, TradeoffNote, useToast } from "@/components/ui";
+import type { DestinationProposal } from "@/lib/types";
 
-const PROTECT_COPY: Record<Exclude<ProtectChoice, null>, string> = {
-  resort: "the best resort",
-  journey: "the easiest journey",
-  total: "the lowest total",
-  flexible: "whatever I'd choose",
+const UPSIDE: Record<string, string> = {
+  easier: "More convenient, and a little cheaper",
+  wildcard: "More distinctive, with the best resort of the three",
+  top: "The most complete fit for your brief",
 };
+
+function differences(alt: DestinationProposal): string[] {
+  return [UPSIDE[alt.recommendationType], ...alt.tradeoffs].slice(0, 3);
+}
 
 export default function DestinationsPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const { trip, hydrated } = useTrip(tripId);
   const store = useStore();
+  const router = useRouter();
   const { toast } = useToast();
 
   if (!hydrated || !trip) {
     return (
-      <div className="grid gap-5">
-        <div className="h-10 w-80 rounded-lg shimmer" />
-        <div className="h-72 rounded-card shimmer" />
-        <div className="h-72 rounded-card shimmer" />
+      <div>
+        <div className="h-[52vh] rounded-card shimmer" />
+        <div className="measure mt-8 grid gap-4">
+          <div className="h-12 w-64 rounded-lg shimmer" />
+          <div className="h-6 w-full rounded-lg shimmer" />
+        </div>
       </div>
     );
   }
 
-  const proposals = store.orderedProposals(trip.id);
-  const applied = store.reactions[trip.id] ?? [];
+  const list = trip.destinationProposals;
+  const baseId = list[0]?.id;
+  const featuredId = store.getFeaturedId(trip.id) ?? baseId;
+  const featured = list.find((p) => p.id === featuredId) ?? list[0];
+  const base = list[0];
+  const isChallenger = featured.id !== baseId;
+  const saved = trip.savedProposalIds.includes(featured.id);
+
+  const start = () => {
+    store.buildTrip(trip.id, featured.id);
+    toast(`Starting your ${featured.destination} trip…`);
+    router.push(`/trips/${trip.id}/workspace`);
+  };
+  const saveIdea = () => {
+    store.toggleSaveProposal(trip.id, featured.id);
+    toast(saved ? "Removed from your trip ideas." : "Saved to your trip ideas.");
+  };
+  const showAnother = () => {
+    const next = store.showAnother(trip.id);
+    if (next) toast(`Here's another direction — ${next.destination}.`);
+  };
+  const backToFirst = () => {
+    store.resetFeatured(trip.id);
+    toast(`Back to ${base.destination}.`);
+  };
+
+  const secondary = isChallenger ? (
+    <button
+      onClick={backToFirst}
+      className="text-[13px] font-medium text-muted transition hover:text-ink"
+    >
+      Back to my first recommendation
+    </button>
+  ) : (
+    <button
+      onClick={showAnother}
+      className="text-[13px] font-medium text-muted transition hover:text-ink"
+    >
+      Show me another
+    </button>
+  );
 
   return (
     <div>
-      <header className="mb-6 max-w-3xl">
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-            Three directions I&apos;d actually take you
-          </p>
-          <PrototypeBadge />
+      {isChallenger && (
+        <div className="measure mb-6 rounded-card border border-hair bg-surface-2 p-5">
+          <div className="flex items-center justify-between gap-3">
+            <Eyebrow>Compared to {base.destination}</Eyebrow>
+            <button
+              onClick={backToFirst}
+              className="text-[13px] font-medium text-accent transition hover:text-accent-press"
+            >
+              ← Back to my first recommendation
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2">
+            {differences(featured).map((d, i) =>
+              i === 0 ? (
+                <p key={d} className="flex items-start gap-2 text-[15px] text-ink-soft">
+                  <span aria-hidden className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                  {d}
+                </p>
+              ) : (
+                <TradeoffNote key={d}>{d}</TradeoffNote>
+              )
+            )}
+          </div>
         </div>
-        <h1 className="font-display text-4xl tracking-[-0.035em] md:text-5xl">Where I&apos;d go</h1>
-        <p className="mt-3 text-lg leading-relaxed text-muted">
-          Not a page of results — a short, opinionated shortlist. One I&apos;d choose, one that&apos;s
-          easier, and one wildcard.
-          {trip.protect && trip.protect !== "flexible" && (
-            <>
-              {" "}
-              I&apos;m protecting <span className="text-ink">{PROTECT_COPY[trip.protect]}</span>.
-            </>
-          )}
-        </p>
-      </header>
+      )}
 
-      {/* quick reactions */}
-      <div className="mb-6 rounded-card border border-hair bg-surface-2 p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <span className="text-[12.5px] font-semibold uppercase tracking-[0.1em] text-faint">
-            React and I&apos;ll adjust
-          </span>
-          {applied.length > 0 && (
-            <span className="text-[12px] text-accent">
-              Refined by: {applied.slice(-3).join(", ")}
-            </span>
-          )}
+      <ProposalView
+        proposal={featured}
+        saved={saved}
+        onSaveIdea={saveIdea}
+        onPrimary={start}
+        primaryLabel="Start with this trip"
+        secondary={secondary}
+        eyebrowOverride={isChallenger ? "The alternative" : undefined}
+      />
+
+      {!isChallenger && (
+        <div className="measure mt-8">
+          <RuledOutSection items={trip.ruledOut} />
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          {quickReactions.map((r) => (
-            <QuickReaction key={r} label={r} onClick={() => toast(store.applyReaction(trip.id, r))} />
-          ))}
-        </div>
-        <p className="mt-3 text-[12px] text-faint">
-          Or tell me in your own words with the assistant, bottom-right.
-        </p>
-      </div>
-
-      <div className="grid gap-6">
-        {proposals.map((p, i) => (
-          <DestinationProposalCard
-            key={p.id}
-            tripId={trip.id}
-            proposal={p}
-            featured={i === 0}
-            saved={trip.savedProposalIds.includes(p.id)}
-            onToggleSave={() => {
-              store.toggleSaveProposal(trip.id, p.id);
-              toast(
-                trip.savedProposalIds.includes(p.id)
-                  ? "Removed from saved"
-                  : `Saved ${p.destination} to this trip`
-              );
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="mt-6">
-        <RuledOutSection items={trip.ruledOut} />
-      </div>
+      )}
     </div>
   );
 }

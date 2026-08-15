@@ -129,6 +129,75 @@ export function TradeoffNote({ children }: { children: ReactNode }) {
   );
 }
 
+/* -------------------- Editorial primitives -------------------- */
+export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={`text-[11.5px] font-semibold uppercase tracking-[0.16em] text-faint ${className}`}>
+      {children}
+    </p>
+  );
+}
+
+/** A calm strip of short, verifiable proof points. */
+export function ConfidenceStrip({ chips }: { chips: string[] }) {
+  return (
+    <ul className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] text-muted">
+      {chips.map((c, i) => (
+        <li key={c} className="flex items-center gap-2">
+          {i > 0 && <span aria-hidden className="text-hair">·</span>}
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden className="text-accent">✓</span>
+            {c}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Inline progressive-disclosure toggle. */
+export function Disclosure({
+  label,
+  children,
+  defaultOpen = false,
+}: {
+  label: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent transition hover:text-accent-press"
+      >
+        {label}
+        <span aria-hidden className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
+          ⌄
+        </span>
+      </button>
+      {open && <div className="disclose mt-3">{children}</div>}
+    </div>
+  );
+}
+
+const LEVEL_TAG: Record<string, { label: string; cls: string }> = {
+  must: { label: "Must work", cls: "bg-accent-tint text-accent" },
+  prioritize: { label: "Prioritize", cls: "bg-amber-tint text-amber" },
+  flexible: { label: "Flexible", cls: "bg-paper-2 text-ink-soft" },
+  avoid: { label: "Avoid", cls: "bg-[#f0e2e0] text-[#8a4b3f]" },
+};
+export function LevelTag({ level }: { level: string }) {
+  const t = LEVEL_TAG[level] ?? LEVEL_TAG.flexible;
+  return (
+    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${t.cls}`}>
+      {t.label}
+    </span>
+  );
+}
+
 /* -------------------- Quick reaction -------------------- */
 export function QuickReaction({
   label,

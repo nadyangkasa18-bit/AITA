@@ -2,137 +2,103 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { BriefLevel, Trip, TripBriefItem, TripAssumption, ProtectChoice } from "@/lib/types";
+import type { BriefLevel, Trip, TripBriefItem, ProtectChoice } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { Button, Card, SourceTag, useToast } from "@/components/ui";
+import { Button, Disclosure, Eyebrow, LevelTag } from "@/components/ui";
 
-const LEVELS: { level: BriefLevel; label: string; hint: string }[] = [
-  { level: "must", label: "Must work", hint: "Roam won't break these without asking" },
-  { level: "prioritize", label: "Prioritize", hint: "Optimised around, not guaranteed" },
-  { level: "flexible", label: "Flexible", hint: "Roam can decide these for you" },
-  { level: "avoid", label: "Must avoid", hint: "Steer clear of these" },
+const LEVELS: { level: BriefLevel; label: string }[] = [
+  { level: "must", label: "Must work" },
+  { level: "prioritize", label: "Prioritize" },
+  { level: "flexible", label: "Flexible" },
+  { level: "avoid", label: "Avoid" },
 ];
-const LEVEL_LABEL: Record<BriefLevel, string> = {
-  must: "Must work",
-  prioritize: "Prioritize",
-  flexible: "Flexible",
-  avoid: "Must avoid",
-};
 
-function LevelSelect({
-  value,
-  onChange,
-}: {
-  value: BriefLevel;
-  onChange: (l: BriefLevel) => void;
-}) {
-  return (
-    <label className="relative inline-flex">
-      <span className="sr-only">Importance</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as BriefLevel)}
-        className="cursor-pointer appearance-none rounded-full border border-hair bg-surface py-1.5 pl-3 pr-7 text-[12.5px] font-medium text-ink-soft transition hover:border-ink focus-visible:outline-2 focus-visible:outline-accent"
-      >
-        {LEVELS.map((l) => (
-          <option key={l.level} value={l.level}>
-            {l.label}
-          </option>
-        ))}
-      </select>
-      <span aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-faint">
-        ▾
-      </span>
-    </label>
-  );
+/* order constraints so must-haves read first */
+const LEVEL_ORDER: Record<BriefLevel, number> = { must: 0, prioritize: 1, avoid: 2, flexible: 3 };
+
+function summarize(trip: Trip): string {
+  const priorities = trip.brief.items
+    .filter((i) => i.level === "prioritize" || i.level === "must")
+    .map((i) => i.statement.toLowerCase());
+  const lead = priorities.slice(0, 3);
+  const list =
+    lead.length <= 1
+      ? lead[0] ?? "a trip that fits how you travel"
+      : `${lead.slice(0, -1).join(", ")} and ${lead[lead.length - 1]}`;
+  return `A trip built around ${list} — with the details left to me until they matter.`;
 }
 
-function BriefItemRow({ tripId, item }: { tripId: string; item: TripBriefItem }) {
+function ConstraintRow({ tripId, item }: { tripId: string; item: TripBriefItem }) {
   const store = useStore();
-  const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState(item.statement);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-hair-2 py-3.5 last:border-b-0">
-      <div className="min-w-[200px] flex-1">
-        {editing ? (
+    <div className="border-b border-hair-2 last:border-b-0">
+      <div className="flex items-center justify-between gap-3 py-3.5">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="min-w-0 flex-1 text-left"
+          aria-expanded={open}
+        >
+          <span className="text-[16px] text-ink transition group-hover:text-accent">
+            {item.statement}
+          </span>
+        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <LevelTag level={item.level} />
+          <button
+            onClick={() => setOpen((o) => !o)}
+            aria-label="Edit constraint"
+            className="grid h-7 w-7 place-items-center rounded-full text-faint transition hover:bg-hair-2 hover:text-ink"
+          >
+            {open ? "⌃" : "✎"}
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="disclose mb-4 rounded-lg border border-hair bg-surface p-4">
+          <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">
+            Constraint
+          </label>
           <input
-            autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onBlur={() => {
-              store.editBriefItem(tripId, item.id, text.trim() || item.statement);
-              setEditing(false);
-            }}
+            onBlur={() => store.editBriefItem(tripId, item.id, text.trim() || item.statement)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 store.editBriefItem(tripId, item.id, text.trim() || item.statement);
-                setEditing(false);
-              }
-              if (e.key === "Escape") {
-                setText(item.statement);
-                setEditing(false);
+                setOpen(false);
               }
             }}
-            className="w-full rounded-lg border border-accent-line bg-surface px-3 py-1.5 text-[15px] outline-none"
+            className="w-full rounded-lg border border-accent-line bg-surface px-3 py-2 text-[15px] outline-none focus-visible:outline-2 focus-visible:outline-accent"
           />
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="text-left text-[15px] font-medium text-ink hover:text-accent"
-            title="Edit"
-          >
-            {item.statement}
-          </button>
-        )}
-        <div className="mt-1">
-          <SourceTag source={item.source} />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {LEVELS.map((l) => {
+              const active = item.level === l.level;
+              return (
+                <button
+                  key={l.level}
+                  onClick={() => store.setBriefLevel(tripId, item.id, l.level)}
+                  className={`rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition ${
+                    active
+                      ? "border-accent bg-accent-tint text-accent"
+                      : "border-hair text-muted hover:border-ink"
+                  }`}
+                >
+                  {l.label}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => store.removeBriefItem(tripId, item.id)}
+              className="ml-auto text-[12.5px] font-medium text-muted transition hover:text-[#8a4b3f]"
+            >
+              Remove
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <LevelSelect value={item.level} onChange={(l) => store.setBriefLevel(tripId, item.id, l)} />
-        <button
-          onClick={() => setEditing((e) => !e)}
-          aria-label="Edit detail"
-          className="grid h-8 w-8 place-items-center rounded-full border border-hair text-muted transition hover:border-ink hover:text-ink"
-        >
-          ✎
-        </button>
-        <button
-          onClick={() => store.removeBriefItem(tripId, item.id)}
-          aria-label="Remove detail"
-          className="grid h-8 w-8 place-items-center rounded-full border border-hair text-muted transition hover:border-ink hover:text-ink"
-        >
-          ✕
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AssumptionRow({ tripId, a }: { tripId: string; a: TripAssumption }) {
-  const store = useStore();
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(a.value);
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-hair-2 py-3 last:border-b-0">
-      <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-faint">{a.label}</div>
-      {editing ? (
-        <input
-          autoFocus
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onBlur={() => {
-            store.editAssumption(tripId, a.id, val.trim() || a.value);
-            setEditing(false);
-          }}
-          onKeyDown={(e) => e.key === "Enter" && (store.editAssumption(tripId, a.id, val.trim() || a.value), setEditing(false))}
-          className="w-52 rounded-lg border border-accent-line bg-surface px-3 py-1.5 text-[15px] outline-none"
-        />
-      ) : (
-        <button onClick={() => setEditing(true)} className="text-[15px] font-medium hover:text-accent">
-          {a.value} <span className="text-faint">✎</span>
-        </button>
       )}
     </div>
   );
@@ -140,20 +106,21 @@ function AssumptionRow({ tripId, a }: { tripId: string; a: TripAssumption }) {
 
 function AddDetail({ tripId }: { tripId: string }) {
   const store = useStore();
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  if (!open)
+
+  if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 rounded-full border border-dashed border-hair px-4 py-2 text-sm text-muted transition hover:border-ink hover:text-ink"
+        className="mt-4 text-[14px] font-medium text-accent transition hover:text-accent-press"
       >
         + Add a detail
       </button>
     );
+  }
   return (
-    <div className="mt-3 flex items-center gap-2">
+    <div className="mt-4 flex items-center gap-2">
       <input
         autoFocus
         value={text}
@@ -162,22 +129,18 @@ function AddDetail({ tripId }: { tripId: string }) {
         onKeyDown={(e) => {
           if (e.key === "Enter" && text.trim()) {
             store.addBriefItem(tripId, text.trim(), "prioritize");
-            toast(`Added — "${text.trim()}"`);
             setText("");
             setOpen(false);
           }
           if (e.key === "Escape") setOpen(false);
         }}
-        className="w-full max-w-md rounded-full border border-accent-line bg-surface px-4 py-2 text-sm outline-none"
+        className="w-full rounded-full border border-accent-line bg-surface px-4 py-2 text-[14px] outline-none"
       />
       <Button
         size="sm"
         onClick={() => {
-          if (text.trim()) {
-            store.addBriefItem(tripId, text.trim(), "prioritize");
-            toast(`Added — "${text.trim()}"`);
-            setText("");
-          }
+          if (text.trim()) store.addBriefItem(tripId, text.trim(), "prioritize");
+          setText("");
           setOpen(false);
         }}
       >
@@ -191,114 +154,93 @@ const PROTECT: { key: Exclude<ProtectChoice, null>; label: string }[] = [
   { key: "resort", label: "The best resort" },
   { key: "journey", label: "The easiest journey" },
   { key: "total", label: "The lowest total" },
-  { key: "flexible", label: "I'm flexible — show me what you'd choose" },
+  { key: "flexible", label: "Whatever you'd choose" },
 ];
 
-function FollowUp({ trip }: { trip: Trip }) {
-  const store = useStore();
-  return (
-    <Card className="p-6">
-      <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-accent">One quick thing</p>
-      <h3 className="mt-2 font-display text-2xl tracking-[-0.02em]">What would you most like me to protect?</h3>
-      <p className="mt-1.5 text-[15px] text-muted">Optional — skip it and I&apos;ll choose well on your behalf.</p>
-      <div className="mt-4 flex flex-wrap gap-2.5">
-        {PROTECT.map((p) => {
-          const active = trip.protect === p.key;
-          return (
-            <button
-              key={p.key}
-              onClick={() => store.setProtect(trip.id, active ? null : p.key)}
-              className={`rounded-full border px-4 py-2.5 text-sm font-medium transition ${
-                active
-                  ? "border-accent bg-accent text-[#f3f6f1]"
-                  : "border-hair bg-surface text-ink-soft hover:border-ink"
-              }`}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-hair-2 pt-5">
-        <span className="text-[13px] text-faint">Trip length</span>
-        {[3, 4, 5].map((n) => (
-          <button
-            key={n}
-            onClick={() => store.setTripLength(trip.id, trip.tripLength === n ? null : n)}
-            className={`rounded-full border px-3 py-1.5 text-[13px] transition ${
-              trip.tripLength === n ? "border-accent bg-accent-tint text-accent" : "border-hair text-muted hover:border-ink"
-            }`}
-          >
-            {n} nights
-          </button>
-        ))}
-        <span className="text-[12px] text-faint">— or leave it to Roam</span>
-      </div>
-    </Card>
-  );
-}
-
 export function TripBrief({ trip }: { trip: Trip }) {
+  const store = useStore();
   const router = useRouter();
-  const grouped = LEVELS.map((l) => ({
-    ...l,
-    items: trip.brief.items.filter((it) => it.level === l.level),
-  }));
+
+  const constraints = [...trip.brief.items].sort(
+    (a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]
+  );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-      <div className="grid gap-5">
-        {grouped.map((g) =>
-          g.items.length === 0 && g.level === "avoid" ? null : (
-            <Card key={g.level} className="p-6">
-              <div className="mb-1 flex items-baseline justify-between gap-3">
-                <h3 className="font-display text-xl tracking-[-0.02em]">{g.label}</h3>
-                <span className="text-[12.5px] text-faint">{g.hint}</span>
-              </div>
-              {g.items.length === 0 ? (
-                <p className="py-3 text-sm text-faint">Nothing here yet — move a detail in, or add one.</p>
-              ) : (
-                <div>
-                  {g.items.map((it) => (
-                    <BriefItemRow key={it.id} tripId={trip.id} item={it} />
-                  ))}
-                </div>
-              )}
-              {g.level === "prioritize" && <AddDetail tripId={trip.id} />}
-            </Card>
-          )
-        )}
+    <div className="measure mx-auto">
+      <Eyebrow>Your trip brief</Eyebrow>
+      <h1 className="mt-3 font-display text-[clamp(30px,5vw,46px)] leading-[1.05] tracking-[-0.035em]">
+        Here&apos;s what matters
+      </h1>
+      <p className="mt-4 text-[18px] leading-relaxed text-muted">{summarize(trip)}</p>
+
+      <div className="mt-9">
+        {constraints.map((it) => (
+          <ConstraintRow key={it.id} tripId={trip.id} item={it} />
+        ))}
+        <AddDetail tripId={trip.id} />
       </div>
 
-      <div className="grid content-start gap-5">
-        <Card className="p-6">
-          <h3 className="font-display text-xl tracking-[-0.02em]">What I&apos;m assuming</h3>
-          <p className="mt-1 text-[13px] text-muted">Editable — these are prototype assumptions, not fixed facts.</p>
-          <div className="mt-3">
-            {trip.brief.assumptions.map((a) => (
-              <AssumptionRow key={a.id} tripId={trip.id} a={a} />
-            ))}
+      <div className="mt-8">
+        <Disclosure label="Adjust the brief">
+          <div className="grid gap-6">
+            <div>
+              <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-faint">
+                What I&apos;m assuming
+              </p>
+              <div className="rounded-lg border border-hair bg-surface">
+                {trip.brief.assumptions.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between gap-4 border-b border-hair-2 px-4 py-2.5 last:border-b-0"
+                  >
+                    <span className="text-[13px] font-medium text-faint">{a.label}</span>
+                    <input
+                      defaultValue={a.value}
+                      onBlur={(e) =>
+                        store.editAssumption(trip.id, a.id, e.target.value.trim() || a.value)
+                      }
+                      className="w-44 rounded-md bg-transparent px-2 py-1 text-right text-[14px] text-ink outline-none focus-visible:bg-surface-2"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-faint">
+                Anything you&apos;d most like me to protect?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {PROTECT.map((p) => {
+                  const active = trip.protect === p.key;
+                  return (
+                    <button
+                      key={p.key}
+                      onClick={() => store.setProtect(trip.id, active ? null : p.key)}
+                      className={`rounded-full border px-3.5 py-2 text-[13px] font-medium transition ${
+                        active
+                          ? "border-accent bg-accent text-[#f3f6f1]"
+                          : "border-hair text-ink-soft hover:border-ink"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </Card>
+        </Disclosure>
+      </div>
 
-        <FollowUp trip={trip} />
-
-        <div className="sticky bottom-24 lg:bottom-6">
-          <Button
-            className="w-full"
-            variant="ink"
-            onClick={() => router.push(`/trips/${trip.id}/destinations`)}
-          >
-            Show me where you&apos;d go →
-          </Button>
-          <p className="mt-2 text-center text-[12px] text-faint">
-            You can keep editing the brief afterwards — nothing is locked.
-          </p>
-        </div>
+      <div className="mt-10 flex flex-col items-start gap-3">
+        <Button variant="accent" onClick={() => router.push(`/trips/${trip.id}/destinations`)}>
+          Show me the best fit →
+        </Button>
+        <p className="text-[13px] text-faint">
+          Nothing is locked — you can keep editing this afterwards.
+        </p>
       </div>
     </div>
   );
 }
-
-export { LEVEL_LABEL };
