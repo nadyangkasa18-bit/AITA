@@ -25,18 +25,21 @@ type Particle = {
   scatterDuration: number;
   scatterDelay: number;
   scatterBend: number;
+  rejoinedAt: number;
 };
 
 const WIDTH = 1440;
 const HEIGHT = 900;
 const DOT_COUNT = 24;
-const IDLE_DELAY_MS = 520;
-const ACTIVATION_DISTANCE_PX = 11;
+const IDLE_DELAY_MS = 800;
+const RESUME_RAMP_MS = 1000;
+const ACTIVATION_DISTANCE_PX = 14;
 const ACTIVATION_WINDOW_MS = 135;
-const ACTIVE_STEP_PX = 2.75;
+const ACTIVE_STEP_PX = 4;
 
-const GRID_VERTICAL = Array.from({ length: 36 }, (_, index) => -18 + index * 42);
-const GRID_HORIZONTAL = Array.from({ length: 26 }, (_, index) => -14 + index * 36);
+// ~20% tighter than the previous 42px / 36px grid.
+const GRID_VERTICAL = Array.from({ length: 44 }, (_, index) => -18 + index * 34);
+const GRID_HORIZONTAL = Array.from({ length: 33 }, (_, index) => -14 + index * 29);
 const DIAGONAL_ROADS = [
   { offset: -180, slope: 0.24 },
   { offset: 118, slope: 0.3 },
@@ -46,7 +49,6 @@ const DIAGONAL_ROADS = [
 
 const clamp = (value: number, min = 0, max = 1) =>
   Math.min(max, Math.max(min, value));
-
 const wrap = (value: number) => ((value % 1) + 1) % 1;
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -64,13 +66,8 @@ function buildRoutes(): Route[] {
 
 function routePoint(route: Route, progress: number): Point {
   const p = wrap(progress);
-  if (route.kind === "h") {
-    return { x: -50 + p * (WIDTH + 100), y: route.value };
-  }
-  if (route.kind === "v") {
-    return { x: route.value, y: -50 + p * (HEIGHT + 100) };
-  }
-
+  if (route.kind === "h") return { x: -50 + p * (WIDTH + 100), y: route.value };
+  if (route.kind === "v") return { x: route.value, y: -50 + p * (HEIGHT + 100) };
   const x = -110 + p * (WIDTH + 220);
   return { x, y: x * route.slope + route.offset };
 }
@@ -88,8 +85,7 @@ function routeSpan(route: Route) {
 }
 
 function routeDistance(route: Route, point: Point) {
-  const progress = nearestProgress(route, point);
-  return distance(routePoint(route, progress), point);
+  return distance(routePoint(route, nearestProgress(route, point)), point);
 }
 
 function easeInOutCubic(value: number) {
@@ -98,15 +94,20 @@ function easeInOutCubic(value: number) {
     : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }
 
+function easeOutCubic(value: number) {
+  return 1 - Math.pow(1 - value, 3);
+}
+
 function buildParticles(routes: Route[]): Particle[] {
   const colors = [
     "rgba(49,70,59,0.74)",
     "rgba(70,73,162,0.76)",
     "rgba(166,113,68,0.6)",
   ];
+  const trafficRoutes = routes.flatMap((route, index) => (route.kind === "d" ? [] : [index]));
 
   return Array.from({ length: DOT_COUNT }, (_, index) => {
-    const routeIndex = Math.floor(seeded(index + 7) * routes.length) % routes.length;
+    const routeIndex = trafficRoutes[Math.floor(seeded(index + 7) * trafficRoutes.length) % trafficRoutes.length];
     const progress = seeded(index + 11);
     return {
       routeIndex,
@@ -124,6 +125,7 @@ function buildParticles(routes: Route[]): Particle[] {
       scatterDuration: 1200,
       scatterDelay: 0,
       scatterBend: 0,
+      rejoinedAt: 0,
     };
   });
 }
@@ -139,12 +141,11 @@ function GridLines({ focus = false }: { focus?: boolean }) {
           x2={WIDTH + 40}
           y2={y}
           stroke={focus ? "#303934" : "url(#oceanStreet)"}
-          strokeWidth={focus ? (index % 6 === 2 ? 0.92 : 0.72) : index % 6 === 2 ? 0.8 : 0.58}
-          opacity={focus ? (index % 6 === 2 ? 0.28 : 0.21) : 1}
+          strokeWidth={focus ? (index % 7 === 2 ? 0.9 : 0.68) : index % 7 === 2 ? 0.76 : 0.54}
+          opacity={focus ? (index % 7 === 2 ? 0.27 : 0.2) : 1}
           vectorEffect="non-scaling-stroke"
         />
       ))}
-
       {GRID_VERTICAL.map((x, index) => (
         <line
           key={`${focus ? "focus" : "base"}-v-${index}`}
@@ -153,12 +154,11 @@ function GridLines({ focus = false }: { focus?: boolean }) {
           x2={x}
           y2={HEIGHT + 40}
           stroke={focus ? "#303934" : "url(#oceanStreet)"}
-          strokeWidth={focus ? (index % 6 === 1 ? 0.92 : 0.72) : index % 6 === 1 ? 0.8 : 0.58}
-          opacity={focus ? (index % 6 === 1 ? 0.28 : 0.21) : 1}
+          strokeWidth={focus ? (index % 7 === 1 ? 0.9 : 0.68) : index % 7 === 1 ? 0.76 : 0.54}
+          opacity={focus ? (index % 7 === 1 ? 0.27 : 0.2) : 1}
           vectorEffect="non-scaling-stroke"
         />
       ))}
-
       {DIAGONAL_ROADS.map((road, index) => {
         const x1 = -100;
         const x2 = WIDTH + 100;
@@ -170,8 +170,8 @@ function GridLines({ focus = false }: { focus?: boolean }) {
             x2={x2}
             y2={x2 * road.slope + road.offset}
             stroke={focus ? "#725b4b" : "url(#oceanWarm)"}
-            strokeWidth={focus ? 0.76 : 0.62}
-            opacity={focus ? 0.2 : 1}
+            strokeWidth={focus ? 0.72 : 0.58}
+            opacity={focus ? 0.18 : 1}
             strokeDasharray="2 8"
             vectorEffect="non-scaling-stroke"
           />
@@ -194,13 +194,12 @@ export function InteractiveTravelField() {
   const lastFrameRef = useRef<number | null>(null);
   const reducedMotionRef = useRef(false);
 
-  const [particles, setParticles] = useState<Point[]>(() =>
-    particlesRef.current.map((particle) => particle.position),
-  );
+  const [particles, setParticles] = useState<Point[]>(() => particlesRef.current.map((particle) => particle.position));
   const [cursor, setCursor] = useState<Point>(visualCursorRef.current);
   const [swarmCenter, setSwarmCenter] = useState<Point>(swarmTargetRef.current);
   const [mode, setMode] = useState<"idle" | "gather" | "disperse">("idle");
   const [pointerSeen, setPointerSeen] = useState(false);
+  const [overTextInput, setOverTextInput] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -224,28 +223,21 @@ export function InteractiveTravelField() {
       const now = performance.now();
       const origin = { ...swarmTargetRef.current };
       const nearbyRoutes = routes
-        .map((route, routeIndex) => ({
-          route,
-          routeIndex,
-          distance: routeDistance(route, origin),
-        }))
+        .map((route, routeIndex) => ({ route, routeIndex, distance: routeDistance(route, origin) }))
+        .filter(({ route }) => route.kind !== "d")
         .sort((a, b) => a.distance - b.distance)
-        .slice(0, 18);
+        .slice(0, 14);
 
       modeRef.current = "disperse";
       setMode("disperse");
 
       particlesRef.current.forEach((particle, index) => {
-        const choice = nearbyRoutes[
-          (index * 5 + Math.floor(seeded(index + now * 0.001 + 91) * 7)) % nearbyRoutes.length
-        ];
+        const choice = nearbyRoutes[(index * 5 + Math.floor(seeded(index + now * 0.001 + 91) * 7)) % nearbyRoutes.length];
         const route = choice.route;
         const baseProgress = nearestProgress(route, origin);
         const outwardDirection: 1 | -1 = seeded(index + now * 0.0017 + 117) > 0.5 ? 1 : -1;
-        const localTravel = 24 + seeded(index + 131) * 72;
-        const targetProgress = wrap(
-          baseProgress + (outwardDirection * localTravel) / routeSpan(route),
-        );
+        const localTravel = 8 + seeded(index + 131) * 28;
+        const targetProgress = wrap(baseProgress + (outwardDirection * localTravel) / routeSpan(route));
 
         particle.position = { ...origin };
         particle.scatterFrom = { ...origin };
@@ -253,11 +245,12 @@ export function InteractiveTravelField() {
         particle.scatterProgress = targetProgress;
         particle.scatterTo = routePoint(route, targetProgress);
         particle.scatterStartedAt = now;
-        particle.scatterDelay = seeded(index + 151) * 260;
-        particle.scatterDuration = 1050 + seeded(index + 171) * 620;
-        particle.scatterBend = (seeded(index + 191) - 0.5) * 18;
+        particle.scatterDelay = 20 + seeded(index + 151) * 120;
+        particle.scatterDuration = 1000 + seeded(index + 171) * 480;
+        particle.scatterBend = (seeded(index + 191) - 0.5) * 10;
         particle.direction = outwardDirection;
         particle.speed = 0.016 + seeded(index + now * 0.001 + 211) * 0.021;
+        particle.rejoinedAt = 0;
       });
     };
 
@@ -284,6 +277,8 @@ export function InteractiveTravelField() {
       const point = { x: event.clientX, y: event.clientY };
       const mapped = toFieldPoint(point);
       const now = performance.now();
+      const target = event.target instanceof Element ? event.target : null;
+      setOverTextInput(Boolean(target?.closest("input, textarea, [contenteditable='true']")));
 
       visualCursorRef.current = mapped;
       setCursor(mapped);
@@ -303,7 +298,6 @@ export function InteractiveTravelField() {
         candidateRef.current = { point, startedAt: now };
         return;
       }
-
       if (distance(point, pending.point) < ACTIVATION_DISTANCE_PX) return;
       activate(point);
     };
@@ -311,6 +305,7 @@ export function InteractiveTravelField() {
     const onPointerLeave = () => {
       candidateRef.current = null;
       lastMeaningfulPointer.current = null;
+      setOverTextInput(false);
       if (idleTimer.current) clearTimeout(idleTimer.current);
       beginDisperse();
     };
@@ -326,12 +321,8 @@ export function InteractiveTravelField() {
       particlesRef.current.forEach((particle) => {
         if (currentMode === "gather") {
           particle.position = {
-            x:
-              particle.position.x +
-              (swarmTargetRef.current.x - particle.position.x) * gatherEase,
-            y:
-              particle.position.y +
-              (swarmTargetRef.current.y - particle.position.y) * gatherEase,
+            x: particle.position.x + (swarmTargetRef.current.x - particle.position.x) * gatherEase,
+            y: particle.position.y + (swarmTargetRef.current.y - particle.position.y) * gatherEase,
           };
           return;
         }
@@ -345,41 +336,43 @@ export function InteractiveTravelField() {
           }
 
           const raw = clamp(elapsed / particle.scatterDuration);
-          const eased = easeInOutCubic(raw);
-          const from = particle.scatterFrom;
-          const to = particle.scatterTo;
-          const dx = to.x - from.x;
-          const dy = to.y - from.y;
-          const length = Math.max(1, Math.hypot(dx, dy));
-          const nx = -dy / length;
-          const ny = dx / length;
-          const arc = Math.sin(Math.PI * raw) * particle.scatterBend;
-
-          particle.position = {
-            x: from.x + dx * eased + nx * arc,
-            y: from.y + dy * eased + ny * arc,
-          };
-
           if (raw < 1) {
+            const eased = easeInOutCubic(raw);
+            const from = particle.scatterFrom;
+            const to = particle.scatterTo;
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const length = Math.max(1, Math.hypot(dx, dy));
+            const nx = -dy / length;
+            const ny = dx / length;
+            const arc = Math.sin(Math.PI * raw) * particle.scatterBend;
+            particle.position = {
+              x: from.x + dx * eased + nx * arc,
+              y: from.y + dy * eased + ny * arc,
+            };
             dispersing = true;
-          } else {
+            return;
+          }
+
+          if (!particle.rejoinedAt) {
             particle.routeIndex = particle.scatterRouteIndex;
             particle.progress = particle.scatterProgress;
-            particle.position = routePoint(
-              routes[particle.routeIndex],
-              particle.progress,
-            );
+            particle.rejoinedAt = now;
           }
+
+          const ramp = clamp((now - particle.rejoinedAt) / RESUME_RAMP_MS);
+          const speedScale = 0.04 + easeOutCubic(ramp) * 0.96;
+          particle.progress = wrap(particle.progress + particle.speed * speedScale * particle.direction * dt);
+          particle.position = routePoint(routes[particle.routeIndex], particle.progress);
+          if (ramp < 1) dispersing = true;
           return;
         }
 
-        particle.progress = wrap(
-          particle.progress + particle.speed * particle.direction * dt,
-        );
-        particle.position = routePoint(
-          routes[particle.routeIndex],
-          particle.progress,
-        );
+        const ramp = particle.rejoinedAt ? clamp((now - particle.rejoinedAt) / RESUME_RAMP_MS) : 1;
+        const speedScale = particle.rejoinedAt ? 0.04 + easeOutCubic(ramp) * 0.96 : 1;
+        if (ramp >= 1) particle.rejoinedAt = 0;
+        particle.progress = wrap(particle.progress + particle.speed * speedScale * particle.direction * dt);
+        particle.position = routePoint(routes[particle.routeIndex], particle.progress);
       });
 
       if (currentMode === "disperse" && !dispersing) {
@@ -388,11 +381,8 @@ export function InteractiveTravelField() {
       }
 
       if (!reducedMotionRef.current) {
-        setParticles(
-          particlesRef.current.map((particle) => ({ ...particle.position })),
-        );
+        setParticles(particlesRef.current.map((particle) => ({ ...particle.position })));
       }
-
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -411,15 +401,17 @@ export function InteractiveTravelField() {
     };
   }, [routes]);
 
-  const focusOpacity = mode === "gather" ? 1 : mode === "disperse" ? 0.34 : 0;
-  const cursorDotOpacity = pointerSeen
-    ? mode === "gather"
-      ? 1
-      : mode === "disperse"
-        ? 0.58
-        : 0.38
-    : 0;
-  const cursorDotRadius = mode === "gather" ? 6.5 : mode === "disperse" ? 4.5 : 3;
+  const focusOpacity = mode === "gather" ? 1 : mode === "disperse" ? 0.24 : 0;
+  const cursorDotOpacity = overTextInput
+    ? 0
+    : pointerSeen
+      ? mode === "gather"
+        ? 1
+        : mode === "disperse"
+          ? 0.42
+          : 0.3
+      : 0;
+  const cursorDotRadius = mode === "gather" ? 6.5 : mode === "disperse" ? 4.2 : 3;
 
   return (
     <div className="street-field" data-state={mode} aria-hidden>
@@ -428,117 +420,42 @@ export function InteractiveTravelField() {
       <div className="street-field__wash street-field__wash--sand" />
       <div className="street-field__wash street-field__wash--indigo" />
 
-      <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        preserveAspectRatio="xMidYMid slice"
-        className="street-field__map"
-      >
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="xMidYMid slice" className="street-field__map">
         <defs>
-          <linearGradient
-            id="oceanStreet"
-            gradientUnits="userSpaceOnUse"
-            x1="-260"
-            y1="0"
-            x2="980"
-            y2="900"
-          >
-            <stop offset="0" stopColor="#465048" stopOpacity="0.06" />
-            <stop offset="0.28" stopColor="#465048" stopOpacity="0.085" />
-            <stop offset="0.48" stopColor="#666f98" stopOpacity="0.13" />
-            <stop offset="0.65" stopColor="#5d7769" stopOpacity="0.1" />
-            <stop offset="0.84" stopColor="#465048" stopOpacity="0.07" />
-            <stop offset="1" stopColor="#465048" stopOpacity="0.055" />
-            {!reducedMotion && (
-              <animateTransform
-                attributeName="gradientTransform"
-                type="translate"
-                values="-220 -70; 240 90; -220 -70"
-                dur="20s"
-                repeatCount="indefinite"
-              />
-            )}
+          <linearGradient id="oceanStreet" gradientUnits="userSpaceOnUse" x1="-260" y1="0" x2="980" y2="900">
+            <stop offset="0" stopColor="#465048" stopOpacity="0.05" />
+            <stop offset="0.28" stopColor="#465048" stopOpacity="0.073" />
+            <stop offset="0.48" stopColor="#666f98" stopOpacity="0.11" />
+            <stop offset="0.65" stopColor="#5d7769" stopOpacity="0.086" />
+            <stop offset="0.84" stopColor="#465048" stopOpacity="0.06" />
+            <stop offset="1" stopColor="#465048" stopOpacity="0.047" />
+            {!reducedMotion && <animateTransform attributeName="gradientTransform" type="translate" values="-220 -70; 240 90; -220 -70" dur="20s" repeatCount="indefinite" />}
           </linearGradient>
-
-          <linearGradient
-            id="oceanWarm"
-            gradientUnits="userSpaceOnUse"
-            x1="0"
-            y1="-180"
-            x2="1100"
-            y2="760"
-          >
-            <stop offset="0" stopColor="#8d755f" stopOpacity="0.045" />
-            <stop offset="0.36" stopColor="#9a8067" stopOpacity="0.075" />
-            <stop offset="0.58" stopColor="#7777a3" stopOpacity="0.09" />
-            <stop offset="0.8" stopColor="#8d755f" stopOpacity="0.055" />
-            <stop offset="1" stopColor="#8d755f" stopOpacity="0.04" />
-            {!reducedMotion && (
-              <animateTransform
-                attributeName="gradientTransform"
-                type="translate"
-                values="160 70; -180 -50; 160 70"
-                dur="24s"
-                repeatCount="indefinite"
-              />
-            )}
+          <linearGradient id="oceanWarm" gradientUnits="userSpaceOnUse" x1="0" y1="-180" x2="1100" y2="760">
+            <stop offset="0" stopColor="#8d755f" stopOpacity="0.04" />
+            <stop offset="0.36" stopColor="#9a8067" stopOpacity="0.064" />
+            <stop offset="0.58" stopColor="#7777a3" stopOpacity="0.076" />
+            <stop offset="0.8" stopColor="#8d755f" stopOpacity="0.047" />
+            <stop offset="1" stopColor="#8d755f" stopOpacity="0.034" />
+            {!reducedMotion && <animateTransform attributeName="gradientTransform" type="translate" values="160 70; -180 -50; 160 70" dur="24s" repeatCount="indefinite" />}
           </linearGradient>
-
-          <radialGradient
-            id="gridFocusMaskGradient"
-            gradientUnits="userSpaceOnUse"
-            cx={swarmCenter.x}
-            cy={swarmCenter.y}
-            r="112"
-          >
+          <radialGradient id="gridFocusMaskGradient" gradientUnits="userSpaceOnUse" cx={swarmCenter.x} cy={swarmCenter.y} r="112">
             <stop offset="0" stopColor="white" stopOpacity="1" />
             <stop offset="0.58" stopColor="white" stopOpacity="0.9" />
             <stop offset="0.82" stopColor="white" stopOpacity="0.48" />
             <stop offset="1" stopColor="white" stopOpacity="0" />
           </radialGradient>
-
-          <mask
-            id="gridFocusMask"
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width={WIDTH}
-            height={HEIGHT}
-          >
-            <rect
-              x="0"
-              y="0"
-              width={WIDTH}
-              height={HEIGHT}
-              fill="url(#gridFocusMaskGradient)"
-            />
+          <mask id="gridFocusMask" maskUnits="userSpaceOnUse" x="0" y="0" width={WIDTH} height={HEIGHT}>
+            <rect x="0" y="0" width={WIDTH} height={HEIGHT} fill="url(#gridFocusMaskGradient)" />
           </mask>
         </defs>
 
-        <g className="street-field__base-grid">
-          <GridLines />
-        </g>
-
-        <g
-          className="street-field__focus-grid"
-          mask="url(#gridFocusMask)"
-          style={{ opacity: focusOpacity }}
-        >
-          <GridLines focus />
-        </g>
-
+        <g className="street-field__base-grid"><GridLines /></g>
+        <g className="street-field__focus-grid" mask="url(#gridFocusMask)" style={{ opacity: focusOpacity }}><GridLines focus /></g>
         <g className="street-field__traffic">
           {particles.map((point, index) => {
             const particle = particlesRef.current[index];
-            return (
-              <circle
-                key={`particle-${index}`}
-                cx={point.x}
-                cy={point.y}
-                r={particle?.radius ?? 2.25}
-                fill={particle?.color ?? "rgba(49,70,59,0.74)"}
-                opacity={mode === "gather" ? 0.7 : 0.92}
-              />
-            );
+            return <circle key={`particle-${index}`} cx={point.x} cy={point.y} r={particle?.radius ?? 2.25} fill={particle?.color ?? "rgba(49,70,59,0.74)"} opacity={mode === "gather" ? 0.7 : 0.92} />;
           })}
         </g>
       </svg>
@@ -557,9 +474,10 @@ export function InteractiveTravelField() {
       <style jsx global>{`
         html.roam-swarm-cursor,
         html.roam-swarm-cursor body,
-        html.roam-swarm-cursor * {
-          cursor: none !important;
-        }
+        html.roam-swarm-cursor * { cursor: none !important; }
+        html.roam-swarm-cursor input,
+        html.roam-swarm-cursor textarea,
+        html.roam-swarm-cursor [contenteditable="true"] { cursor: text !important; }
       `}</style>
 
       <style jsx>{`
@@ -570,7 +488,6 @@ export function InteractiveTravelField() {
           pointer-events: none;
           background: #f4f2ec;
         }
-
         .street-field__base {
           position: absolute;
           inset: 0;
@@ -579,7 +496,6 @@ export function InteractiveTravelField() {
             linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(244, 242, 236, 0.05)),
             radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.02) 42%);
         }
-
         .street-field__wash {
           position: absolute;
           width: 54vw;
@@ -590,79 +506,28 @@ export function InteractiveTravelField() {
           filter: blur(28px);
           opacity: 0.7;
         }
-
-        .street-field__wash--sage {
-          left: -22vw;
-          top: -30vw;
-          background: radial-gradient(circle, rgba(130, 168, 143, 0.17), rgba(130, 168, 143, 0.045) 48%, transparent 72%);
-        }
-
-        .street-field__wash--sand {
-          right: -19vw;
-          bottom: -34vw;
-          background: radial-gradient(circle, rgba(219, 175, 119, 0.17), rgba(219, 175, 119, 0.04) 48%, transparent 73%);
-        }
-
-        .street-field__wash--indigo {
-          width: 44vw;
-          height: 44vw;
-          right: 5vw;
-          top: -8vw;
-          opacity: 0.7;
-          background: radial-gradient(circle, rgba(76, 67, 176, 0.125), rgba(76, 67, 176, 0.04) 48%, transparent 73%);
-        }
-
-        .street-field__map {
-          position: absolute;
-          inset: -3%;
-          width: 106%;
-          height: 106%;
-          opacity: 0.98;
-          filter: saturate(0.94);
-        }
-
-        .street-field__focus-grid {
-          transition: opacity 760ms cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        .street-field[data-state="gather"] .street-field__focus-grid {
-          transition-duration: 180ms;
-        }
-
+        .street-field__wash--sage { left: -22vw; top: -30vw; background: radial-gradient(circle, rgba(130, 168, 143, 0.17), rgba(130, 168, 143, 0.045) 48%, transparent 72%); }
+        .street-field__wash--sand { right: -19vw; bottom: -34vw; background: radial-gradient(circle, rgba(219, 175, 119, 0.17), rgba(219, 175, 119, 0.04) 48%, transparent 73%); }
+        .street-field__wash--indigo { width: 44vw; height: 44vw; right: 5vw; top: -8vw; opacity: 0.7; background: radial-gradient(circle, rgba(76, 67, 176, 0.125), rgba(76, 67, 176, 0.04) 48%, transparent 73%); }
+        .street-field__map { position: absolute; inset: -3%; width: 106%; height: 106%; opacity: 0.98; filter: saturate(0.94); }
+        .street-field__focus-grid { transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1); }
+        .street-field[data-state="gather"] .street-field__focus-grid { transition-duration: 180ms; }
         .street-field__cursor-dot {
           position: absolute;
+          z-index: 80;
           transform: translate(-50%, -50%);
           border-radius: 999px;
+          pointer-events: none;
           background: #414996;
-          box-shadow:
-            0 0 0 1px rgba(255, 255, 255, 0.7),
-            0 4px 16px rgba(57, 67, 60, 0.1);
-          transition:
-            width 240ms cubic-bezier(0.22, 1, 0.36, 1),
-            height 240ms cubic-bezier(0.22, 1, 0.36, 1),
-            opacity 520ms cubic-bezier(0.22, 1, 0.36, 1);
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7), 0 4px 16px rgba(57, 67, 60, 0.1);
+          transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1), height 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 620ms cubic-bezier(0.22, 1, 0.36, 1);
         }
-
         @media (prefers-reduced-motion: reduce) {
-          .street-field__traffic,
-          .street-field__focus-grid,
-          .street-field__cursor-dot {
-            display: none;
-          }
+          .street-field__traffic, .street-field__focus-grid, .street-field__cursor-dot { display: none; }
         }
-
         @media (max-width: 700px) {
-          .street-field__map {
-            inset: -14%;
-            width: 128%;
-            height: 128%;
-            opacity: 0.72;
-          }
-
-          .street-field__focus-grid,
-          .street-field__cursor-dot {
-            display: none;
-          }
+          .street-field__map { inset: -14%; width: 128%; height: 128%; opacity: 0.72; }
+          .street-field__focus-grid, .street-field__cursor-dot { display: none; }
         }
       `}</style>
     </div>
