@@ -180,7 +180,7 @@ export default function Home() {
               event.preventDefault();
               submit(value);
             }}
-            className="relative z-10 m-px flex items-center gap-3 rounded-full bg-white p-2.5 pl-5 shadow-[0_18px_48px_-34px_rgba(27,26,23,0.32)] transition-[box-shadow,transform] duration-300 focus-within:-translate-y-0.5 focus-within:shadow-[0_24px_58px_-32px_rgba(27,26,23,0.38)]"
+            className="relative z-10 m-px flex items-center gap-3 rounded-full bg-white p-2.5 pl-5 shadow-[0_18px_48px_-34px_rgba(27,26,23,0.32)] transition-shadow duration-300 focus-within:shadow-[0_20px_48px_-34px_rgba(27,26,23,0.28)]"
           >
             <Orb size={30} />
             <div className="relative min-w-0 flex-1">
