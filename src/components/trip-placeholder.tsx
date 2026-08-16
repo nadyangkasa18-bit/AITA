@@ -8,8 +8,8 @@ export function TripPlaceholder({
   title,
   body,
   bullets,
-  back = "workspace",
-  backLabel = "Back to workspace",
+  back = "home",
+  backLabel = "Back to Trip Home",
 }: {
   eyebrow?: string;
   title: string;

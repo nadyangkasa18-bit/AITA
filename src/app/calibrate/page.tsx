@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { ComparisonRound } from "@/components/choice";
-import { Photo } from "@/components/photo";
-import { Button, Eyebrow } from "@/components/ui";
+import { CalibrationVignette } from "@/components/calibration-vignette";
+import { Button, Eyebrow, SidePanel } from "@/components/ui";
 import {
   AVOID_PRESETS,
   buildPrefsFromCalibration,
@@ -317,39 +317,59 @@ function Summary({
 
 /* -------------------- welcome -------------------- */
 function Welcome({ onStart }: { onStart: () => void }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   return (
-    <div className="mx-auto max-w-[840px] px-5 py-10 md:py-16">
-      <Photo
-        image={{
-          url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
-          alt: "A calm, atmospheric travel landscape at golden hour",
-          position: "center 55%",
-        }}
-        ratio="hero"
-        width={1600}
-        rounded="rounded-card"
-        priority
-        className="max-h-[42vh]"
-      />
-      <div className="mx-auto mt-9 max-w-[560px] text-center">
-        <Eyebrow className="text-center">Before we plan</Eyebrow>
-        <h1 className="mt-3 font-display text-[clamp(32px,6vw,52px)] leading-[1.02] tracking-[-0.04em]">
-          Teach Roam how you travel
-        </h1>
-        <p className="mt-4 text-[18px] leading-relaxed text-muted">
-          Eight quick choices help us recommend trips that feel more like you.
+    <div className="cal-landing relative min-h-dvh overflow-hidden">
+      <div className="cal-atmosphere" aria-hidden />
+      <header className="relative z-10 mx-auto flex h-20 max-w-[1180px] items-center justify-between px-5 md:px-8">
+        <span className="font-display text-[21px] font-extrabold tracking-[-0.03em]">Roam</span>
+        <button
+          onClick={() => setInfoOpen(true)}
+          className="text-[13.5px] font-semibold text-muted transition hover:text-ink"
+        >
+          What will I be asked?
+        </button>
+      </header>
+
+      <main className="relative z-10 mx-auto grid min-h-[calc(100dvh-5rem)] max-w-[1180px] items-center gap-12 px-5 pb-12 pt-5 md:grid-cols-[0.9fr_1.1fr] md:px-8 md:pb-16 lg:gap-20">
+        <div className="max-w-[560px]">
+          <Eyebrow className="text-accent">Personalized from the start</Eyebrow>
+          <h1 className="mt-5 font-display text-[clamp(44px,6.2vw,76px)] font-semibold leading-[0.94] tracking-[-0.055em]">
+            Teach Roam your travel taste.
+          </h1>
+          <p className="mt-6 max-w-[48ch] text-[18px] leading-[1.65] text-muted">
+            Eight quick choices help Roam recommend trips that feel more like you.
+          </p>
+          <div className="mt-8">
+            <Button variant="ink" className="min-w-[184px]" onClick={onStart}>
+              Start calibration <span aria-hidden>→</span>
+            </Button>
+          </div>
+          <p className="mt-5 text-[13px] text-muted">
+            About 3 minutes <span className="mx-1.5 text-hair">·</span> No lengthy forms
+            <span className="mx-1.5 text-hair">·</span> Editable anytime
+          </p>
+        </div>
+
+        <div className="w-full md:justify-self-end">
+          <CalibrationVignette />
+        </div>
+      </main>
+
+      <SidePanel open={infoOpen} onClose={() => setInfoOpen(false)} title="What will I be asked?">
+        <p className="text-[15px] leading-relaxed text-muted">
+          You&apos;ll choose between pairs of real travel trade-offs: direct or better value,
+          central or roomier, slower days or fuller ones. There are no right answers.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-[13.5px] text-ink-soft">
-          <span className="flex items-center gap-1.5"><span className="text-accent">✓</span> Around 3 minutes</span>
-          <span className="flex items-center gap-1.5"><span className="text-accent">✓</span> No lengthy forms</span>
-          <span className="flex items-center gap-1.5"><span className="text-accent">✓</span> Change anything later</span>
+        <div className="mt-6 grid gap-5 border-l border-accent-line pl-5">
+          <div><Eyebrow>Eight quick choices</Eyebrow><p className="mt-1 text-[14.5px] text-ink-soft">Tap what feels closer, or choose “It depends.”</p></div>
+          <div><Eyebrow>Useful details</Eyebrow><p className="mt-1 text-[14.5px] text-ink-soft">Add must-haves, avoids, and any loyalty programs you use.</p></div>
+          <div><Eyebrow>Your editable profile</Eyebrow><p className="mt-1 text-[14.5px] text-ink-soft">Review what Roam learned before anything is saved.</p></div>
         </div>
-        <div className="mt-9">
-          <Button variant="accent" onClick={onStart}>
-            Start calibration →
-          </Button>
-        </div>
-      </div>
+        <Button variant="ink" className="mt-8 w-full" onClick={() => { setInfoOpen(false); onStart(); }}>
+          Start calibration →
+        </Button>
+      </SidePanel>
     </div>
   );
 }

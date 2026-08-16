@@ -75,6 +75,8 @@ export default function FlightsPage() {
   const [custom, setCustom] = useState("");
   const [remember, setRemember] = useState(false);
   const [scope, setScope] = useState<PrefScope>("this-trip");
+  const trip = store.trips[tripId];
+  const tracked = trip?.trackedFlight;
 
   const direct = CONTRA_FLIGHTS.direct;
   const oneStop = CONTRA_FLIGHTS.oneStopAna;
@@ -90,6 +92,22 @@ export default function FlightsPage() {
       // contradicts the profile's usual "prefer direct" → curious, not corrective
       setSheetOpen(true);
     }
+  };
+
+  const track = (flight: Flight) => {
+    const fare = flight.id === "sq-direct" ? 12_800_000 : 10_400_000;
+    store.trackFlight(tripId, {
+      id: flight.id,
+      airline: flight.airline,
+      route: flight.route,
+      depart: flight.depart,
+      arrive: flight.arrive,
+      duration: flight.duration,
+      stops: flight.stops,
+      originalFare: fare,
+      currentFare: fare,
+    });
+    toast("Tracking this exact flight — nothing has been booked.");
   };
 
   const done = () => {
@@ -124,10 +142,10 @@ export default function FlightsPage() {
     <div className="mx-auto max-w-[720px]">
       <div className="mb-6">
         <Link
-          href={`/trips/${tripId}/workspace`}
+          href={`/trips/${tripId}/home`}
           className="text-[13px] font-medium text-muted transition hover:text-ink"
         >
-          ← Back to workspace
+          ← Back to Trip Home
         </Link>
       </div>
 
@@ -147,6 +165,48 @@ export default function FlightsPage() {
         <FlightCard flight={direct} selected={chosen === direct.id} onSelect={() => pick(direct)} />
         <FlightCard flight={oneStop} selected={chosen === oneStop.id} onSelect={() => pick(oneStop)} />
       </div>
+
+      {chosen && !tracked && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[18px] border border-hair bg-surface-2 p-4">
+          <div>
+            <p className="text-[14px] font-semibold text-ink">Keep this option without committing</p>
+            <p className="mt-0.5 text-[12.5px] text-muted">Tracking is free in this prototype and never books the flight.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" size="sm" onClick={() => track(chosen === direct.id ? direct : oneStop)}>
+              Track price
+            </Button>
+            <Link href={`/trips/${tripId}/checkout`} className={buttonClass("ink", "sm")}>
+              Book flight
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {tracked && (
+        <div className="mt-6 overflow-hidden rounded-[20px] border border-accent-line bg-accent-tint/45">
+          <div className="flex flex-wrap items-start justify-between gap-4 p-5">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-white">Tracked — not booked</span>
+                {tracked.priceDropped && <span className="rounded-full bg-[#dcefdc] px-2.5 py-1 text-[11px] font-semibold text-[#27522d]">Down Rp 900.000</span>}
+              </div>
+              <h2 className="mt-3 font-display text-2xl font-semibold tracking-[-0.025em]">{tracked.airline} · {tracked.route}</h2>
+              <p className="mt-1 text-[13.5px] text-muted">{tracked.depart} → {tracked.arrive} · {tracked.duration} · {tracked.stops}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-display text-2xl font-semibold tracking-[-0.025em]">Rp {tracked.currentFare.toLocaleString("id-ID")}</p>
+              {tracked.priceDropped && <p className="text-[12px] text-muted line-through">Rp {tracked.originalFare.toLocaleString("id-ID")}</p>}
+              <p className="mt-1 text-[11.5px] text-faint">Last checked {new Date(tracked.lastCheckedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 border-t border-accent-line px-5 py-4">
+            {!tracked.priceDropped && <Button variant="ghost" size="sm" onClick={() => store.simulateTrackedFareDrop(tripId)}>Simulate price drop</Button>}
+            <Link href={`/trips/${tripId}/checkout`} className={buttonClass("ink", "sm")}>Book this flight</Link>
+            <button onClick={() => { store.stopTrackingFlight(tripId); toast("Stopped tracking. The flight remains available to book."); }} className="ml-auto text-[13px] font-semibold text-muted transition hover:text-ink">Stop tracking</button>
+          </div>
+        </div>
+      )}
 
       <SidePanel
         open={sheetOpen}
@@ -232,8 +292,8 @@ export default function FlightsPage() {
       </SidePanel>
 
       <div className="mt-8">
-        <Link href={`/trips/${tripId}/workspace`} className={buttonClass("ghost", "sm")}>
-          ← Back to workspace
+        <Link href={`/trips/${tripId}/home`} className={buttonClass("ghost", "sm")}>
+          ← Back to Trip Home
         </Link>
       </div>
     </div>
