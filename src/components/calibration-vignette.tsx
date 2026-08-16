@@ -1,11 +1,11 @@
 const ChoiceDot = ({ selected }: { selected?: boolean }) => (
   <span
-    className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
+    className={`cal-choice-dot grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
       selected ? "border-accent bg-accent" : "border-hair bg-white"
     }`}
     aria-hidden
   >
-    {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+    {selected && <span className="cal-choice-dot-center h-1.5 w-1.5 rounded-full bg-white" />}
   </span>
 );
 
@@ -16,11 +16,11 @@ function FlightChoices() {
       <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
         <div className="cal-choice cal-choice-selected">
           <ChoiceDot selected />
-          <div><strong>Direct flight</strong><span>7h 45m · arrive 18:05</span></div>
+          <div className="cal-choice-copy"><strong>Direct flight</strong><span>7h 45m · arrive 18:05</span></div>
         </div>
         <div className="cal-choice">
           <ChoiceDot />
-          <div><strong>One stop</strong><span>Save Rp 2.7m · arrive 21:40</span></div>
+          <div className="cal-choice-copy"><strong>One stop</strong><span>Save Rp 2.7m · arrive 21:40</span></div>
         </div>
       </div>
     </div>
@@ -34,11 +34,11 @@ function StayChoices() {
       <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
         <div className="cal-choice cal-choice-selected overflow-hidden p-0">
           <span className="h-full w-[74px] bg-[url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=240&q=78')] bg-cover bg-center" />
-          <div className="flex flex-1 items-center gap-3 py-3 pr-3"><ChoiceDot selected /><div><strong>Central & walkable</strong><span>Smaller room · near everything</span></div></div>
+          <div className="flex flex-1 items-center gap-3 py-3 pr-3"><ChoiceDot selected /><div className="cal-choice-copy"><strong>Central & walkable</strong><span>Smaller room · near everything</span></div></div>
         </div>
         <div className="cal-choice overflow-hidden p-0">
           <span className="h-full w-[74px] bg-[url('https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=240&q=78')] bg-cover bg-center" />
-          <div className="flex flex-1 items-center gap-3 py-3 pr-3"><ChoiceDot /><div><strong>Roomy & quiet</strong><span>Larger room · more transport</span></div></div>
+          <div className="flex flex-1 items-center gap-3 py-3 pr-3"><ChoiceDot /><div className="cal-choice-copy"><strong>Roomy & quiet</strong><span>Larger room · more transport</span></div></div>
         </div>
       </div>
     </div>
