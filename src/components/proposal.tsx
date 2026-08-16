@@ -1,20 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { DestinationProposal } from "@/lib/types";
-import { useStore } from "@/lib/store";
-import { personalizationLine } from "@/lib/calibration";
 import { Photo } from "@/components/photo";
-import {
-  Button,
-  buttonClass,
-  ConfidenceStrip,
-  Disclosure,
-  Eyebrow,
-  PrototypeBadge,
-  SidePanel,
-  TradeoffNote,
-} from "@/components/ui";
+import { Button, Disclosure, Eyebrow, PrototypeBadge } from "@/components/ui";
+import { StickyAction } from "@/components/sticky-action";
 
 const RECO_EYEBROW: Record<string, string> = {
   top: "The one I'd choose for you",
@@ -22,43 +12,29 @@ const RECO_EYEBROW: Record<string, string> = {
   wildcard: "The wildcard",
 };
 
-function Facts({ proposal }: { proposal: DestinationProposal }) {
-  const weather =
-    proposal.externalSignals.find((s) => /weather/i.test(s.label))?.value ?? proposal.weatherComfort;
-  const facts: { label: string; value: string }[] = [
-    { label: "Suggested", value: proposal.recommendedWindow },
-    { label: "Approx. total", value: proposal.indicativePrice },
-    { label: "Flight", value: proposal.flightTime },
-    { label: "Weather", value: weather },
-    { label: "Getting around", value: "No car needed" },
-  ];
-  return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-      {facts.map((f) => (
-        <div key={f.label}>
-          <dt className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-faint">
-            {f.label}
-          </dt>
-          <dd className="mt-1 text-[15px] leading-snug text-ink">{f.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
+type ProposalTab = "stay" | "flight" | "things" | "addons";
 
-function SectionHeading({ children }: { children: ReactNode }) {
+const TABS: { id: ProposalTab; label: string }[] = [
+  { id: "stay", label: "Stay" },
+  { id: "flight", label: "Flights" },
+  { id: "things", label: "Things to do" },
+  { id: "addons", label: "Add-ons" },
+];
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <h2 className="font-display text-[clamp(22px,3vw,30px)] leading-tight tracking-[-0.03em]">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`relative whitespace-nowrap px-1 py-4 text-[13.5px] font-semibold transition ${active ? "text-ink" : "text-muted hover:text-ink"}`}
+    >
       {children}
-    </h2>
+      {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-ink" />}
+    </button>
   );
 }
 
-/**
- * Single, opinionated recommendation rendered as an editorial preview.
- * Actions are supplied by the parent so this view serves both the
- * proposal reveal and a specific destination route.
- */
 export function ProposalView({
   proposal,
   saved,
@@ -67,6 +43,8 @@ export function ProposalView({
   primaryLabel,
   secondary,
   eyebrowOverride,
+  optionCount = 1,
+  optionIndex = 0,
 }: {
   proposal: DestinationProposal;
   saved: boolean;
@@ -75,340 +53,158 @@ export function ProposalView({
   primaryLabel: string;
   secondary?: ReactNode;
   eyebrowOverride?: string;
+  optionCount?: number;
+  optionIndex?: number;
 }) {
-  const [stayOpen, setStayOpen] = useState(false);
-  const { profile } = useStore();
-  const personal = personalizationLine(profile.prefs);
+  const [activeTab, setActiveTab] = useState<ProposalTab>("stay");
+  const [compactHero, setCompactHero] = useState(false);
   const eyebrow = eyebrowOverride ?? RECO_EYEBROW[proposal.recommendationType];
-  const strongNoConflict = proposal.confidence === "strong";
+
+  useEffect(() => {
+    const onScroll = () => setCompactHero(window.scrollY > 110);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <article className="pb-24">
-      {/* ---------- Hero ---------- */}
-      <div className="relative">
+    <article className="pb-6">
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-ink text-white">
         <Photo
           image={proposal.heroImage}
           ratio="hero"
           tone={proposal.heroTone}
-          width={1800}
-          rounded="rounded-card"
+          width={2000}
+          rounded="rounded-none"
           priority
-          className="max-h-[62vh]"
+          className={`w-full !aspect-auto opacity-78 transition-[height] duration-500 [transition-timing-function:var(--ease-out)] ${compactHero ? "h-[34vh] min-h-[280px]" : "h-[58vh] min-h-[430px] max-h-[680px]"}`}
         />
-        <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
-          <span className="rounded-full bg-[rgba(20,22,18,0.55)] px-3 py-1.5 text-[11.5px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur">
-            {eyebrow}
-          </span>
-        </div>
-      </div>
-
-      {/* ---------- Above-the-fold summary ---------- */}
-      <div className="measure mt-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <Eyebrow>{proposal.region}</Eyebrow>
-            <h1 className="mt-2 font-display text-[clamp(32px,5.5vw,52px)] leading-[1.02] tracking-[-0.04em]">
-              {proposal.destination}
-            </h1>
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(8,8,8,.82)] via-[rgba(8,8,8,.22)] to-[rgba(8,8,8,.08)]" />
+        <div className="absolute inset-0 flex items-end justify-center px-5 pb-8 text-center md:pb-11">
+          <div className="max-w-[760px]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/68">{eyebrow} · {proposal.region}</p>
+            <h1 className="mt-3 font-display text-[clamp(42px,7vw,76px)] font-semibold leading-[0.94] tracking-[-0.055em]">{proposal.destination}</h1>
+            <p className="mx-auto mt-4 max-w-[52ch] text-[16px] leading-relaxed text-white/78">{proposal.thesis}</p>
           </div>
-          <button
-            onClick={onSaveIdea}
-            aria-pressed={saved}
-            className="mt-2 shrink-0 rounded-full border border-hair px-3.5 py-2 text-[13px] font-medium text-ink-soft transition hover:border-ink"
-          >
-            {saved ? "Saved ✓" : "♥ Save idea"}
-          </button>
         </div>
+      </section>
 
-        <p className="mt-4 text-[19px] leading-relaxed text-ink-soft">{proposal.thesis}</p>
-
-        <div className="mt-7">
-          <Facts proposal={proposal} />
+      <section className="mx-auto max-w-[860px] py-7 text-center">
+        <div className="flex flex-wrap justify-center gap-x-7 gap-y-3">
+          {[
+            ["Best window", proposal.recommendedWindow],
+            ["Approx. total", proposal.indicativePrice],
+            ["Journey", proposal.journeyEffort],
+            ["Getting around", proposal.mobilityFit],
+          ].map(([label, value]) => (
+            <div key={label} className="min-w-[132px]">
+              <span className="text-[10.5px] font-semibold uppercase tracking-[0.11em] text-faint">{label}</span>
+              <p className="mt-1 text-[13.5px] font-medium text-ink-soft">{value}</p>
+            </div>
+          ))}
         </div>
-
-        <div className="mt-6 border-t border-hair-2 pt-5">
-          <ConfidenceStrip chips={proposal.confidenceChips} />
-          {personal && (
-            <p className="mt-3 text-[13.5px] italic leading-snug text-muted">{personal}</p>
-          )}
-        </div>
-
-        <div className="mt-7 flex flex-wrap items-center gap-4">
-          <Button variant="accent" onClick={onPrimary}>
-            {primaryLabel} →
-          </Button>
-          <span className="text-[12.5px] text-faint">Saving a draft — nothing is booked.</span>
-        </div>
-
-        <div className="mt-6">
-          <Disclosure label="Why this fits">
-            <ul className="grid gap-2.5">
-              {proposal.whyThisFits.slice(0, 3).map((r) => (
-                <li key={r} className="flex items-start gap-2.5 text-[15px] leading-snug text-ink-soft">
-                  <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  {r}
-                </li>
-              ))}
-            </ul>
-          </Disclosure>
-        </div>
-      </div>
-
-      {/* ---------- Where you'd stay ---------- */}
-      <section className="mt-20 md:mt-28">
-        <div className="measure">
-          <Eyebrow>Where you&apos;d stay</Eyebrow>
-        </div>
-        <div className="mt-5">
-          <Photo
-            image={proposal.stay.image}
-            ratio="hero"
-            tone={proposal.heroTone}
-            width={1600}
-            rounded="rounded-card"
-            className="max-h-[56vh]"
-          />
-        </div>
-        <div className="measure mt-6">
-          <SectionHeading>{proposal.stay.name}</SectionHeading>
-          <p className="mt-1 text-[14px] text-muted">{proposal.stay.location}</p>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {proposal.stay.attributes.map((a) => (
-              <li
-                key={a}
-                className="rounded-full bg-surface-2 px-3 py-1.5 text-[13px] font-medium text-ink-soft ring-1 ring-hair-2"
-              >
-                {a}
+        <Disclosure label="Why this fits" className="mx-auto mt-5 max-w-[620px] text-left">
+          <ul className="grid gap-2.5">
+            {proposal.whyThisFits.slice(0, 3).map((reason) => (
+              <li key={reason} className="flex items-start gap-2.5 text-[14px] leading-snug text-ink-soft">
+                <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />{reason}
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-[16px] leading-relaxed text-ink-soft">{proposal.stay.why}</p>
-          <div className="mt-5 flex flex-wrap items-center gap-4">
-            <span className="font-display text-lg tracking-[-0.02em]">{proposal.stay.price}</span>
-            <button
-              onClick={() => setStayOpen(true)}
-              className="text-[14px] font-semibold text-accent transition hover:text-accent-press"
-            >
-              View stay details
-            </button>
-          </div>
-        </div>
+        </Disclosure>
       </section>
 
-      {/* ---------- How you'd get there ---------- */}
-      <section className="mt-20 md:mt-28">
-        <div className="measure">
-          <Eyebrow>How you&apos;d get there</Eyebrow>
-          <div className="mt-5 rounded-card border border-hair bg-surface p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="font-display text-xl tracking-[-0.02em]">{proposal.flight.route}</div>
-                <div className="mt-0.5 text-[13px] text-muted">{proposal.flight.airline}</div>
-              </div>
-              <span className="font-display text-lg tracking-[-0.02em]">{proposal.flight.price}</span>
+      <nav className="sticky top-16 z-30 -mx-5 border-y border-hair bg-[rgba(244,242,236,0.94)] px-5 backdrop-blur-xl md:-mx-8 md:px-8" aria-label="Recommendation details">
+        <div className="mx-auto flex max-w-[860px] items-center justify-between gap-4 overflow-x-auto">
+          <div className="flex min-w-max gap-6">
+            {TABS.map((tab) => <TabButton key={tab.id} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tab.label}</TabButton>)}
+          </div>
+          <button type="button" onClick={onSaveIdea} aria-pressed={saved} className="hidden shrink-0 text-[12.5px] font-semibold text-muted transition hover:text-ink sm:block">
+            {saved ? "Saved ✓" : "Save idea"}
+          </button>
+        </div>
+      </nav>
+
+      <div className="mx-auto min-h-[430px] max-w-[860px] py-9 md:py-12">
+        {activeTab === "stay" && (
+          <section className="grid items-center gap-7 md:grid-cols-[1.05fr_.95fr]">
+            <Photo image={proposal.stay.image} ratio="4/3" tone={proposal.heroTone} width={1000} rounded="rounded-card" />
+            <div>
+              <Eyebrow>Where I&apos;d put you</Eyebrow>
+              <h2 className="mt-2 font-display text-[clamp(28px,4vw,40px)] font-semibold leading-[1.02] tracking-[-0.04em]">{proposal.stay.name}</h2>
+              <p className="mt-2 text-[13.5px] text-muted">{proposal.stay.location}</p>
+              <div className="mt-4 flex flex-wrap gap-2">{proposal.stay.attributes.map((attribute) => <span key={attribute} className="rounded-full bg-surface-2 px-3 py-1.5 text-[12.5px] font-semibold text-ink-soft ring-1 ring-hair-2">{attribute}</span>)}</div>
+              <p className="mt-5 text-[15px] leading-relaxed text-ink-soft">{proposal.stay.why}</p>
+              <p className="mt-5 font-display text-[22px] font-semibold tracking-[-0.025em]">{proposal.stay.price}</p>
             </div>
+          </section>
+        )}
 
-            <div className="mt-5 flex items-center gap-3">
-              <div className="text-center">
-                <div className="font-display text-lg">{proposal.flight.depart}</div>
-                <div className="text-[11px] uppercase tracking-wide text-faint">Depart</div>
+        {activeTab === "flight" && (
+          <section className="mx-auto max-w-[700px]">
+            <Eyebrow>How I&apos;d get you there</Eyebrow>
+            <div className="mt-4 rounded-[22px] border border-hair bg-surface p-6 md:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div><h2 className="font-display text-2xl font-semibold tracking-[-0.025em]">{proposal.flight.airline}</h2><p className="mt-1 text-[13.5px] text-muted">{proposal.flight.route} · {proposal.flight.fareType}</p></div>
+                <p className="font-display text-xl font-semibold">{proposal.flight.price}</p>
               </div>
-              <div className="flex-1">
-                <div className="relative h-px bg-hair">
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-surface px-2 text-[11px] text-muted">
-                    {proposal.flight.duration} · {proposal.flight.stops}
-                  </span>
-                </div>
+              <div className="mt-8 grid grid-cols-[auto_1fr_auto] items-center gap-4">
+                <div><p className="font-display text-2xl font-semibold">{proposal.flight.depart}</p><p className="text-[10.5px] uppercase tracking-[0.1em] text-faint">Depart</p></div>
+                <div className="text-center"><div className="h-px bg-hair" /><p className="mt-2 text-[11px] text-muted">{proposal.flight.duration} · {proposal.flight.stops}</p></div>
+                <div className="text-right"><p className="font-display text-2xl font-semibold">{proposal.flight.arrive}</p><p className="text-[10.5px] uppercase tracking-[0.1em] text-faint">Arrive</p></div>
               </div>
-              <div className="text-center">
-                <div className="font-display text-lg">{proposal.flight.arrive}</div>
-                <div className="text-[11px] uppercase tracking-wide text-faint">Arrive</div>
-              </div>
+              <p className="mt-7 border-t border-hair-2 pt-5 text-[13.5px] leading-relaxed text-muted">Timed around your daytime-departure preference. Fare is illustrative and is not held until you choose to book.</p>
             </div>
+          </section>
+        )}
 
-            <div className="mt-5 border-t border-hair-2 pt-4">
-              <Disclosure label="Fare details">
-                <p className="text-[14px] text-ink-soft">
-                  {proposal.flight.fareType}. Timed to your daytime-departure preference. Fares are
-                  illustrative and not held until you choose to book.
-                </p>
-              </Disclosure>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- What the trip could feel like ---------- */}
-      <section className="mt-20 md:mt-28">
-        <div className="measure">
-          <Eyebrow>What the trip could feel like</Eyebrow>
-          <p className="mt-3 text-[16px] leading-relaxed text-muted">
-            The rhythm, not the schedule — a slow morning, one anchor, an easy evening.
-          </p>
-        </div>
-        <div className="mt-6 grid gap-6 sm:grid-cols-3">
-          {proposal.moments.map((m) => (
-            <figure key={m.title}>
-              <Photo
-                image={m.image}
-                ratio="4/3"
-                tone={proposal.heroTone}
-                width={800}
-                rounded="rounded-lg"
-              />
-              <figcaption className="mt-3">
-                <div className="font-display text-lg tracking-[-0.02em]">{m.title}</div>
-                <p className="mt-0.5 text-[14px] leading-snug text-muted">{m.note}</p>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
-
-      {/* ---------- A taste of the table ---------- */}
-      <section className="mt-20 md:mt-28">
-        <div className="grid items-center gap-6 md:grid-cols-2">
-          <Photo
-            image={proposal.dining.image}
-            ratio="4/3"
-            tone={proposal.heroTone}
-            width={900}
-            rounded="rounded-card"
-          />
-          <div>
-            <Eyebrow>A taste of the table</Eyebrow>
-            <SectionHeading>{proposal.dining.name}</SectionHeading>
-            <p className="mt-3 text-[16px] leading-relaxed text-ink-soft">{proposal.dining.note}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- Estimated cost ---------- */}
-      <section className="mt-20 md:mt-28">
-        <div className="measure">
-          <Eyebrow>Estimated cost</Eyebrow>
-          <div className="mt-3 flex items-baseline gap-3">
-            <span className="font-display text-[clamp(28px,4vw,40px)] tracking-[-0.03em]">
-              {proposal.indicativePrice}
-            </span>
-            <PrototypeBadge />
-          </div>
-          <div className="mt-4">
-            <Disclosure label="See full price breakdown">
-              <dl className="grid gap-2 text-[14.5px]">
-                <div className="flex justify-between border-b border-hair-2 py-2">
-                  <dt className="text-muted">Stay</dt>
-                  <dd className="text-ink-soft">{proposal.stay.price}</dd>
-                </div>
-                <div className="flex justify-between border-b border-hair-2 py-2">
-                  <dt className="text-muted">Flights</dt>
-                  <dd className="text-ink-soft">{proposal.flight.price}</dd>
-                </div>
-                <div className="flex justify-between border-b border-hair-2 py-2">
-                  <dt className="text-muted">Private transfers</dt>
-                  <dd className="text-ink-soft">≈ $180 pp</dd>
-                </div>
-                <div className="flex justify-between py-2">
-                  <dt className="text-muted">Experiences</dt>
-                  <dd className="text-ink-soft">A few, mostly optional</dd>
-                </div>
-              </dl>
-              <p className="mt-3 text-[12.5px] text-faint">
-                Illustrative prototype pricing per person — not a quote. Nothing is booked or charged.
-              </p>
-            </Disclosure>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- Anything to worry about ---------- */}
-      <section className="mt-16">
-        <div className="measure rounded-card border border-hair bg-surface-2 p-6">
-          <Eyebrow>{strongNoConflict ? "Nothing to worry about" : "One honest trade-off"}</Eyebrow>
-          {strongNoConflict ? (
-            <p className="mt-2 text-[16px] leading-relaxed text-ink-soft">
-              Nothing conflicts with your must-haves. This fits {proposal.confidenceChips.length} of
-              the things you care about, with no compromises worth flagging.
-            </p>
-          ) : (
-            <div className="mt-3 grid gap-2">
-              {proposal.tradeoffs.map((t) => (
-                <TradeoffNote key={t}>{t}</TradeoffNote>
+        {activeTab === "things" && (
+          <section>
+            <div className="text-center"><Eyebrow>Things worth making time for</Eyebrow><h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.035em]">A light rhythm, not a packed itinerary</h2></div>
+            <div className="mt-7 grid gap-5 md:grid-cols-3">
+              {proposal.moments.map((moment) => (
+                <article key={moment.title}>
+                  <Photo image={moment.image} ratio="4/3" tone={proposal.heroTone} width={700} rounded="rounded-lg" />
+                  <h3 className="mt-3 font-display text-lg font-semibold tracking-[-0.02em]">{moment.title}</h3>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{moment.note}</p>
+                </article>
               ))}
             </div>
-          )}
-        </div>
-      </section>
+            <div className="mx-auto mt-7 max-w-[620px] rounded-[18px] border border-hair bg-surface-2 p-5 text-center">
+              <Eyebrow>One food anchor</Eyebrow><p className="mt-2 font-display text-xl font-semibold">{proposal.dining.name}</p><p className="mt-2 text-[13.5px] leading-relaxed text-muted">{proposal.dining.note}</p>
+            </div>
+          </section>
+        )}
 
-      {/* ---------- Sticky action (one dominant button) ---------- */}
-      <div className="sticky bottom-4 z-30 mt-12">
-        <div className="measure flex items-center justify-between gap-4 rounded-full border border-hair bg-[rgba(255,255,255,0.92)] px-4 py-3 shadow-[var(--shadow-float)] backdrop-blur">
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-medium text-ink">{proposal.destination}</div>
-            <div className="text-[11.5px] text-faint">{proposal.indicativePrice}</div>
-          </div>
-          <div className="flex items-center gap-3">
-            {secondary}
-            <Button variant="accent" size="sm" onClick={onPrimary}>
-              {primaryLabel}
-            </Button>
-          </div>
-        </div>
+        {activeTab === "addons" && (
+          <section>
+            <div className="text-center"><Eyebrow>Useful because of this trip</Eyebrow><h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.035em]">Add-ons, only when they remove work</h2><p className="mx-auto mt-3 max-w-[55ch] text-[14.5px] leading-relaxed text-muted">Roam can keep these with the trip so you do not have to remember separate checklists.</p></div>
+            <div className="mt-7 grid gap-4 md:grid-cols-3">
+              {[
+                ["Entry requirements", "VisaRoo", "We’ll check passport-specific entry rules before anything needs action."],
+                ["eSIM", "RoaminRabbit", "Set up connectivity for Japan and keep activation tied to your arrival."],
+                ["Travel insurance", "Trip protection", "Compare coverage once the major bookings and total value are clearer."],
+              ].map(([title, source, copy]) => (
+                <article key={title} className="rounded-[20px] border border-hair bg-surface p-5">
+                  <span className="rounded-full bg-paper-2 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted">Not needed yet</span>
+                  <h3 className="mt-4 font-display text-xl font-semibold tracking-[-0.025em]">{title}</h3>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{copy}</p>
+                  <p className="mt-5 text-[11.5px] font-semibold text-faint">Powered by {source}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-6 text-center"><PrototypeBadge /></div>
+          </section>
+        )}
       </div>
 
-      {/* ---------- Stay details drawer ---------- */}
-      <SidePanel open={stayOpen} onClose={() => setStayOpen(false)} title={proposal.stay.name}>
-        <p className="text-[15px] leading-relaxed text-ink-soft">{proposal.stay.why}</p>
-
-        <h3 className="mt-6 text-[12px] font-semibold uppercase tracking-[0.1em] text-faint">
-          A likely rhythm
-        </h3>
-        <ol className="mt-3 grid gap-2.5">
-          {proposal.rhythmPreview.map((d) => (
-            <li key={d.day} className="flex gap-3 text-[14px]">
-              <span className="w-14 shrink-0 font-semibold text-accent">{d.day}</span>
-              <span className="text-ink-soft">{d.summary}</span>
-            </li>
-          ))}
-        </ol>
-
-        <h3 className="mt-6 text-[12px] font-semibold uppercase tracking-[0.1em] text-faint">
-          What Roam checked
-        </h3>
-        <ul className="mt-3 grid gap-2">
-          {proposal.fitReasons.rightNow.map((r) => (
-            <li key={r} className="flex items-start gap-2 text-[14px] text-ink-soft">
-              <span aria-hidden className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-accent" />
-              {r}
-            </li>
-          ))}
-        </ul>
-
-        {proposal.stillUnconfirmed.length > 0 && (
-          <>
-            <h3 className="mt-6 text-[12px] font-semibold uppercase tracking-[0.1em] text-faint">
-              Still unconfirmed
-            </h3>
-            <ul className="mt-3 grid gap-2">
-              {proposal.stillUnconfirmed.map((u) => (
-                <li key={u} className="flex items-start gap-2 text-[14px] text-ink-soft">
-                  <span aria-hidden className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-amber" />
-                  {u}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </SidePanel>
+      <StickyAction
+        meta={`${optionCount} trip directions prepared · Option ${Math.min(optionIndex + 1, optionCount)} of ${optionCount}`}
+        note={`${proposal.destination} · ${proposal.indicativePrice}`}
+      >
+        {secondary}
+        <Button variant="accent" onClick={onPrimary}>{primaryLabel} →</Button>
+      </StickyAction>
     </article>
-  );
-}
-
-/* Small helper reused by the destination route for a quiet back link. */
-export function backLink(href: string, label: string) {
-  return (
-    <a href={href} className={buttonClass("ghost", "sm")}>
-      {label}
-    </a>
   );
 }
