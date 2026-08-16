@@ -48,10 +48,15 @@ body {
 body {
   background: var(--color-paper);
   color: var(--color-ink);
-  font-family: var(--font-ui);
+  font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+/* Tailwind v4 consumes @theme font values for utilities, but these explicit
+   bindings keep Next's runtime local-font variables as the computed families. */
+.font-display { font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif; }
+.font-ui { font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif; }
 
 /* faint paper grain */
 body::after {
@@ -152,7 +157,7 @@ body::after {
 
 /* small shared helpers */
 .editorial {
-  font-family: var(--font-editorial);
+  font-family: var(--font-newsreader), Georgia, serif;
   font-weight: 400;
 }
 .reveal {
