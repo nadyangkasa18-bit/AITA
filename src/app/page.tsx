@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { ReasoningProgress } from "@/components/reasoning";
-import { Orb } from "@/components/ui";
+import { Orb, useToast } from "@/components/ui";
 import { PRODUCT } from "@/config/product";
 import { reasoningSteps, SAMPLE_PROMPT } from "@/lib/mock/seed";
 
@@ -18,9 +18,22 @@ const EXAMPLES = [
 export default function Home() {
   const store = useStore();
   const router = useRouter();
+  const { toast } = useToast();
   const [value, setValue] = useState("");
   const [phase, setPhase] = useState<"idle" | "reasoning">("idle");
   const [tripId, setTripId] = useState<string | null>(null);
+
+  // Reinforcement after finishing calibration.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("roam.justCalibrated")) {
+        sessionStorage.removeItem("roam.justCalibrated");
+        toast("Your recommendations are now calibrated.");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [toast]);
 
   function submit(prompt: string) {
     const text = prompt.trim();

@@ -11,7 +11,14 @@ import {
 } from "react";
 import type {
   BriefLevel,
+  ChoiceValue,
   DestinationProposal,
+  LoyaltyEntry,
+  OnboardingState,
+  PrefPriority,
+  PrefScope,
+  ProfilePref,
+  ProfileState,
   ProtectChoice,
   Trip,
 } from "@/lib/types";
@@ -25,9 +32,27 @@ interface PersistShape {
   reactions: Record<string, string[]>;
   /** Which proposal is currently being shown as "the one I'd choose". */
   featured: Record<string, string>;
+  onboarding: OnboardingState;
+  profile: ProfileState;
 }
 
-const empty: PersistShape = { trips: {}, order: {}, reactions: {}, featured: {} };
+const emptyOnboarding: OnboardingState = { completed: false, step: 0, answers: {} };
+const emptyProfile: ProfileState = {
+  calibrated: false,
+  prefs: [],
+  loyalty: [],
+  mustHaves: [],
+  avoids: [],
+};
+
+const empty: PersistShape = {
+  trips: {},
+  order: {},
+  reactions: {},
+  featured: {},
+  onboarding: emptyOnboarding,
+  profile: emptyProfile,
+};
 
 interface StoreValue {
   hydrated: boolean;
@@ -54,6 +79,29 @@ interface StoreValue {
   applyReaction: (id: string, reaction: string) => string;
   orderedProposals: (id: string) => DestinationProposal[];
   reset: () => void;
+
+  /* -------- calibration + traveler profile -------- */
+  onboarding: OnboardingState;
+  profile: ProfileState;
+  setCalStep: (step: number) => void;
+  setCalAnswer: (roundId: string, value: ChoiceValue) => void;
+  commitCalibration: (args: {
+    prefs: ProfilePref[];
+    loyalty: LoyaltyEntry[];
+    mustHaves: string[];
+    avoids: string[];
+  }) => void;
+  resetCalibration: () => void;
+  addPref: (pref: Omit<ProfilePref, "id" | "order">) => void;
+  updatePref: (id: string, patch: Partial<ProfilePref>) => void;
+  deletePref: (id: string) => void;
+  movePrefPriority: (id: string, priority: PrefPriority) => void;
+  setPrefScope: (id: string, scope: PrefScope) => void;
+  reorderPref: (id: string, dir: -1 | 1) => void;
+  addLoyalty: (entry: Omit<LoyaltyEntry, "id">) => void;
+  removeLoyalty: (id: string) => void;
+  setMustHaves: (list: string[]) => void;
+  setAvoids: (list: string[]) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -137,6 +185,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
+
+  const updateProfile = useCallback((fn: (p: ProfileState) => ProfileState) => {
+    setState((s) => ({ ...s, profile: fn(s.profile) }));
+  }, []);
+
+  const newId = (prefix: string) =>
+    `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
 
   const value: StoreValue = useMemo(() => {
     return {
@@ -273,8 +328,91 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           /* ignore */
         }
       },
+
+      /* -------- calibration + traveler profile -------- */
+      onboarding: state.onboarding,
+      profile: state.profile,
+      setCalStep: (step) =>
+        setState((s) => ({ ...s, onboarding: { ...s.onboarding, step } })),
+      setCalAnswer: (roundId, valueChoice) =>
+        setState((s) => ({
+          ...s,
+          onboarding: {
+            ...s.onboarding,
+            answers: { ...s.onboarding.answers, [roundId]: valueChoice },
+          },
+        })),
+      commitCalibration: ({ prefs, loyalty, mustHaves, avoids }) =>
+        setState((s) => ({
+          ...s,
+          profile: { calibrated: true, prefs, loyalty, mustHaves, avoids },
+          onboarding: { ...s.onboarding, completed: true },
+        })),
+      resetCalibration: () =>
+        setState((s) => ({
+          ...s,
+          onboarding: { completed: false, step: 0, answers: {} },
+          profile: { calibrated: false, prefs: [], loyalty: [], mustHaves: [], avoids: [] },
+        })),
+      addPref: (pref) =>
+        updateProfile((p) => ({
+          ...p,
+          prefs: [
+            ...p.prefs,
+            {
+              ...pref,
+              id: newId("pref"),
+              order: p.prefs.reduce((m, x) => Math.max(m, x.order), 0) + 1,
+            },
+          ],
+        })),
+      updatePref: (id, patch) =>
+        updateProfile((p) => ({
+          ...p,
+          prefs: p.prefs.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+        })),
+      deletePref: (id) =>
+        updateProfile((p) => ({ ...p, prefs: p.prefs.filter((x) => x.id !== id) })),
+      movePrefPriority: (id, priority) =>
+        updateProfile((p) => ({
+          ...p,
+          prefs: p.prefs.map((x) => (x.id === id ? { ...x, priority } : x)),
+        })),
+      setPrefScope: (id, scope) =>
+        updateProfile((p) => ({
+          ...p,
+          prefs: p.prefs.map((x) => (x.id === id ? { ...x, scope } : x)),
+        })),
+      reorderPref: (id, dir) =>
+        updateProfile((p) => {
+          const target = p.prefs.find((x) => x.id === id);
+          if (!target) return p;
+          const sibs = p.prefs
+            .filter((x) => x.category === target.category)
+            .sort((a, b) => a.order - b.order);
+          const i = sibs.findIndex((x) => x.id === id);
+          const j = i + dir;
+          if (j < 0 || j >= sibs.length) return p;
+          const a = sibs[i];
+          const b = sibs[j];
+          return {
+            ...p,
+            prefs: p.prefs.map((x) =>
+              x.id === a.id ? { ...x, order: b.order } : x.id === b.id ? { ...x, order: a.order } : x
+            ),
+          };
+        }),
+      addLoyalty: (entry) =>
+        updateProfile((p) => ({
+          ...p,
+          loyalty: [...p.loyalty, { ...entry, id: newId("loy") }],
+        })),
+      removeLoyalty: (id) =>
+        updateProfile((p) => ({ ...p, loyalty: p.loyalty.filter((x) => x.id !== id) })),
+      setMustHaves: (list) => updateProfile((p) => ({ ...p, mustHaves: list })),
+      setAvoids: (list) => updateProfile((p) => ({ ...p, avoids: list })),
     };
-  }, [hydrated, state, createTripFromPrompt, ensureSeedTrip, updateTrip]);
+  }, [hydrated, state, createTripFromPrompt, ensureSeedTrip, updateTrip, updateProfile]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

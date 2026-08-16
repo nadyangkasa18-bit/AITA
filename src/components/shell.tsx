@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 import { PRODUCT } from "@/config/product";
 import { Orb, useToast } from "@/components/ui";
 import { useStore } from "@/lib/store";
@@ -129,13 +129,36 @@ export function AssistantComposer() {
   );
 }
 
+/* -------------------- Mandatory calibration gate --------------------
+   First-time users must complete calibration before reaching the app.
+   The only route reachable while uncalibrated is /calibrate. */
+function CalibrationGate() {
+  const { hydrated, profile } = useStore();
+  const pathname = usePathname();
+  const router = useRouter();
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!profile.calibrated && pathname !== "/calibrate") {
+      router.replace("/calibrate");
+    }
+  }, [hydrated, profile.calibrated, pathname, router]);
+  return null;
+}
+
 /* -------------------- App shell -------------------- */
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const { hydrated, profile } = useStore();
+  const onboarding = pathname === "/calibrate";
+  // While uncalibrated, don't flash protected content behind the redirect.
+  const blocked = hydrated && !profile.calibrated && !onboarding;
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <GlobalNavigation />
-      <main className="flex-1">{children}</main>
-      <AssistantComposer />
+      <CalibrationGate />
+      {!onboarding && <GlobalNavigation />}
+      <main className="flex-1">{blocked ? null : children}</main>
+      {!onboarding && !blocked && <AssistantComposer />}
     </div>
   );
 }

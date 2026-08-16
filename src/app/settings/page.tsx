@@ -69,6 +69,23 @@ export default function SettingsPage() {
         />
 
         <Row
+          title="Reset calibration demo"
+          body="Clear your Traveler Profile and calibration answers, then run the eight-round calibration again from the top."
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              store.resetCalibration();
+              toast("Calibration reset — starting fresh.");
+              router.push("/calibrate");
+            }}
+          >
+            Reset calibration
+          </Button>
+        </Row>
+
+        <Row
           title="Reset the prototype"
           body="Clear all trips, saved directions and refinements, and return to the seeded starting point. This can't be undone."
         >

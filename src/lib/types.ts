@@ -205,3 +205,70 @@ export interface Trip {
 export interface ReasoningStep {
   label: string;
 }
+
+/* ============================================================
+   Traveler Profile Calibration
+   ============================================================ */
+
+export type PrefPriority = "always" | "usually" | "flexible" | "avoid";
+export type PrefScope = "all" | "similar" | "this-trip" | "none";
+export type PrefSource = "onboarding" | "added" | "confirmed";
+export type PrefCategory =
+  | "Flights"
+  | "Stays"
+  | "Ground transport"
+  | "Food"
+  | "Pace"
+  | "Spending"
+  | "Accessibility"
+  | "Loyalty"
+  | "Group travel";
+
+export const PREF_CATEGORIES: PrefCategory[] = [
+  "Flights",
+  "Stays",
+  "Ground transport",
+  "Food",
+  "Pace",
+  "Spending",
+  "Accessibility",
+  "Loyalty",
+  "Group travel",
+];
+
+/** A single, editable Traveler Profile preference. */
+export interface ProfilePref {
+  id: string;
+  category: PrefCategory;
+  statement: string;
+  priority: PrefPriority;
+  scope: PrefScope;
+  source: PrefSource;
+  confidence: number; // 0..1 (never shown as a raw score)
+  order: number; // ordering within a priority group
+}
+
+export interface LoyaltyEntry {
+  id: string;
+  kind: "airline" | "hotel" | "card" | "other";
+  name: string;
+  note?: string;
+}
+
+/** Answer to a comparison round. */
+export type ChoiceValue = "A" | "B" | "depends" | "none";
+
+export interface OnboardingState {
+  completed: boolean;
+  /** Resume pointer into the calibration flow. */
+  step: number;
+  answers: Record<string, ChoiceValue>;
+}
+
+export interface ProfileState {
+  calibrated: boolean;
+  prefs: ProfilePref[];
+  loyalty: LoyaltyEntry[];
+  mustHaves: string[];
+  avoids: string[];
+}

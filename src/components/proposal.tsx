@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import type { DestinationProposal } from "@/lib/types";
+import { useStore } from "@/lib/store";
+import { personalizationLine } from "@/lib/calibration";
 import { Photo } from "@/components/photo";
 import {
   Button,
@@ -75,6 +77,8 @@ export function ProposalView({
   eyebrowOverride?: string;
 }) {
   const [stayOpen, setStayOpen] = useState(false);
+  const { profile } = useStore();
+  const personal = personalizationLine(profile.prefs);
   const eyebrow = eyebrowOverride ?? RECO_EYEBROW[proposal.recommendationType];
   const strongNoConflict = proposal.confidence === "strong";
 
@@ -124,6 +128,9 @@ export function ProposalView({
 
         <div className="mt-6 border-t border-hair-2 pt-5">
           <ConfidenceStrip chips={proposal.confidenceChips} />
+          {personal && (
+            <p className="mt-3 text-[13.5px] italic leading-snug text-muted">{personal}</p>
+          )}
         </div>
 
         <div className="mt-7 flex flex-wrap items-center gap-4">
