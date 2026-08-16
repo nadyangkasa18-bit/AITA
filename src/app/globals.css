@@ -234,9 +234,10 @@ body::after {
 }
 .cal-question { font-family: var(--font-display); font-size: clamp(20px, 2.1vw, 27px); font-weight: 650; letter-spacing: -0.03em; }
 .cal-choice { display: flex; min-height: 84px; align-items: center; gap: 12px; border: 1px solid var(--color-hair); border-radius: 16px; padding: 15px; background: rgba(255, 255, 255, 0.78); }
-.cal-choice strong, .cal-choice span { display: block; }
-.cal-choice strong { font-family: var(--font-display); font-size: 15px; letter-spacing: -0.015em; }
-.cal-choice span { margin-top: 3px; font-size: 11.5px; color: var(--color-muted); }
+.cal-choice-copy strong, .cal-choice-copy > span { display: block; }
+.cal-choice-copy strong { font-family: var(--font-display); font-size: 15px; letter-spacing: -0.015em; }
+.cal-choice-copy > span { margin-top: 3px; font-size: 11.5px; color: var(--color-muted); }
+.cal-choice-dot, .cal-choice-dot-center { margin: 0; }
 .cal-choice-selected { border-color: var(--color-accent-line); box-shadow: 0 0 0 2px rgba(98, 87, 255, 0.07); }
 .cal-vignette-footer { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--color-hair-2); padding: 14px 20px; font-size: 10.5px; color: var(--color-faint); }
 .cal-progress { width: 12.5%; animation: calProgress 8.4s linear infinite; }
