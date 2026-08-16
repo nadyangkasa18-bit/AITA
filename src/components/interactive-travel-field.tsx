@@ -5,367 +5,335 @@ import type { CSSProperties } from "react";
 
 type Point = { x: number; y: number };
 type Candidate = { point: Point; startedAt: number };
-type Street = { d: string; major: boolean; traffic: boolean };
+type Route =
+  | { kind: "h"; value: number }
+  | { kind: "v"; value: number }
+  | { kind: "d"; offset: number; slope: number };
+
+type Particle = {
+  routeIndex: number;
+  progress: number;
+  direction: 1 | -1;
+  speed: number;
+  radius: number;
+  color: string;
+  position: Point;
+  scatterFrom: Point;
+  scatterTo: Point;
+  scatterRouteIndex: number;
+  scatterProgress: number;
+  scatterStartedAt: number;
+  scatterDuration: number;
+  scatterBend: number;
+};
 
 const WIDTH = 1440;
 const HEIGHT = 900;
-const RADIUS = 178;
-const MAX_STRENGTH = 74;
-const IDLE_DELAY_MS = 105;
-const ACTIVATION_DISTANCE_PX = 12;
-const ACTIVATION_WINDOW_MS = 110;
-const ACTIVE_STEP_PX = 2.5;
+const DOT_COUNT = 24;
+const IDLE_DELAY_MS = 125;
+const ACTIVATION_DISTANCE_PX = 11;
+const ACTIVATION_WINDOW_MS = 135;
+const ACTIVE_STEP_PX = 2.75;
 
-function distance(a: Point, b: Point) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
+const clamp = (value: number, min = 0, max = 1) =>
+  Math.min(max, Math.max(min, value));
 
-function falloff(value: number, radius = RADIUS) {
-  if (value >= radius) return 0;
-  const t = 1 - value / radius;
-  return t * t * (3 - 2 * t);
-}
+const wrap = (value: number) => ((value % 1) + 1) % 1;
 
-function bendPoint(point: Point, cursor: Point, strength: number) {
-  if (strength <= 0.05) return point;
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
-  const dx = point.x - cursor.x;
-  const dy = point.y - cursor.y;
-  const d = Math.hypot(dx, dy);
-  const influence = falloff(d);
-  if (!influence) return point;
+const seeded = (seed: number) => {
+  const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return value - Math.floor(value);
+};
 
-  const safe = Math.max(d, 20);
-  return {
-    x: point.x + (dx / safe) * strength * influence,
-    y: point.y + (dy / safe) * strength * influence * 0.7,
-  };
-}
-
-function pathFromPoints(points: Point[]) {
-  return points
-    .map(
-      (point, index) =>
-        `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
-    )
-    .join(" ");
-}
-
-function verticalStreet(x: number, cursor: Point, strength: number) {
-  const points: Point[] = [];
-  for (let y = -30; y <= HEIGHT + 30; y += 24) {
-    const bent = bendPoint({ x, y }, cursor, strength);
-    points.push({ x: bent.x, y: y + (bent.y - y) * 0.2 });
-  }
-  return pathFromPoints(points);
-}
-
-function horizontalStreet(y: number, cursor: Point, strength: number) {
-  const points: Point[] = [];
-  for (let x = -30; x <= WIDTH + 30; x += 28) {
-    const bent = bendPoint({ x, y }, cursor, strength * 0.68);
-    points.push({ x: x + (bent.x - x) * 0.58, y: bent.y });
-  }
-  return pathFromPoints(points);
-}
-
-function diagonalStreet(
-  offset: number,
-  cursor: Point,
-  strength: number,
-  slope: number,
-) {
-  const points: Point[] = [];
-  for (let x = -120; x <= WIDTH + 120; x += 32) {
-    const y = x * slope + offset;
-    points.push(bendPoint({ x, y }, cursor, strength * 0.54));
-  }
-  return pathFromPoints(points);
-}
-
-function buildGeometry(cursor: Point, strength: number) {
-  const vertical: Street[] = Array.from({ length: 36 }, (_, index) => {
-    const x = -18 + index * 42;
-    return {
-      d: verticalStreet(x, cursor, strength),
-      major: index % 6 === 1,
-      traffic: index % 4 === 0 || index % 7 === 2,
-    };
-  });
-
-  const horizontal: Street[] = Array.from({ length: 26 }, (_, index) => {
-    const y = -14 + index * 36;
-    return {
-      d: horizontalStreet(y, cursor, strength),
-      major: index % 6 === 2,
-      traffic: index % 4 === 1 || index % 7 === 3,
-    };
-  });
-
-  const diagonal: Street[] = [
-    { offset: -180, slope: 0.24 },
-    { offset: 118, slope: 0.3 },
-    { offset: 430, slope: 0.23 },
-    { offset: 705, slope: -0.18 },
-  ].map((item, index) => ({
-    d: diagonalStreet(item.offset, cursor, strength, item.slope),
-    major: index === 1,
-    traffic: index !== 2,
+function buildRoutes(): Route[] {
+  const horizontal = Array.from({ length: 11 }, (_, index) => ({
+    kind: "h" as const,
+    value: 48 + index * 76,
   }));
+  const vertical = Array.from({ length: 10 }, (_, index) => ({
+    kind: "v" as const,
+    value: 62 + index * 142,
+  }));
+  const diagonal: Route[] = [
+    { kind: "d", offset: 110, slope: 0.22 },
+    { kind: "d", offset: 410, slope: 0.26 },
+    { kind: "d", offset: 705, slope: -0.16 },
+  ];
 
-  return { vertical, horizontal, diagonal };
+  return [...horizontal, ...vertical, ...diagonal];
 }
 
-function TrafficDot({
-  path,
-  index,
-  axis,
-}: {
-  path: string;
-  index: number;
-  axis: "h" | "v" | "d";
-}) {
-  const duration =
-    axis === "h"
-      ? 12 + (index % 4) * 2.1
-      : axis === "v"
-        ? 15 + (index % 3) * 2.4
-        : 18 + (index % 3) * 2.8;
-  const begin = -((index * 2.7) % duration);
-  const reverse = (index + (axis === "v" ? 1 : 0)) % 3 === 0;
-  const fills = [
+function routePoint(route: Route, progress: number): Point {
+  const p = wrap(progress);
+  if (route.kind === "h") {
+    return { x: -50 + p * (WIDTH + 100), y: route.value };
+  }
+  if (route.kind === "v") {
+    return { x: route.value, y: -50 + p * (HEIGHT + 100) };
+  }
+
+  const x = -110 + p * (WIDTH + 220);
+  return { x, y: x * route.slope + route.offset };
+}
+
+function nearestProgress(route: Route, point: Point) {
+  if (route.kind === "h") return clamp((point.x + 50) / (WIDTH + 100));
+  if (route.kind === "v") return clamp((point.y + 50) / (HEIGHT + 100));
+  return clamp((point.x + 110) / (WIDTH + 220));
+}
+
+function easeOutCubic(value: number) {
+  return 1 - Math.pow(1 - value, 3);
+}
+
+function buildParticles(routes: Route[]): Particle[] {
+  const colors = [
     "rgba(49,70,59,0.76)",
     "rgba(70,73,162,0.78)",
     "rgba(166,113,68,0.62)",
   ];
 
-  return (
-    <circle
-      r={index % 5 === 0 ? 2.7 : 2.25}
-      className="traffic-dot"
-      fill={fills[index % fills.length]}
-    >
-      <animateMotion
-        dur={`${duration}s`}
-        begin={`${begin}s`}
-        repeatCount="indefinite"
-        path={path}
-        keyPoints={reverse ? "1;0" : "0;1"}
-        keyTimes="0;1"
-        calcMode="linear"
-      />
-    </circle>
-  );
-}
-
-function Streets({
-  geometry,
-  variant,
-}: {
-  geometry: ReturnType<typeof buildGeometry>;
-  variant: "base" | "deformed";
-}) {
-  const classPrefix = variant === "base" ? "base-street" : "deformed-street";
-
-  return (
-    <>
-      {geometry.horizontal.map((street, index) => (
-        <path
-          key={`${variant}-h-${index}`}
-          d={street.d}
-          className={`${classPrefix}${street.major ? ` ${classPrefix}--major` : ""}`}
-        />
-      ))}
-      {geometry.vertical.map((street, index) => (
-        <path
-          key={`${variant}-v-${index}`}
-          d={street.d}
-          className={`${classPrefix}${street.major ? ` ${classPrefix}--major` : ""}`}
-        />
-      ))}
-      {geometry.diagonal.map((street, index) => (
-        <path
-          key={`${variant}-d-${index}`}
-          d={street.d}
-          className={`${classPrefix} ${classPrefix}--diagonal${street.major ? ` ${classPrefix}--major` : ""}`}
-        />
-      ))}
-    </>
-  );
+  return Array.from({ length: DOT_COUNT }, (_, index) => {
+    const routeIndex = index % routes.length;
+    const progress = seeded(index + 11);
+    return {
+      routeIndex,
+      progress,
+      direction: seeded(index + 31) > 0.42 ? 1 : -1,
+      speed: 0.018 + seeded(index + 51) * 0.021,
+      radius: index % 5 === 0 ? 2.8 : 2.25,
+      color: colors[index % colors.length],
+      position: routePoint(routes[routeIndex], progress),
+      scatterFrom: { x: 0, y: 0 },
+      scatterTo: { x: 0, y: 0 },
+      scatterRouteIndex: routeIndex,
+      scatterProgress: progress,
+      scatterStartedAt: 0,
+      scatterDuration: 1000,
+      scatterBend: 0,
+    };
+  });
 }
 
 export function InteractiveTravelField() {
-  const frameRef = useRef<number | null>(null);
-  const desiredCursor = useRef<Point>({ x: WIDTH * 0.5, y: HEIGHT * 0.46 });
-  const currentCursor = useRef<Point>(desiredCursor.current);
-  const currentStrength = useRef(0);
-  const targetStrength = useRef(0);
-  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const candidate = useRef<Candidate | null>(null);
+  const routes = useMemo(() => buildRoutes(), []);
+  const particlesRef = useRef<Particle[]>(buildParticles(routes));
+  const modeRef = useRef<"idle" | "gather" | "disperse">("idle");
+  const pointerRef = useRef<Point>({ x: WIDTH * 0.5, y: HEIGHT * 0.46 });
+  const candidateRef = useRef<Candidate | null>(null);
   const lastMeaningfulPointer = useRef<Point | null>(null);
-  const activeRef = useRef(false);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastFrameRef = useRef<number | null>(null);
+  const reducedMotionRef = useRef(false);
 
-  const [cursor, setCursor] = useState<Point>(currentCursor.current);
-  const [strength, setStrength] = useState(0);
-  const [active, setActive] = useState(false);
+  const [particles, setParticles] = useState<Point[]>(() =>
+    particlesRef.current.map((particle) => particle.position),
+  );
+  const [cursor, setCursor] = useState<Point>(pointerRef.current);
+  const [mode, setMode] = useState<"idle" | "gather" | "disperse">("idle");
+  const [pointerSeen, setPointerSeen] = useState(false);
 
   useEffect(() => {
-    const tick = () => {
-      const current = currentCursor.current;
-      const desired = desiredCursor.current;
+    const reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const finePointerQuery = window.matchMedia("(pointer: fine)");
+    reducedMotionRef.current = reducedQuery.matches;
 
-      currentCursor.current = {
-        x: current.x + (desired.x - current.x) * 0.22,
-        y: current.y + (desired.y - current.y) * 0.22,
-      };
+    if (finePointerQuery.matches && !reducedQuery.matches) {
+      document.documentElement.classList.add("roam-swarm-cursor");
+    }
 
-      // Interaction rises quickly, but the deformed overlay takes its time
-      // dissolving into the always-visible base street grid.
-      const returning = targetStrength.current === 0;
-      const ease = returning ? 0.025 : 0.16;
-      currentStrength.current +=
-        (targetStrength.current - currentStrength.current) * ease;
+    const beginDisperse = () => {
+      if (modeRef.current !== "gather") return;
 
-      setCursor(currentCursor.current);
-      setStrength(currentStrength.current);
+      const now = performance.now();
+      modeRef.current = "disperse";
+      setMode("disperse");
 
-      const cursorDelta =
-        Math.abs(desired.x - currentCursor.current.x) +
-        Math.abs(desired.y - currentCursor.current.y);
-      const strengthDelta = Math.abs(
-        targetStrength.current - currentStrength.current,
-      );
+      particlesRef.current.forEach((particle, index) => {
+        const routeIndex = Math.floor(seeded(index + now * 0.001 + 91) * routes.length) % routes.length;
+        const route = routes[routeIndex];
+        const baseProgress = nearestProgress(route, pointerRef.current);
+        const jitter = (seeded(index + now * 0.002 + 123) - 0.5) * 0.22;
+        const targetProgress = wrap(baseProgress + jitter);
 
-      if (cursorDelta > 0.08 || strengthDelta > 0.025) {
-        frameRef.current = requestAnimationFrame(tick);
-      } else {
-        currentStrength.current = targetStrength.current;
-        setStrength(targetStrength.current);
-        frameRef.current = null;
-      }
-    };
-
-    const ensureFrame = () => {
-      if (!frameRef.current) frameRef.current = requestAnimationFrame(tick);
-    };
-
-    const enterIdle = () => {
-      activeRef.current = false;
-      targetStrength.current = 0;
-      candidate.current = null;
-      lastMeaningfulPointer.current = null;
-      setActive(false);
-      ensureFrame();
+        particle.scatterFrom = { ...particle.position };
+        particle.scatterRouteIndex = routeIndex;
+        particle.scatterProgress = targetProgress;
+        particle.scatterTo = routePoint(route, targetProgress);
+        particle.scatterStartedAt = now;
+        particle.scatterDuration = 950 + seeded(index + 151) * 520;
+        particle.scatterBend = (seeded(index + 171) - 0.5) * 58;
+      });
     };
 
     const armIdle = () => {
       if (idleTimer.current) clearTimeout(idleTimer.current);
-      idleTimer.current = setTimeout(enterIdle, IDLE_DELAY_MS);
+      idleTimer.current = setTimeout(beginDisperse, IDLE_DELAY_MS);
     };
 
-    const setDesiredFromClient = (point: Point) => {
-      desiredCursor.current = {
+    const activate = (point: Point) => {
+      pointerRef.current = {
         x: (point.x / window.innerWidth) * WIDTH,
         y: (point.y / window.innerHeight) * HEIGHT,
       };
+      setCursor(pointerRef.current);
+      setPointerSeen(true);
+      modeRef.current = "gather";
+      setMode("gather");
+      lastMeaningfulPointer.current = point;
+      candidateRef.current = null;
+      armIdle();
     };
 
     const onPointerMove = (event: PointerEvent) => {
       const point = { x: event.clientX, y: event.clientY };
       const now = performance.now();
+      setPointerSeen(true);
 
-      if (activeRef.current) {
-        const previous = lastMeaningfulPointer.current;
-        if (previous && distance(point, previous) < ACTIVE_STEP_PX) return;
-
-        lastMeaningfulPointer.current = point;
-        setDesiredFromClient(point);
-        targetStrength.current = MAX_STRENGTH;
-        armIdle();
-        ensureFrame();
+      if (reducedMotionRef.current) {
+        pointerRef.current = {
+          x: (point.x / window.innerWidth) * WIDTH,
+          y: (point.y / window.innerHeight) * HEIGHT,
+        };
+        setCursor(pointerRef.current);
         return;
       }
 
-      const pending = candidate.current;
+      if (modeRef.current === "gather") {
+        const previous = lastMeaningfulPointer.current;
+        if (previous && distance(point, previous) < ACTIVE_STEP_PX) return;
+        activate(point);
+        return;
+      }
+
+      const pending = candidateRef.current;
       if (!pending || now - pending.startedAt > ACTIVATION_WINDOW_MS) {
-        candidate.current = { point, startedAt: now };
+        candidateRef.current = { point, startedAt: now };
         return;
       }
 
       if (distance(point, pending.point) < ACTIVATION_DISTANCE_PX) return;
-
-      activeRef.current = true;
-      candidate.current = null;
-      lastMeaningfulPointer.current = point;
-      setDesiredFromClient(point);
-      targetStrength.current = MAX_STRENGTH;
-      setActive(true);
-      armIdle();
-      ensureFrame();
+      activate(point);
     };
 
     const onPointerLeave = () => {
+      candidateRef.current = null;
+      lastMeaningfulPointer.current = null;
       if (idleTimer.current) clearTimeout(idleTimer.current);
-      enterIdle();
+      beginDisperse();
+    };
+
+    const tick = (now: number) => {
+      const previous = lastFrameRef.current ?? now;
+      const dt = Math.min(0.05, (now - previous) / 1000);
+      lastFrameRef.current = now;
+      const currentMode = modeRef.current;
+      const gatherEase = 1 - Math.exp(-dt * 8.2);
+      let dispersing = false;
+
+      particlesRef.current.forEach((particle) => {
+        if (currentMode === "gather") {
+          particle.position = {
+            x: particle.position.x + (pointerRef.current.x - particle.position.x) * gatherEase,
+            y: particle.position.y + (pointerRef.current.y - particle.position.y) * gatherEase,
+          };
+          return;
+        }
+
+        if (currentMode === "disperse") {
+          const raw = clamp((now - particle.scatterStartedAt) / particle.scatterDuration);
+          const eased = easeOutCubic(raw);
+          const from = particle.scatterFrom;
+          const to = particle.scatterTo;
+          const dx = to.x - from.x;
+          const dy = to.y - from.y;
+          const length = Math.max(1, Math.hypot(dx, dy));
+          const nx = -dy / length;
+          const ny = dx / length;
+          const arc = Math.sin(Math.PI * raw) * particle.scatterBend;
+
+          particle.position = {
+            x: from.x + dx * eased + nx * arc,
+            y: from.y + dy * eased + ny * arc,
+          };
+
+          if (raw < 1) {
+            dispersing = true;
+          } else {
+            particle.routeIndex = particle.scatterRouteIndex;
+            particle.progress = particle.scatterProgress;
+            particle.position = routePoint(routes[particle.routeIndex], particle.progress);
+          }
+          return;
+        }
+
+        particle.progress = wrap(
+          particle.progress + particle.speed * particle.direction * dt,
+        );
+        particle.position = routePoint(routes[particle.routeIndex], particle.progress);
+      });
+
+      if (currentMode === "disperse" && !dispersing) {
+        modeRef.current = "idle";
+        setMode("idle");
+      }
+
+      if (!reducedMotionRef.current) {
+        setParticles(
+          particlesRef.current.map((particle) => ({ ...particle.position })),
+        );
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("blur", onPointerLeave);
     document.documentElement.addEventListener("mouseleave", onPointerLeave);
+    rafRef.current = requestAnimationFrame(tick);
 
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("blur", onPointerLeave);
       document.documentElement.removeEventListener("mouseleave", onPointerLeave);
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
       if (idleTimer.current) clearTimeout(idleTimer.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      document.documentElement.classList.remove("roam-swarm-cursor");
     };
-  }, []);
-
-  const baseGeometry = useMemo(
-    () => buildGeometry({ x: WIDTH * 0.5, y: HEIGHT * 0.46 }, 0),
-    [],
-  );
-  const geometry = useMemo(
-    () => buildGeometry(cursor, strength),
-    [cursor, strength],
-  );
-
-  const trafficPaths = [
-    ...baseGeometry.horizontal
-      .filter((street) => street.traffic)
-      .map((street) => ({ d: street.d, axis: "h" as const })),
-    ...baseGeometry.vertical
-      .filter((street) => street.traffic)
-      .map((street) => ({ d: street.d, axis: "v" as const })),
-    ...baseGeometry.diagonal
-      .filter((street) => street.traffic)
-      .map((street) => ({ d: street.d, axis: "d" as const })),
-  ].slice(0, 24);
+  }, [routes]);
 
   const cursorPercent = {
     x: `${(cursor.x / WIDTH) * 100}%`,
     y: `${(cursor.y / HEIGHT) * 100}%`,
   };
 
-  // Fade the interacting layer with the same physical quantity that controls
-  // deformation. The base grid stays underneath at all times, so the return
-  // reads as a dissolve into the normal street network rather than a snap.
-  const deformOpacity = Math.min(
-    1,
-    Math.pow(Math.max(strength, 0) / MAX_STRENGTH, 0.72),
-  );
+  const baseVertical = Array.from({ length: 36 }, (_, index) => -18 + index * 42);
+  const baseHorizontal = Array.from({ length: 26 }, (_, index) => -14 + index * 36);
+  const diagonalRoads = [
+    { offset: -180, slope: 0.24 },
+    { offset: 118, slope: 0.3 },
+    { offset: 430, slope: 0.23 },
+    { offset: 705, slope: -0.18 },
+  ];
+
+  const focusOpacity = mode === "gather" ? 1 : mode === "disperse" ? 0.45 : 0;
+  const cursorDotOpacity = pointerSeen ? (mode === "gather" ? 1 : mode === "disperse" ? 0.55 : 0.32) : 0;
+  const cursorDotRadius = mode === "gather" ? 6.5 : mode === "disperse" ? 4.2 : 2.8;
 
   return (
     <div
       className="street-field"
-      data-state={active ? "active" : strength > 0.2 ? "settling" : "idle"}
-      data-traffic="real-circles-v5"
+      data-state={mode}
       style={
         {
           "--cursor-x": cursorPercent.x,
           "--cursor-y": cursorPercent.y,
-          "--deform-opacity": deformOpacity,
+          "--focus-opacity": focusOpacity,
+          "--cursor-dot-opacity": cursorDotOpacity,
+          "--cursor-dot-radius": `${cursorDotRadius}px`,
         } as CSSProperties
       }
       aria-hidden
@@ -374,54 +342,94 @@ export function InteractiveTravelField() {
       <div className="street-field__wash street-field__wash--sage" />
       <div className="street-field__wash street-field__wash--sand" />
       <div className="street-field__wash street-field__wash--indigo" />
-      <div className="street-field__cursor-wash" />
+      <div className="street-field__focus" />
 
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="xMidYMid slice"
         className="street-field__map"
       >
-        <defs>
-          <radialGradient id="cursorHalo">
-            <stop offset="0" stopColor="rgba(255,255,255,0.16)" />
-            <stop offset="0.58" stopColor="rgba(255,255,255,0.055)" />
-            <stop offset="1" stopColor="rgba(255,255,255,0)" />
-          </radialGradient>
-        </defs>
-
-        <g className="street-field__base-grid">
-          <Streets geometry={baseGeometry} variant="base" />
-        </g>
-
-        <g className="street-field__deformed-grid">
-          <Streets geometry={geometry} variant="deformed" />
-        </g>
-
-        <g className="street-field__traffic">
-          {trafficPaths.map((item, index) => (
-            <TrafficDot
-              key={`traffic-${index}`}
-              path={item.d}
-              index={index}
-              axis={item.axis}
+        <g>
+          {baseHorizontal.map((y, index) => (
+            <line
+              key={`h-${index}`}
+              x1={-40}
+              y1={y}
+              x2={WIDTH + 40}
+              y2={y}
+              stroke="#465048"
+              strokeWidth={index % 6 === 2 ? 0.82 : 0.62}
+              opacity={index % 6 === 2 ? 0.145 : 0.105}
+              vectorEffect="non-scaling-stroke"
             />
           ))}
+          {baseVertical.map((x, index) => (
+            <line
+              key={`v-${index}`}
+              x1={x}
+              y1={-40}
+              x2={x}
+              y2={HEIGHT + 40}
+              stroke="#465048"
+              strokeWidth={index % 6 === 1 ? 0.82 : 0.62}
+              opacity={index % 6 === 1 ? 0.145 : 0.105}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {diagonalRoads.map((road, index) => {
+            const x1 = -100;
+            const x2 = WIDTH + 100;
+            return (
+              <line
+                key={`d-${index}`}
+                x1={x1}
+                y1={x1 * road.slope + road.offset}
+                x2={x2}
+                y2={x2 * road.slope + road.offset}
+                stroke="#8f735a"
+                strokeWidth={0.68}
+                opacity={0.09}
+                strokeDasharray="2 8"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
         </g>
 
-        <circle
-          cx={cursor.x}
-          cy={cursor.y}
-          r="166"
-          fill="url(#cursorHalo)"
-          className="street-field__halo"
-        />
+        <g>
+          {particles.map((point, index) => {
+            const particle = particlesRef.current[index];
+            return (
+              <circle
+                key={`particle-${index}`}
+                cx={point.x}
+                cy={point.y}
+                r={particle?.radius ?? 2.25}
+                fill={particle?.color ?? "rgba(49,70,59,0.76)"}
+                opacity={mode === "gather" ? 0.72 : 0.92}
+              />
+            );
+          })}
+        </g>
       </svg>
+
+      <div className="street-field__cursor-dot" />
+
+      <style jsx global>{`
+        html.roam-swarm-cursor,
+        html.roam-swarm-cursor body,
+        html.roam-swarm-cursor * {
+          cursor: none !important;
+        }
+      `}</style>
 
       <style jsx>{`
         .street-field {
           --cursor-x: 50%;
           --cursor-y: 46%;
-          --deform-opacity: 0;
+          --focus-opacity: 0;
+          --cursor-dot-opacity: 0;
+          --cursor-dot-radius: 3px;
           position: absolute;
           inset: 0;
           overflow: hidden;
@@ -433,7 +441,7 @@ export function InteractiveTravelField() {
           position: absolute;
           inset: 0;
           background:
-            radial-gradient(circle at 78% 18%, rgba(79, 70, 180, 0.105) 0%, rgba(79, 70, 180, 0.045) 20%, transparent 42%),
+            radial-gradient(circle at 78% 18%, rgba(79, 70, 180, 0.1) 0%, rgba(79, 70, 180, 0.04) 20%, transparent 42%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(244, 242, 236, 0.05)),
             radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.02) 42%);
         }
@@ -470,113 +478,55 @@ export function InteractiveTravelField() {
           background: radial-gradient(circle, rgba(76, 67, 176, 0.125), rgba(76, 67, 176, 0.04) 48%, transparent 73%);
         }
 
-        .street-field__cursor-wash {
-          position: absolute;
-          width: 350px;
-          height: 350px;
-          left: var(--cursor-x);
-          top: var(--cursor-y);
-          transform: translate(-50%, -50%);
-          border-radius: 999px;
-          background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.06) 44%, transparent 72%);
-          opacity: 0;
-          transition: opacity 900ms cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .street-field[data-state="active"] .street-field__cursor-wash {
-          opacity: 0.82;
-          transition-duration: 180ms;
-        }
-
         .street-field__map {
           position: absolute;
           inset: -3%;
           width: 106%;
           height: 106%;
-          opacity: 1;
+          opacity: 0.98;
           filter: saturate(0.94);
         }
 
-        :global(.base-street),
-        :global(.deformed-street) {
-          fill: none;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-          vector-effect: non-scaling-stroke;
+        .street-field__focus {
+          position: absolute;
+          width: 220px;
+          height: 220px;
+          left: var(--cursor-x);
+          top: var(--cursor-y);
+          transform: translate(-50%, -50%);
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(24, 28, 25, 0.17) 0%, rgba(24, 28, 25, 0.09) 38%, rgba(24, 28, 25, 0.025) 58%, transparent 72%);
+          mix-blend-mode: multiply;
+          opacity: var(--focus-opacity);
+          transition: opacity 680ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        :global(.base-street) {
-          stroke: #737870;
-          stroke-width: 0.82;
-          stroke-opacity: 0.24;
-        }
-
-        :global(.base-street--major) {
-          stroke: #676e66;
-          stroke-width: 1.12;
-          stroke-opacity: 0.34;
-        }
-
-        :global(.base-street--diagonal) {
-          stroke: #96836f;
-          stroke-dasharray: 2 8;
-          stroke-opacity: 0.2;
-        }
-
-        .street-field__deformed-grid {
-          opacity: var(--deform-opacity);
-        }
-
-        :global(.deformed-street) {
-          stroke: #55635a;
-          stroke-width: 0.86;
-          stroke-opacity: 0.42;
-        }
-
-        :global(.deformed-street--major) {
-          stroke: #4b5950;
-          stroke-width: 1.18;
-          stroke-opacity: 0.54;
-        }
-
-        :global(.deformed-street--diagonal) {
-          stroke: #92765e;
-          stroke-dasharray: 2 8;
-          stroke-opacity: 0.34;
-        }
-
-        .street-field__traffic {
-          opacity: 0.78;
-          transition: opacity 760ms cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .street-field[data-state="active"] .street-field__traffic {
-          opacity: 0.58;
+        .street-field[data-state="gather"] .street-field__focus {
           transition-duration: 180ms;
         }
 
-        :global(.traffic-dot) {
-          filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.72));
-        }
-
-        .street-field__halo {
-          mix-blend-mode: screen;
-          opacity: 0;
-          transition: opacity 900ms cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .street-field[data-state="active"] .street-field__halo {
-          opacity: 0.5;
-          transition-duration: 180ms;
+        .street-field__cursor-dot {
+          position: absolute;
+          left: var(--cursor-x);
+          top: var(--cursor-y);
+          width: calc(var(--cursor-dot-radius) * 2);
+          height: calc(var(--cursor-dot-radius) * 2);
+          transform: translate(-50%, -50%);
+          border-radius: 999px;
+          background: #414996;
+          box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.72),
+            0 4px 18px rgba(57, 67, 60, 0.12);
+          opacity: var(--cursor-dot-opacity);
+          transition:
+            width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+            height 220ms cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 500ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .street-field__traffic,
-          .street-field__deformed-grid {
-            display: none;
-          }
-          .street-field__cursor-wash,
-          .street-field__halo {
+          .street-field__focus,
+          .street-field__cursor-dot {
             display: none;
           }
         }
@@ -586,16 +536,11 @@ export function InteractiveTravelField() {
             inset: -14%;
             width: 128%;
             height: 128%;
-            opacity: 0.86;
+            opacity: 0.72;
           }
-          .street-field__cursor-wash {
+          .street-field__focus,
+          .street-field__cursor-dot {
             display: none;
-          }
-          .street-field__traffic {
-            opacity: 0.58;
-          }
-          :global(.base-street) {
-            stroke-opacity: 0.22;
           }
         }
       `}</style>
