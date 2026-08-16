@@ -1,0 +1,53 @@
+/* Homepage prompt focus polish.
+   Keep the prompt surface solid white. On focus, render a true 1px animated
+   gradient ring plus a very soft moving halo behind it. */
+.home-prompt-edge {
+  z-index: 20;
+  inset: 0;
+  box-sizing: border-box;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--home-prompt-angle),
+    rgba(122, 169, 137, 0.92),
+    rgba(100, 87, 255, 0.92),
+    rgba(226, 167, 111, 0.9),
+    rgba(122, 169, 137, 0.92)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: none;
+}
+
+.home-prompt-glow {
+  z-index: -1;
+  inset: -4px;
+  background: conic-gradient(
+    from var(--home-glow-angle),
+    rgba(126, 174, 141, 0.42),
+    rgba(101, 88, 255, 0.38),
+    rgba(229, 170, 112, 0.38),
+    rgba(126, 174, 141, 0.42)
+  );
+  filter: blur(7px);
+  transform: scale(1.003);
+}
+
+.home-prompt-shell:focus-within .home-prompt-edge {
+  opacity: 1;
+  animation: homePromptEdge 5.8s linear infinite;
+}
+
+.home-prompt-shell:focus-within .home-prompt-glow {
+  opacity: 0.15;
+  animation: homePromptGlow 7.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-prompt-shell:focus-within .home-prompt-edge,
+  .home-prompt-shell:focus-within .home-prompt-glow {
+    animation: none;
+  }
+}
