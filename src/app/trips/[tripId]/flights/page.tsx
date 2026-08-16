@@ -272,7 +272,7 @@ function FlightCard({
       <p className="mt-5 text-[13px] leading-relaxed text-muted">{flight.note}</p>
 
       <div className="mt-5 flex flex-wrap gap-2 border-t border-hair-2 pt-4">
-        <Button variant={tracked ? "ghost" : "secondary"} size="sm" onClick={onTrack}>{tracked ? "Stop tracking" : "Track price"}</Button>
+        <Button variant="ghost" size="sm" onClick={onTrack}>{tracked ? "Stop tracking" : "Track price"}</Button>
         <Button variant="ink" size="sm" onClick={onBook}>Book this flight</Button>
       </div>
     </article>
