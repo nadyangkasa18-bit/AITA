@@ -188,10 +188,10 @@ function Welcome({ onStart }: { onStart: () => void }) {
 
       <main className="relative z-10 mx-auto grid min-h-[calc(100dvh-5rem)] max-w-[1180px] items-center gap-12 px-5 pb-12 pt-5 md:grid-cols-[0.9fr_1.1fr] md:px-8 md:pb-16 lg:gap-20">
         <div className="max-w-[560px]">
-          <Eyebrow className="text-accent">Personalized from the start</Eyebrow>
-          <h1 className="mt-5 font-display text-[clamp(44px,6.2vw,76px)] font-semibold leading-[0.94] tracking-[-0.055em]">Teach Roam your travel taste.</h1>
-          <p className="mt-6 max-w-[48ch] text-[18px] leading-[1.65] text-muted">Eight quick choices help Roam recommend trips that feel more like you.</p>
-          <div className="mt-8"><Button variant="ink" className="min-w-[184px]" onClick={onStart}>Start calibration <span aria-hidden>→</span></Button></div>
+          <Eyebrow className="text-accent">A few quick choices</Eyebrow>
+          <h1 className="mt-5 font-display text-[clamp(44px,6.2vw,76px)] font-semibold leading-[0.94] tracking-[-0.055em]">Let Roam get to know how you travel.</h1>
+          <p className="mt-6 max-w-[48ch] text-[18px] leading-[1.65] text-muted">Tell us what tends to make a trip feel right for you. Roam will use it to make better calls from the start.</p>
+          <div className="mt-8"><Button variant="ink" className="min-w-[184px]" onClick={onStart}>Tell Roam what I like <span aria-hidden>→</span></Button></div>
           <p className="mt-5 text-[13px] text-muted">About 3 minutes <span className="mx-1.5 text-hair">·</span> No lengthy forms <span className="mx-1.5 text-hair">·</span> Editable anytime</p>
         </div>
         <div className="w-full md:justify-self-end"><CalibrationVignette /></div>
@@ -204,7 +204,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
           <div><Eyebrow>Useful details</Eyebrow><p className="mt-1 text-[14.5px] text-ink-soft">Add must-haves, avoids, and any loyalty programs you use.</p></div>
           <div><Eyebrow>Your editable profile</Eyebrow><p className="mt-1 text-[14.5px] text-ink-soft">Review what Roam learned before anything is saved.</p></div>
         </div>
-        <Button variant="ink" className="mt-8 w-full" onClick={() => { setInfoOpen(false); onStart(); }}>Start calibration →</Button>
+        <Button variant="ink" className="mt-8 w-full" onClick={() => { setInfoOpen(false); onStart(); }}>Tell Roam what I like →</Button>
       </SidePanel>
     </div>
   );
