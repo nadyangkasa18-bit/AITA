@@ -241,6 +241,16 @@ export default function Home() {
       </div>
 
       <style jsx>{`
+        @property --prompt-angle {
+          syntax: "<angle>";
+          inherits: false;
+          initial-value: 0deg;
+        }
+        @property --prompt-glow-angle {
+          syntax: "<angle>";
+          inherits: false;
+          initial-value: 150deg;
+        }
         .prompt-shell {
           position: relative;
           isolation: isolate;
@@ -249,38 +259,34 @@ export default function Home() {
         .prompt-shell__edge,
         .prompt-shell__glow {
           position: absolute;
-          left: 50%;
-          top: 50%;
-          border-radius: 50%;
           pointer-events: none;
+          border-radius: inherit;
         }
         .prompt-shell__edge {
           z-index: 0;
-          width: 118%;
-          aspect-ratio: 1;
+          inset: 0;
           background: conic-gradient(
-            from 30deg,
+            from var(--prompt-angle),
             rgba(122, 169, 137, 0.78),
             rgba(100, 87, 255, 0.78),
             rgba(226, 167, 111, 0.72),
             rgba(122, 169, 137, 0.78)
           );
-          animation: prompt-orbit 18s linear infinite;
+          animation: prompt-edge-flow 18s linear infinite;
         }
         .prompt-shell__glow {
           z-index: -1;
-          width: 112%;
-          aspect-ratio: 1;
+          inset: -4px;
           background: conic-gradient(
-            from 210deg,
-            rgba(126, 174, 141, 0.35),
-            rgba(101, 88, 255, 0.34),
-            rgba(229, 170, 112, 0.31),
-            rgba(126, 174, 141, 0.35)
+            from var(--prompt-glow-angle),
+            rgba(126, 174, 141, 0.33),
+            rgba(101, 88, 255, 0.31),
+            rgba(229, 170, 112, 0.28),
+            rgba(126, 174, 141, 0.33)
           );
           filter: blur(10px);
-          opacity: 0.34;
-          animation: prompt-orbit-reverse 22s linear infinite;
+          opacity: 0.3;
+          animation: prompt-glow-flow 24s linear infinite;
         }
         .prompt-shell__surface {
           overflow: hidden;
@@ -311,14 +317,11 @@ export default function Home() {
         .marquee-viewport:focus-within .marquee-track {
           animation-play-state: paused;
         }
-        @keyframes prompt-orbit {
-          from { transform: translate(-50%, -50%) rotate(0deg); }
-          to { transform: translate(-50%, -50%) rotate(360deg); }
+        @keyframes prompt-edge-flow {
+          to { --prompt-angle: 360deg; }
         }
-        @keyframes prompt-orbit-reverse {
-          from { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
-          50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.015); }
-          to { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+        @keyframes prompt-glow-flow {
+          to { --prompt-glow-angle: 510deg; }
         }
         @keyframes marquee-right {
           from { transform: translateX(-50%); }
