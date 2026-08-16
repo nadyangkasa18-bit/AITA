@@ -93,7 +93,7 @@ export function TripHome({ tripId }: { tripId: string }) {
   return (
     <div>
       <section className="relative overflow-hidden rounded-[26px] bg-ink text-white">
-        <Photo image={selected.heroImage} ratio="hero" tone={selected.heroTone} width={1800} rounded="rounded-none" priority className="max-h-[52vh] opacity-75" />
+        <Photo image={selected.heroImage} ratio="hero" tone={selected.heroTone} width={1800} rounded="rounded-none" priority className="h-[min(52vh,560px)] w-full !aspect-auto opacity-75" />
         <div className="absolute inset-0 bg-gradient-to-t from-[rgba(8,8,8,.9)] via-[rgba(8,8,8,.2)] to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-6 md:p-9">
           <p className="text-[11.5px] font-semibold uppercase tracking-[0.16em] text-white/70">{copy.eyebrow} · {selected.recommendedWindow}</p>
