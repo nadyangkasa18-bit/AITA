@@ -37,13 +37,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${bricolage.variable} ${hanken.variable} ${newsreader.variable} antialiased`}>
-        <style>{`
-          input:not([type="checkbox"]):not([type="radio"]):focus-visible,
-          select:focus-visible,
-          textarea:focus-visible {
-            border-radius: revert-layer;
-          }
-        `}</style>
         <ToastProvider>
           <StoreProvider>
             <AppShell>{children}</AppShell>
