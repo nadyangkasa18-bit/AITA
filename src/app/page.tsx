@@ -205,7 +205,7 @@ export default function Home() {
           </form>
         </div>
 
-        <div className="mx-auto mt-8 w-screen max-w-none overflow-hidden">
+        <div className="relative left-1/2 mt-8 w-screen max-w-none -translate-x-1/2 overflow-hidden">
           <p className="mb-3 text-center text-[12px] text-faint">Or start from an idea</p>
           <div className="grid gap-2.5">
             <PromptMarquee items={TOP_IDEAS} direction="right" onPick={submit} />
