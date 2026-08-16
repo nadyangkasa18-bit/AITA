@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTrip, useStore } from "@/lib/store";
 import { ProposalView } from "@/components/proposal";
@@ -52,7 +52,10 @@ export default function DestinationsPage() {
 
   const showAnother = () => {
     const next = store.showAnother(trip.id);
-    if (next) { window.scrollTo({ top: 0, behavior: "smooth" }); toast(`Direction ${((optionIndex + 1) % list.length) + 1} of ${list.length}: ${next.destination}.`); }
+    if (next) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      toast(`Direction ${((optionIndex + 1) % list.length) + 1} of ${list.length}: ${next.destination}.`);
+    }
   };
 
   const toggleReason = (reason: string) => setReasons((current) => current.includes(reason) ? current.filter((item) => item !== reason) : [...current, reason]);
@@ -86,7 +89,7 @@ export default function DestinationsPage() {
                   <div className="flex justify-between gap-4"><dt className="text-faint">Stay</dt><dd className="text-right font-semibold text-ink-soft">{proposal.stay.name}</dd></div>
                 </dl>
                 <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint">Best reason to choose it</p><p className="mt-1.5 text-[13.5px] leading-snug text-ink-soft">{proposal.whyThisFits[0]}</p></div>
-                <div className="mt-5 flex gap-2"><button onClick={() => { store.resetFeatured(trip.id); while (store.getFeaturedId(trip.id) !== proposal.id) store.showAnother(trip.id); setView("detail"); }} className="flex-1 rounded-full border border-hair px-3 py-2.5 text-[12.5px] font-semibold">View details</button><Button size="sm" variant="ink" onClick={() => startWith(proposal.id)}>Choose</Button></div>
+                <div className="mt-5 flex gap-2"><button onClick={() => router.push(`/trips/${trip.id}/destinations/${proposal.id}`)} className="flex-1 rounded-full border border-hair px-3 py-2.5 text-[12.5px] font-semibold">View details</button><Button size="sm" variant="ink" onClick={() => startWith(proposal.id)}>Choose</Button></div>
               </div>
             </article>
           ))}
