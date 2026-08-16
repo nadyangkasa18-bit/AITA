@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./prompt-focus.css";
 import { PRODUCT } from "@/config/product";
 import { StoreProvider } from "@/lib/store";
 import { ToastProvider } from "@/components/ui";
