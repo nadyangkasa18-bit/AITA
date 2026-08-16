@@ -29,7 +29,7 @@ function TripRow({ trip }: { trip: Trip }) {
           {selected && (
             <div className="mt-4 flex flex-wrap gap-2">
               <StateChip label={flight === "confirmed" ? "Flights booked" : flight === "tracked" ? "Flight tracking" : "Flights not booked"} done={flight === "confirmed"} watch={flight === "tracked"} />
-              <StateChip label={stay === "confirmed" ? "Stay booked" : "Stay not booked"} done={stay === "confirmed"} />
+              <StateChip label={stay === "confirmed" ? "Stay booked" : stay === "tracked" ? "Stay price watch" : "Stay not booked"} done={stay === "confirmed"} watch={stay === "tracked"} />
               <StateChip label={`${secured}/2 core secured`} done={secured === 2} />
             </div>
           )}
@@ -48,7 +48,7 @@ export default function TripsPage() {
 
   return (
     <div className="mx-auto max-w-[1000px] px-5 py-10 md:py-12">
-      <header className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><div className="mb-2 flex items-center gap-3"><p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">Everything you&apos;re planning</p><PrototypeBadge /></div><h1 className="font-display text-4xl tracking-[-0.035em] md:text-5xl">Your Trips</h1><p className="mt-2 text-[13.5px] text-muted">See what&apos;s booked without opening every trip.</p></div><Button variant="ink" onClick={() => router.push("/")}>+ New trip</Button></header>
+      <header className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><div className="mb-2 flex items-center gap-3"><p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">Everything you&apos;re planning</p><PrototypeBadge /></div><h1 className="font-display text-4xl tracking-[-0.035em] md:text-5xl">Your Trips</h1><p className="mt-2 text-[13.5px] text-muted">See what&apos;s booked or being watched without opening every trip.</p></div><Button variant="ink" onClick={() => router.push("/")}>+ New trip</Button></header>
       {trips.length === 0 ? <EmptyState title="No trips yet" body="Describe a trip you're thinking about — even a vague one — and I'll turn it into a brief and a short, opinionated shortlist." action={<Link href="/" className={buttonClass("ink", "sm")}>Start a trip →</Link>} /> : <div className="grid gap-4">{trips.map((trip) => <TripRow key={trip.id} trip={trip} />)}</div>}
     </div>
   );
