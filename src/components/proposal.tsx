@@ -77,7 +77,7 @@ export function ProposalView({
           width={2000}
           rounded="rounded-none"
           priority
-          className={`w-full !aspect-auto opacity-78 transition-[height] duration-500 [transition-timing-function:var(--ease-out)] ${compactHero ? "h-[34vh] min-h-[280px]" : "h-[58vh] min-h-[430px] max-h-[680px]"}`}
+          className={`w-full !aspect-auto opacity-75 transition-[height] duration-500 [transition-timing-function:var(--ease-out)] ${compactHero ? "h-[34vh] min-h-[280px]" : "h-[58vh] min-h-[430px] max-h-[680px]"}`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[rgba(8,8,8,.82)] via-[rgba(8,8,8,.22)] to-[rgba(8,8,8,.08)]" />
         <div className="absolute inset-0 flex items-end justify-center px-5 pb-8 text-center md:pb-11">
@@ -103,15 +103,17 @@ export function ProposalView({
             </div>
           ))}
         </div>
-        <Disclosure label="Why this fits" className="mx-auto mt-5 max-w-[620px] text-left">
-          <ul className="grid gap-2.5">
-            {proposal.whyThisFits.slice(0, 3).map((reason) => (
-              <li key={reason} className="flex items-start gap-2.5 text-[14px] leading-snug text-ink-soft">
-                <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />{reason}
-              </li>
-            ))}
-          </ul>
-        </Disclosure>
+        <div className="mx-auto mt-5 max-w-[620px] text-left">
+          <Disclosure label="Why this fits">
+            <ul className="grid gap-2.5">
+              {proposal.whyThisFits.slice(0, 3).map((reason) => (
+                <li key={reason} className="flex items-start gap-2.5 text-[14px] leading-snug text-ink-soft">
+                  <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />{reason}
+                </li>
+              ))}
+            </ul>
+          </Disclosure>
+        </div>
       </section>
 
       <nav className="sticky top-16 z-30 -mx-5 border-y border-hair bg-[rgba(244,242,236,0.94)] px-5 backdrop-blur-xl md:-mx-8 md:px-8" aria-label="Recommendation details">
