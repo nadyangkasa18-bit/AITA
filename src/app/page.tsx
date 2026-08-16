@@ -9,19 +9,27 @@ import { ReasoningProgress } from "@/components/reasoning";
 import { Orb, useToast } from "@/components/ui";
 import { PRODUCT } from "@/config/product";
 import { reasoningSteps, SAMPLE_PROMPT } from "@/lib/mock/seed";
+import { DIRECT_TOKYO_PROPOSAL, isDirectTokyoBookingPrompt } from "@/lib/mock/direct-tokyo";
 
 const PROMPT_SUGGESTIONS = [
   "I need a weekend somewhere that feels like a reset…",
   "Where can I take two kids without spending half the trip in transit?",
   "Somewhere warm for Chinese New Year, but not too crowded…",
-  "Plan me a food-first long weekend under five hours from Jakarta…",
+  "Tokyo for 3 nights — I need a hotel and flights…",
   "I want mountains, a great hotel, and absolutely no red-eyes…",
 ];
 
 const EXAMPLES = [
   SAMPLE_PROMPT,
+  "Tokyo for 3 nights — I already know I need a hotel and flights.",
   "A long weekend under five hours, nothing too busy.",
   "Somewhere the four of us can switch off by the water.",
+];
+
+const directBookingSteps = [
+  { label: "Keeping Tokyo and 3 nights fixed" },
+  { label: "Pairing the flight and hotel so the timings work together" },
+  { label: "Checking what still needs your approval before booking" },
 ];
 
 export default function Home() {
@@ -31,6 +39,8 @@ export default function Home() {
   const [value, setValue] = useState("");
   const [phase, setPhase] = useState<"idle" | "reasoning">("idle");
   const [tripId, setTripId] = useState<string | null>(null);
+  const [nextPath, setNextPath] = useState<string | null>(null);
+  const [directMode, setDirectMode] = useState(false);
   const [promptIndex, setPromptIndex] = useState(0);
   const [promptVisible, setPromptVisible] = useState(true);
 
@@ -67,17 +77,37 @@ export default function Home() {
   function submit(prompt: string) {
     const text = prompt.trim();
     if (!text) return;
+
+    const direct = isDirectTokyoBookingPrompt(text);
     const id = store.createTripFromPrompt(text);
+
+    if (direct) {
+      const now = new Date().toISOString();
+      store.patchTrip(id, {
+        name: "Tokyo · 3 nights",
+        status: "version-selected",
+        tripLength: 3,
+        destinationProposals: [DIRECT_TOKYO_PROPOSAL],
+        selectedProposalId: DIRECT_TOKYO_PROPOSAL.id,
+        homeCreatedAt: now,
+        lifecycle: "planning",
+        componentStates: { stay: "undecided", flight: "undecided", experiences: "undecided" },
+        tripVersions: [{ id: `v-${Date.now()}`, label: "Tokyo booking plan", destinationId: DIRECT_TOKYO_PROPOSAL.id, createdAt: now }],
+      });
+    }
+
     setTripId(id);
+    setDirectMode(direct);
+    setNextPath(direct ? `/trips/${id}/checkout?mode=plan` : `/trips/${id}/brief`);
     setPhase("reasoning");
   }
 
-  if (phase === "reasoning" && tripId) {
+  if (phase === "reasoning" && tripId && nextPath) {
     return (
       <ReasoningProgress
-        steps={reasoningSteps}
-        headline="Understanding what the group wants…"
-        onDone={() => router.push(`/trips/${tripId}/brief`)}
+        steps={directMode ? directBookingSteps : reasoningSteps}
+        headline={directMode ? "Turning that into a booking plan…" : "Understanding what the group wants…"}
+        onDone={() => router.push(nextPath)}
       />
     );
   }
