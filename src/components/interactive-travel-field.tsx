@@ -8,6 +8,8 @@ const WIDTH = 1440;
 const HEIGHT = 900;
 const RADIUS = 185;
 const MAX_STRENGTH = 76;
+const POINTER_THRESHOLD_PX = 7;
+const IDLE_DELAY_MS = 95;
 
 function falloff(distance: number, radius = RADIUS) {
   if (distance >= radius) return 0;
@@ -72,6 +74,7 @@ export function InteractiveTravelField() {
   const frameRef = useRef<number | null>(null);
   const desiredCursor = useRef<Point>({ x: WIDTH * 0.5, y: HEIGHT * 0.46 });
   const currentCursor = useRef<Point>(desiredCursor.current);
+  const lastAcceptedPointer = useRef<Point | null>(null);
   const currentStrength = useRef(0);
   const targetStrength = useRef(0);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,18 +89,24 @@ export function InteractiveTravelField() {
       const desired = desiredCursor.current;
 
       currentCursor.current = {
-        x: current.x + (desired.x - current.x) * 0.24,
-        y: current.y + (desired.y - current.y) * 0.24,
+        x: current.x + (desired.x - current.x) * 0.3,
+        y: current.y + (desired.y - current.y) * 0.3,
       };
 
-      currentStrength.current += (targetStrength.current - currentStrength.current) * 0.14;
+      const returningToIdle = targetStrength.current === 0;
+      const strengthEase = returningToIdle ? 0.38 : 0.2;
+      currentStrength.current +=
+        (targetStrength.current - currentStrength.current) * strengthEase;
 
       setCursor(currentCursor.current);
       setStrength(currentStrength.current);
 
       const cursorDelta =
-        Math.abs(desired.x - currentCursor.current.x) + Math.abs(desired.y - currentCursor.current.y);
-      const strengthDelta = Math.abs(targetStrength.current - currentStrength.current);
+        Math.abs(desired.x - currentCursor.current.x) +
+        Math.abs(desired.y - currentCursor.current.y);
+      const strengthDelta = Math.abs(
+        targetStrength.current - currentStrength.current,
+      );
 
       if (cursorDelta > 0.2 || strengthDelta > 0.15) {
         frameRef.current = requestAnimationFrame(tick);
@@ -112,7 +121,27 @@ export function InteractiveTravelField() {
       if (!frameRef.current) frameRef.current = requestAnimationFrame(tick);
     };
 
+    const enterIdle = () => {
+      targetStrength.current = 0;
+      setActive(false);
+      ensureFrame();
+    };
+
     const onPointerMove = (event: PointerEvent) => {
+      const clientPoint = { x: event.clientX, y: event.clientY };
+      const previous = lastAcceptedPointer.current;
+
+      if (previous) {
+        const dx = clientPoint.x - previous.x;
+        const dy = clientPoint.y - previous.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Ignore tiny trackpad/mouse noise. It should take a deliberate movement
+        // to wake the elastic grid or extend the active interaction state.
+        if (distance < POINTER_THRESHOLD_PX) return;
+      }
+
+      lastAcceptedPointer.current = clientPoint;
       desiredCursor.current = {
         x: (event.clientX / window.innerWidth) * WIDTH,
         y: (event.clientY / window.innerHeight) * HEIGHT,
@@ -122,16 +151,22 @@ export function InteractiveTravelField() {
       ensureFrame();
 
       if (idleTimer.current) clearTimeout(idleTimer.current);
-      idleTimer.current = setTimeout(() => {
-        targetStrength.current = 0;
-        setActive(false);
-        ensureFrame();
-      }, 150);
+      idleTimer.current = setTimeout(enterIdle, IDLE_DELAY_MS);
+    };
+
+    const onPointerLeave = () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      enterIdle();
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("blur", onPointerLeave);
+    document.documentElement.addEventListener("mouseleave", onPointerLeave);
+
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("blur", onPointerLeave);
+      document.documentElement.removeEventListener("mouseleave", onPointerLeave);
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       if (idleTimer.current) clearTimeout(idleTimer.current);
     };
@@ -188,6 +223,7 @@ export function InteractiveTravelField() {
       <div className="street-field__base" />
       <div className="street-field__wash street-field__wash--sage" />
       <div className="street-field__wash street-field__wash--sand" />
+      <div className="street-field__wash street-field__wash--indigo" />
       <div className="street-field__cursor-wash" />
 
       <svg
@@ -208,9 +244,9 @@ export function InteractiveTravelField() {
             <stop offset="1" stopColor="rgba(20,25,20,0.04)" />
           </linearGradient>
           <linearGradient id="trafficInk" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="rgba(64,91,71,0.02)" />
-            <stop offset="0.5" stopColor="rgba(64,91,71,0.28)" />
-            <stop offset="1" stopColor="rgba(181,135,82,0.05)" />
+            <stop offset="0" stopColor="rgba(56,76,64,0.4)" />
+            <stop offset="0.52" stopColor="rgba(69,86,157,0.58)" />
+            <stop offset="1" stopColor="rgba(177,126,77,0.36)" />
           </linearGradient>
           <radialGradient id="cursorHalo">
             <stop offset="0" stopColor="rgba(255,255,255,0.16)" />
@@ -221,29 +257,78 @@ export function InteractiveTravelField() {
 
         <g className="street-field__streets">
           {geometry.horizontal.map((street, index) => (
-            <path key={`h-${index}`} d={street.d} className={street.major ? "street street--major" : "street"} stroke="url(#streetInk)" />
+            <path
+              key={`h-${index}`}
+              d={street.d}
+              className={street.major ? "street street--major" : "street"}
+              stroke="url(#streetInk)"
+            />
           ))}
           {geometry.vertical.map((street, index) => (
-            <path key={`v-${index}`} d={street.d} className={street.major ? "street street--major" : "street"} stroke="url(#streetInk)" />
+            <path
+              key={`v-${index}`}
+              d={street.d}
+              className={street.major ? "street street--major" : "street"}
+              stroke="url(#streetInk)"
+            />
           ))}
           {geometry.diagonal.map((street, index) => (
-            <path key={`d-${index}`} d={street.d} className={street.major ? "street street--major street--diagonal" : "street street--diagonal"} stroke="url(#streetWarm)" />
+            <path
+              key={`d-${index}`}
+              d={street.d}
+              className={
+                street.major
+                  ? "street street--major street--diagonal"
+                  : "street street--diagonal"
+              }
+              stroke="url(#streetWarm)"
+            />
           ))}
         </g>
 
         <g className="street-field__traffic">
-          {geometry.horizontal.map((street, index) => street.traffic && (
-            <path key={`th-${index}`} d={street.d} className={`traffic traffic--h traffic--${index % 3}`} stroke="url(#trafficInk)" />
-          ))}
-          {geometry.vertical.map((street, index) => street.traffic && (
-            <path key={`tv-${index}`} d={street.d} className={`traffic traffic--v traffic--${index % 3}`} stroke="url(#trafficInk)" />
-          ))}
-          {geometry.diagonal.map((street, index) => street.traffic && (
-            <path key={`td-${index}`} d={street.d} className={`traffic traffic--d traffic--${index % 3}`} stroke="url(#trafficInk)" />
-          ))}
+          {geometry.horizontal.map(
+            (street, index) =>
+              street.traffic && (
+                <path
+                  key={`th-${index}`}
+                  d={street.d}
+                  className={`traffic traffic--h traffic--${index % 4}`}
+                  stroke="url(#trafficInk)"
+                />
+              ),
+          )}
+          {geometry.vertical.map(
+            (street, index) =>
+              street.traffic && (
+                <path
+                  key={`tv-${index}`}
+                  d={street.d}
+                  className={`traffic traffic--v traffic--${index % 4}`}
+                  stroke="url(#trafficInk)"
+                />
+              ),
+          )}
+          {geometry.diagonal.map(
+            (street, index) =>
+              street.traffic && (
+                <path
+                  key={`td-${index}`}
+                  d={street.d}
+                  className={`traffic traffic--d traffic--${index % 4}`}
+                  stroke="url(#trafficInk)"
+                />
+              ),
+          )}
         </g>
 
-        <circle cx={cursor.x} cy={cursor.y} r="170" fill="url(#cursorHalo)" className="street-field__halo" />
+        <circle
+          cx={cursor.x}
+          cy={cursor.y}
+          r="170"
+          fill="url(#cursorHalo)"
+          className="street-field__halo"
+        />
       </svg>
 
       <style jsx>{`
@@ -261,8 +346,8 @@ export function InteractiveTravelField() {
           position: absolute;
           inset: 0;
           background:
-            linear-gradient(180deg, rgba(255,255,255,0.3), rgba(244,242,236,0.05)),
-            radial-gradient(circle at 50% 42%, rgba(255,255,255,0.62), rgba(255,255,255,0.02) 42%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(244, 242, 236, 0.05)),
+            radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.02) 42%);
         }
 
         .street-field__wash {
@@ -272,20 +357,29 @@ export function InteractiveTravelField() {
           min-width: 560px;
           min-height: 560px;
           border-radius: 999px;
-          filter: blur(26px);
+          filter: blur(30px);
           opacity: 0.72;
         }
 
         .street-field__wash--sage {
           left: -22vw;
           top: -30vw;
-          background: radial-gradient(circle, rgba(130,168,143,0.18), rgba(130,168,143,0.05) 48%, transparent 72%);
+          background: radial-gradient(circle, rgba(130, 168, 143, 0.18), rgba(130, 168, 143, 0.05) 48%, transparent 72%);
         }
 
         .street-field__wash--sand {
           right: -19vw;
           bottom: -34vw;
-          background: radial-gradient(circle, rgba(219,175,119,0.18), rgba(219,175,119,0.045) 48%, transparent 73%);
+          background: radial-gradient(circle, rgba(219, 175, 119, 0.18), rgba(219, 175, 119, 0.045) 48%, transparent 73%);
+        }
+
+        .street-field__wash--indigo {
+          width: 46vw;
+          height: 46vw;
+          right: 4vw;
+          top: -20vw;
+          opacity: 0.54;
+          background: radial-gradient(circle, rgba(78, 72, 167, 0.105), rgba(78, 72, 167, 0.032) 48%, transparent 73%);
         }
 
         .street-field__cursor-wash {
@@ -296,20 +390,22 @@ export function InteractiveTravelField() {
           top: var(--cursor-y);
           transform: translate(-50%, -50%);
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(255,255,255,0.22), rgba(255,255,255,0.07) 44%, transparent 72%);
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.07) 44%, transparent 72%);
           opacity: 0;
-          transition: opacity 360ms ease;
+          transition: opacity 110ms ease;
         }
 
-        .street-field[data-active="true"] .street-field__cursor-wash { opacity: 0.9; }
+        .street-field[data-active="true"] .street-field__cursor-wash {
+          opacity: 0.9;
+        }
 
         .street-field__map {
           position: absolute;
           inset: -3%;
           width: 106%;
           height: 106%;
-          opacity: 0.82;
-          filter: saturate(0.86);
+          opacity: 0.84;
+          filter: saturate(0.9);
         }
 
         .street {
@@ -331,45 +427,75 @@ export function InteractiveTravelField() {
           opacity: 0.4;
         }
 
-        .street-field[data-active="true"] .street { opacity: 0.72; }
-        .street-field[data-active="true"] .street--major { opacity: 0.9; }
+        .street-field[data-active="true"] .street {
+          opacity: 0.72;
+        }
+
+        .street-field[data-active="true"] .street--major {
+          opacity: 0.9;
+        }
 
         .traffic {
           fill: none;
-          stroke-width: 1.1;
+          stroke-width: 2.15;
           stroke-linecap: round;
           vector-effect: non-scaling-stroke;
-          stroke-dasharray: 2 18 5 30;
-          opacity: 0.34;
-          animation: trafficFlow 22s linear infinite;
+          stroke-dasharray: 0.1 27;
+          opacity: 0.56;
+          animation: trafficFlow 15s linear infinite;
+          transition: opacity 80ms linear;
         }
 
-        .traffic--v { animation-direction: reverse; animation-duration: 27s; }
-        .traffic--d { animation-duration: 31s; opacity: 0.26; }
-        .traffic--1 { animation-delay: -7s; }
-        .traffic--2 { animation-delay: -14s; }
+        .traffic--v {
+          animation-direction: reverse;
+          animation-duration: 18s;
+        }
+
+        .traffic--d {
+          animation-duration: 21s;
+          opacity: 0.42;
+        }
+
+        .traffic--1 {
+          animation-delay: -4s;
+        }
+
+        .traffic--2 {
+          animation-delay: -8s;
+        }
+
+        .traffic--3 {
+          animation-delay: -12s;
+        }
 
         .street-field[data-active="true"] .traffic {
-          opacity: 0.18;
-          animation-play-state: paused;
+          opacity: 0.3;
         }
 
         .street-field__halo {
           mix-blend-mode: screen;
           opacity: 0;
-          transition: opacity 320ms ease;
+          transition: opacity 100ms ease;
         }
 
-        .street-field[data-active="true"] .street-field__halo { opacity: 0.58; }
+        .street-field[data-active="true"] .street-field__halo {
+          opacity: 0.58;
+        }
 
         @keyframes trafficFlow {
-          to { stroke-dashoffset: -260; }
+          to {
+            stroke-dashoffset: -420;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .traffic { animation: none !important; }
+          .traffic {
+            animation: none !important;
+          }
           .street-field__cursor-wash,
-          .street-field__halo { display: none; }
+          .street-field__halo {
+            display: none;
+          }
         }
 
         @media (max-width: 700px) {
@@ -377,10 +503,15 @@ export function InteractiveTravelField() {
             inset: -14%;
             width: 128%;
             height: 128%;
-            opacity: 0.58;
+            opacity: 0.6;
           }
-          .street-field__cursor-wash { display: none; }
-          .traffic { opacity: 0.2; }
+          .street-field__cursor-wash {
+            display: none;
+          }
+          .traffic {
+            stroke-width: 1.85;
+            opacity: 0.42;
+          }
         }
       `}</style>
     </div>
