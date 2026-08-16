@@ -8,25 +8,25 @@ import { Eyebrow } from "@/components/ui";
 
 function Itinerary({ it }: { it: NonNullable<RoundOption["itinerary"]> }) {
   return (
-    <div className="rounded-lg bg-surface-2 p-4 ring-1 ring-hair-2">
-      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-faint">
+    <div className="rounded-lg bg-surface-2 p-3 ring-1 ring-hair-2 sm:p-4">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-faint sm:mb-3 sm:text-[11px]">
         {it.label}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <div className="text-center">
-          <div className="font-display text-lg leading-none">{it.depart}</div>
-          <div className="mt-1 text-[10.5px] uppercase tracking-wide text-faint">Dep</div>
+          <div className="font-display text-base leading-none sm:text-lg">{it.depart}</div>
+          <div className="mt-1 text-[9.5px] uppercase tracking-wide text-faint sm:text-[10.5px]">Dep</div>
         </div>
         <div className="flex-1">
           <div className="relative h-px bg-hair">
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-surface-2 px-2 text-[10.5px] text-muted">
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-surface-2 px-1.5 text-[9.5px] text-muted sm:px-2 sm:text-[10.5px]">
               {it.duration} · {it.stops}
             </span>
           </div>
         </div>
         <div className="text-center">
-          <div className="font-display text-lg leading-none">{it.arrive}</div>
-          <div className="mt-1 text-[10.5px] uppercase tracking-wide text-faint">Arr</div>
+          <div className="font-display text-base leading-none sm:text-lg">{it.arrive}</div>
+          <div className="mt-1 text-[9.5px] uppercase tracking-wide text-faint sm:text-[10.5px]">Arr</div>
         </div>
       </div>
     </div>
@@ -55,18 +55,24 @@ function OptionCard({
       }`}
     >
       {option.image ? (
-        <Photo image={option.image} ratio="4/3" width={800} rounded="rounded-none" />
+        <Photo
+          image={option.image}
+          ratio="4/3"
+          width={800}
+          rounded="rounded-none"
+          className="h-[76px] !aspect-auto sm:h-auto sm:!aspect-[4/3]"
+        />
       ) : option.itinerary ? (
-        <div className="p-5 pb-0">
+        <div className="p-3 pb-0 sm:p-5 sm:pb-0">
           <Itinerary it={option.itinerary} />
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col p-3 sm:p-5">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="font-display text-xl tracking-[-0.02em]">{option.title}</h3>
+          <h3 className="font-display text-[17px] tracking-[-0.02em] sm:text-xl">{option.title}</h3>
           <span
-            className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[13px] transition ${
+            className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[11px] transition sm:h-6 sm:w-6 sm:text-[13px] ${
               selected ? "border-accent bg-accent text-[#f3f6f1]" : "border-hair text-transparent"
             }`}
             aria-hidden
@@ -74,16 +80,16 @@ function OptionCard({
             ✓
           </span>
         </div>
-        <ul className="mt-3 grid gap-1.5">
+        <ul className="mt-2 grid gap-1 sm:mt-3 sm:gap-1.5">
           {option.points.slice(0, 3).map((p) => (
-            <li key={p} className="flex items-start gap-2 text-[14.5px] leading-snug text-ink-soft">
-              <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent" />
+            <li key={p} className="flex items-start gap-1.5 text-[12.5px] leading-snug text-ink-soft sm:gap-2 sm:text-[14.5px]">
+              <span aria-hidden className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-accent sm:mt-[7px]" />
               {p}
             </li>
           ))}
         </ul>
         {option.more && (
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             <span
               role="button"
               tabIndex={0}
@@ -97,11 +103,11 @@ function OptionCard({
                   setMore((m) => !m);
                 }
               }}
-              className="text-[13px] font-medium text-accent"
+              className="text-[12px] font-medium text-accent sm:text-[13px]"
             >
               {more ? "Less" : "See more"}
             </span>
-            {more && <p className="disclose mt-2 text-[13.5px] text-muted">{option.more}</p>}
+            {more && <p className="disclose mt-2 text-[12.5px] text-muted sm:text-[13.5px]">{option.more}</p>}
           </div>
         )}
       </div>
@@ -118,19 +124,19 @@ export function ComparisonRound({
   onBack,
 }: {
   round: Round;
-  index: number; // 0-based
+  index: number;
   total: number;
   selected: ChoiceValue | null;
   onSelect: (v: ChoiceValue) => void;
   onBack?: () => void;
 }) {
   return (
-    <div className="mx-auto max-w-[880px] px-5 py-10 md:py-14">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-[880px] px-4 py-4 sm:px-5 sm:py-8 md:py-14">
+      <div className="mb-3 flex items-center justify-between sm:mb-5 md:mb-6">
         {onBack ? (
           <button
             onClick={onBack}
-            className="text-[13px] font-medium text-muted transition hover:text-ink"
+            className="text-[12.5px] font-medium text-muted transition hover:text-ink sm:text-[13px]"
           >
             ← Back
           </button>
@@ -142,28 +148,27 @@ export function ComparisonRound({
         </Eyebrow>
       </div>
 
-      {/* progress bar */}
-      <div className="mb-8 h-1 w-full overflow-hidden rounded-full bg-hair-2" aria-hidden>
+      <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-hair-2 sm:mb-6 md:mb-8" aria-hidden>
         <div
           className="h-full rounded-full bg-accent transition-[width] duration-500"
           style={{ width: `${((index + 1) / total) * 100}%` }}
         />
       </div>
 
-      <h1 className="mb-7 max-w-[20ch] font-display text-[clamp(26px,4.5vw,40px)] leading-[1.05] tracking-[-0.035em]">
+      <h1 className="mb-4 max-w-[22ch] font-display text-[24px] leading-[1.03] tracking-[-0.035em] sm:mb-6 sm:text-[clamp(26px,4.5vw,40px)] md:mb-7">
         {round.question}
       </h1>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-2.5 sm:gap-4 md:grid-cols-2">
         <OptionCard option={round.a} selected={selected === "A"} onSelect={() => onSelect("A")} />
         <OptionCard option={round.b} selected={selected === "B"} onSelect={() => onSelect("B")} />
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:mt-6 sm:gap-3">
         <button
           onClick={() => onSelect("depends")}
           aria-pressed={selected === "depends"}
-          className={`rounded-full border px-4 py-2 text-[13.5px] font-medium transition ${
+          className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition sm:px-4 sm:py-2 sm:text-[13.5px] ${
             selected === "depends" ? "border-accent bg-accent-tint text-accent" : "border-hair text-muted hover:border-ink"
           }`}
         >
@@ -172,7 +177,7 @@ export function ComparisonRound({
         <button
           onClick={() => onSelect("none")}
           aria-pressed={selected === "none"}
-          className={`rounded-full border px-4 py-2 text-[13.5px] font-medium transition ${
+          className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition sm:px-4 sm:py-2 sm:text-[13.5px] ${
             selected === "none" ? "border-accent bg-accent-tint text-accent" : "border-hair text-muted hover:border-ink"
           }`}
         >
