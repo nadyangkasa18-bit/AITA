@@ -4,18 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTrip, useStore } from "@/lib/store";
 import { ProposalView } from "@/components/proposal";
 import { RuledOutSection } from "@/components/destinations";
-import { Eyebrow, TradeoffNote, useToast } from "@/components/ui";
-import type { DestinationProposal } from "@/lib/types";
-
-const UPSIDE: Record<string, string> = {
-  easier: "More convenient, and a little cheaper",
-  wildcard: "More distinctive, with the best resort of the three",
-  top: "The most complete fit for your brief",
-};
-
-function differences(alt: DestinationProposal): string[] {
-  return [UPSIDE[alt.recommendationType], ...alt.tradeoffs].slice(0, 3);
-}
+import { useToast } from "@/components/ui";
 
 export default function DestinationsPage() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -27,11 +16,8 @@ export default function DestinationsPage() {
   if (!hydrated || !trip) {
     return (
       <div>
-        <div className="h-[52vh] rounded-card shimmer" />
-        <div className="measure mt-8 grid gap-4">
-          <div className="h-12 w-64 rounded-lg shimmer" />
-          <div className="h-6 w-full rounded-lg shimmer" />
-        </div>
+        <div className="relative left-1/2 h-[56vh] w-screen -translate-x-1/2 shimmer" />
+        <div className="mx-auto mt-8 h-12 w-64 rounded-lg shimmer" />
       </div>
     );
   }
@@ -39,9 +25,8 @@ export default function DestinationsPage() {
   const list = trip.destinationProposals;
   const baseId = list[0]?.id;
   const featuredId = store.getFeaturedId(trip.id) ?? baseId;
-  const featured = list.find((p) => p.id === featuredId) ?? list[0];
-  const base = list[0];
-  const isChallenger = featured.id !== baseId;
+  const featured = list.find((proposal) => proposal.id === featuredId) ?? list[0];
+  const optionIndex = Math.max(0, list.findIndex((proposal) => proposal.id === featured.id));
   const saved = trip.savedProposalIds.includes(featured.id);
 
   const start = () => {
@@ -55,69 +40,32 @@ export default function DestinationsPage() {
   };
   const showAnother = () => {
     const next = store.showAnother(trip.id);
-    if (next) toast(`Here's another direction — ${next.destination}.`);
+    if (next) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      toast(`Direction ${((optionIndex + 1) % list.length) + 1} of ${list.length}: ${next.destination}.`);
+    }
   };
-  const backToFirst = () => {
-    store.resetFeatured(trip.id);
-    toast(`Back to ${base.destination}.`);
-  };
-
-  const secondary = isChallenger ? (
-    <button
-      onClick={backToFirst}
-      className="text-[13px] font-medium text-muted transition hover:text-ink"
-    >
-      Back to my first recommendation
-    </button>
-  ) : (
-    <button
-      onClick={showAnother}
-      className="text-[13px] font-medium text-muted transition hover:text-ink"
-    >
-      Show me another
-    </button>
-  );
 
   return (
     <div>
-      {isChallenger && (
-        <div className="measure mb-6 rounded-card border border-hair bg-surface-2 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <Eyebrow>Compared to {base.destination}</Eyebrow>
-            <button
-              onClick={backToFirst}
-              className="text-[13px] font-medium text-accent transition hover:text-accent-press"
-            >
-              ← Back to my first recommendation
-            </button>
-          </div>
-          <div className="mt-3 grid gap-2">
-            {differences(featured).map((d, i) =>
-              i === 0 ? (
-                <p key={d} className="flex items-start gap-2 text-[15px] text-ink-soft">
-                  <span aria-hidden className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  {d}
-                </p>
-              ) : (
-                <TradeoffNote key={d}>{d}</TradeoffNote>
-              )
-            )}
-          </div>
-        </div>
-      )}
-
       <ProposalView
         proposal={featured}
         saved={saved}
         onSaveIdea={saveIdea}
         onPrimary={start}
         primaryLabel="Start with this trip"
-        secondary={secondary}
-        eyebrowOverride={isChallenger ? "The alternative" : undefined}
+        optionCount={list.length}
+        optionIndex={optionIndex}
+        eyebrowOverride={optionIndex === 0 ? undefined : `Alternative ${optionIndex + 1} of ${list.length}`}
+        secondary={
+          <button onClick={showAnother} className="px-3 py-2 text-[13px] font-semibold text-muted transition hover:text-ink">
+            Show next direction
+          </button>
+        }
       />
 
-      {!isChallenger && (
-        <div className="measure mt-8">
+      {optionIndex === 0 && trip.ruledOut.length > 0 && (
+        <div className="mx-auto mt-8 max-w-[760px]">
           <RuledOutSection items={trip.ruledOut} />
         </div>
       )}
