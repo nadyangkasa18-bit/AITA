@@ -21,11 +21,11 @@ export default function DestinationDetailPage() {
   if (!proposal) {
     return (
       <EmptyState
-        title="That direction isn't here"
-        body="It may have been replaced. Head back to your recommendation."
+        title="That trip concept isn't here"
+        body="It may have been replaced. Head back to your trip concepts."
         action={
           <Link href={`/trips/${tripId}/destinations`} className={buttonClass("ink", "sm")}>
-            Back to your recommendation
+            Back to trip concepts
           </Link>
         }
       />
@@ -41,7 +41,7 @@ export default function DestinationDetailPage() {
           href={`/trips/${tripId}/destinations`}
           className="text-[13px] font-medium text-muted transition hover:text-ink"
         >
-          ← Back to your recommendation
+          ← Back to trip concepts
         </Link>
       </div>
       <ProposalView
@@ -62,7 +62,7 @@ export default function DestinationDetailPage() {
             href={`/trips/${tripId}/destinations`}
             className="text-[13px] font-medium text-muted transition hover:text-ink"
           >
-            See my recommendation
+            See other trip concepts
           </Link>
         }
       />
