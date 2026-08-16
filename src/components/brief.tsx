@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { BriefLevel, ProtectChoice, Trip, TripBriefItem } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { Button, Disclosure, Eyebrow, LevelTag } from "@/components/ui";
+import { Button, Disclosure, Eyebrow } from "@/components/ui";
 import { StickyAction } from "@/components/sticky-action";
 
 const BOARD_LEVELS: { level: BriefLevel; label: string; helper: string }[] = [
@@ -33,75 +34,111 @@ function summarize(trip: Trip): string {
 
 function ConstraintCard({ tripId, item }: { tripId: string; item: TripBriefItem }) {
   const store = useStore();
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState(item.statement);
-  const [level, setLevel] = useState(item.level);
 
-  useEffect(() => {
-    setText(item.statement);
-    setLevel(item.level);
-  }, [item.statement, item.level]);
+  useEffect(() => setText(item.statement), [item.statement]);
 
-  const save = () => {
-    store.editBriefItem(tripId, item.id, text.trim() || item.statement);
-    if (level !== item.level) store.setBriefLevel(tripId, item.id, level);
-    setOpen(false);
+  const saveText = () => {
+    const next = text.trim();
+    if (!next) {
+      setText(item.statement);
+      return;
+    }
+    if (next !== item.statement) store.editBriefItem(tripId, item.id, next);
+  };
+
+  const startDrag = (event: DragEvent<HTMLElement>) => {
+    event.dataTransfer.setData("text/brief-item", item.id);
+    event.dataTransfer.effectAllowed = "move";
   };
 
   return (
-    <article className="rounded-[16px] border border-hair bg-surface shadow-[var(--shadow-card)]">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start justify-between gap-3 p-4 text-left"
-        aria-expanded={open}
-      >
-        <span className="min-w-0 text-[14.5px] font-medium leading-snug text-ink">{item.statement}</span>
-        <span className="shrink-0 text-[12px] text-faint">{open ? "Close" : "Edit"}</span>
-      </button>
-
-      {open && (
-        <div className="disclose border-t border-hair-2 p-4">
-          <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint">Constraint</label>
-          <input
+    <article
+      draggable
+      onDragStart={startDrag}
+      className="group rounded-[16px] border border-hair bg-surface p-3.5 shadow-[var(--shadow-card)] transition hover:border-ink/20"
+    >
+      <div className="flex items-start gap-2.5">
+        <span className="mt-2 cursor-grab select-none text-[15px] leading-none text-faint active:cursor-grabbing" aria-hidden>⋮⋮</span>
+        <div className="min-w-0 flex-1">
+          <textarea
             value={text}
+            rows={Math.max(2, Math.ceil(text.length / 34))}
             onChange={(event) => setText(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-hair bg-surface-2 px-3 py-2.5 text-[14px] outline-none focus-visible:border-accent"
+            onBlur={saveText}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
+            }}
+            aria-label="Edit trip brief item"
+            className="w-full resize-none bg-transparent text-[14px] font-medium leading-snug text-ink outline-none placeholder:text-faint"
           />
-          <label className="mt-4 block text-[11px] font-semibold uppercase tracking-[0.1em] text-faint">Importance</label>
-          <select
-            value={level}
-            onChange={(event) => setLevel(event.target.value as BriefLevel)}
-            className="mt-2 w-full rounded-lg border border-hair bg-surface px-3 py-2.5 text-[13.5px] outline-none focus-visible:border-accent"
-          >
-            {LEVELS.map((option) => <option key={option.level} value={option.level}>{option.label}</option>)}
-          </select>
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-faint">{item.source}</span>
             <button
               type="button"
               onClick={() => store.removeBriefItem(tripId, item.id)}
-              className="text-[12.5px] font-semibold text-muted transition hover:text-[#8a4b3f]"
+              className="text-[11.5px] font-semibold text-faint opacity-0 transition hover:text-[#8a4b3f] group-hover:opacity-100 focus-visible:opacity-100"
             >
               Remove
             </button>
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setText(item.statement);
-                  setLevel(item.level);
-                  setOpen(false);
-                }}
-                className="text-[13px] font-semibold text-muted hover:text-ink"
-              >
-                Cancel
-              </button>
-              <Button size="sm" variant="ink" onClick={save}>Save</Button>
-            </div>
           </div>
         </div>
-      )}
+      </div>
     </article>
+  );
+}
+
+function DropColumn({
+  trip,
+  level,
+  label,
+  helper,
+}: {
+  trip: Trip;
+  level: BriefLevel;
+  label: string;
+  helper: string;
+}) {
+  const store = useStore();
+  const [dragOver, setDragOver] = useState(false);
+  const items = trip.brief.items.filter((item) => item.level === level);
+
+  const drop = (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    const itemId = event.dataTransfer.getData("text/brief-item");
+    if (itemId) store.setBriefLevel(trip.id, itemId, level);
+    setDragOver(false);
+  };
+
+  return (
+    <section
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setDragOver(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragOver(false);
+      }}
+      onDrop={drop}
+      className={`rounded-[22px] border p-4 transition md:p-5 ${dragOver ? "border-accent bg-accent-tint/35 shadow-[0_0_0_2px_rgba(74,82,190,.08)]" : "border-hair bg-surface-2"}`}
+    >
+      <div className="flex items-end justify-between gap-3 border-b border-hair-2 pb-4">
+        <div>
+          <h2 className="font-display text-[21px] font-semibold tracking-[-0.025em]">{label}</h2>
+          <p className="mt-1 text-[12.5px] leading-snug text-muted">{helper}</p>
+        </div>
+        <span className="rounded-full bg-paper-2 px-2.5 py-1 text-[11px] font-semibold text-muted">{items.length}</span>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {items.length > 0 ? items.map((item) => <ConstraintCard key={item.id} tripId={trip.id} item={item} />) : (
+          <p className="rounded-[14px] border border-dashed border-hair px-4 py-7 text-center text-[12.5px] text-faint">Drag something here.</p>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -167,7 +204,6 @@ const PROTECT: { key: Exclude<ProtectChoice, null>; label: string }[] = [
 export function TripBrief({ trip }: { trip: Trip }) {
   const store = useStore();
   const router = useRouter();
-  const avoids = trip.brief.items.filter((item) => item.level === "avoid");
 
   return (
     <div className="mx-auto max-w-[1180px]">
@@ -175,39 +211,23 @@ export function TripBrief({ trip }: { trip: Trip }) {
         <Eyebrow>Your trip brief</Eyebrow>
         <h1 className="mt-3 font-display text-[clamp(34px,5vw,52px)] font-semibold leading-[1.02] tracking-[-0.04em]">Here&apos;s what matters</h1>
         <p className="mx-auto mt-4 max-w-[58ch] text-[17px] leading-relaxed text-muted">{summarize(trip)}</p>
+        <p className="mx-auto mt-2 text-[12.5px] text-faint">Edit any card directly, or drag it into a different priority.</p>
       </div>
 
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
-        {BOARD_LEVELS.map((group) => {
-          const items = trip.brief.items.filter((item) => item.level === group.level);
-          return (
-            <section key={group.level} className="rounded-[22px] border border-hair bg-surface-2 p-4 md:p-5">
-              <div className="flex items-end justify-between gap-3 border-b border-hair-2 pb-4">
-                <div>
-                  <h2 className="font-display text-[21px] font-semibold tracking-[-0.025em]">{group.label}</h2>
-                  <p className="mt-1 text-[12.5px] leading-snug text-muted">{group.helper}</p>
-                </div>
-                <span className="rounded-full bg-paper-2 px-2.5 py-1 text-[11px] font-semibold text-muted">{items.length}</span>
-              </div>
-              <div className="mt-4 grid gap-3">
-                {items.length > 0 ? items.map((item) => <ConstraintCard key={item.id} tripId={trip.id} item={item} />) : (
-                  <p className="rounded-[14px] border border-dashed border-hair px-4 py-5 text-center text-[12.5px] text-faint">Nothing here yet.</p>
-                )}
-              </div>
-            </section>
-          );
-        })}
+        {BOARD_LEVELS.map((group) => (
+          <DropColumn key={group.level} trip={trip} level={group.level} label={group.label} helper={group.helper} />
+        ))}
       </div>
 
-      <section className="mt-5 rounded-[22px] border border-hair bg-surface p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><Eyebrow>Avoid</Eyebrow><h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.025em]">Things that would make this trip worse</h2></div>
-          <span className="rounded-full bg-paper-2 px-2.5 py-1 text-[11px] font-semibold text-muted">{avoids.length}</span>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {avoids.length > 0 ? avoids.map((item) => <ConstraintCard key={item.id} tripId={trip.id} item={item} />) : <p className="text-[13px] text-faint">No hard avoids yet.</p>}
-        </div>
-      </section>
+      <div className="mt-5">
+        <DropColumn
+          trip={trip}
+          level="avoid"
+          label="Avoid"
+          helper="Things that would make this trip worse. Drag something here when it should be treated as a hard exclusion."
+        />
+      </div>
 
       <div className="mt-6"><AddDetail tripId={trip.id} /></div>
 
