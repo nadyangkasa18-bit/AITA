@@ -52,13 +52,13 @@ function PromptMarquee({
   onPick: (value: string) => void;
 }) {
   const renderSet = (copy: string) => (
-    <div className="marquee-set" aria-hidden={copy === "copy"}>
+    <div className="home-marquee-set" aria-hidden={copy === "copy"}>
       {items.map((item) => (
         <button
           key={`${copy}-${item}`}
           type="button"
           onClick={() => onPick(item)}
-          className="whitespace-nowrap rounded-full border border-[rgba(27,26,23,0.09)] bg-[rgba(255,255,255,0.46)] px-4 py-2 text-[13px] text-muted backdrop-blur-sm transition hover:border-[rgba(27,26,23,0.22)] hover:bg-[rgba(255,255,255,0.78)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className="whitespace-nowrap rounded-full border border-[rgba(27,26,23,0.09)] bg-[rgba(255,255,255,0.54)] px-4 py-2 text-[13px] text-muted backdrop-blur-sm transition hover:border-[rgba(27,26,23,0.22)] hover:bg-[rgba(255,255,255,0.86)] hover:text-ink"
         >
           {item}
         </button>
@@ -67,8 +67,8 @@ function PromptMarquee({
   );
 
   return (
-    <div className="marquee-viewport">
-      <div className={`marquee-track marquee-track--${direction}`}>
+    <div className="home-marquee-viewport">
+      <div className={`home-marquee-track ${direction === "right" ? "home-marquee-right" : "home-marquee-left"}`}>
         {renderSet("original")}
         {renderSet("copy")}
       </div>
@@ -162,45 +162,32 @@ export default function Home() {
       />
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-4rem)] max-w-[1080px] flex-col justify-center px-5 py-12">
-        <p className="text-center text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-          Good evening, Nadya
-        </p>
-        <h1 className="mx-auto mt-4 max-w-[14ch] text-center font-display text-[clamp(42px,6.4vw,72px)] font-bold leading-[0.97] tracking-[-0.045em]">
-          What kind of trip do you need?
-        </h1>
-        <p className="mx-auto mt-5 max-w-[54ch] text-center text-[17px] leading-relaxed text-muted">
-          Tell {PRODUCT.name} what you know — a place, a feeling, a problem to solve, or just who’s coming. It’ll help figure out the rest.
-        </p>
+        <p className="text-center text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">Good evening, Nadya</p>
+        <h1 className="mx-auto mt-4 max-w-[14ch] text-center font-display text-[clamp(42px,6.4vw,72px)] font-bold leading-[0.97] tracking-[-0.045em]">What kind of trip do you need?</h1>
+        <p className="mx-auto mt-5 max-w-[54ch] text-center text-[17px] leading-relaxed text-muted">Tell {PRODUCT.name} what you know — a place, a feeling, a problem to solve, or just who’s coming. It’ll help figure out the rest.</p>
 
         <div className="mx-auto mt-6 flex items-center justify-center">
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-2 rounded-full border border-accent-line bg-[rgba(238,236,255,0.62)] px-3 py-1.5 text-[12.5px] font-semibold text-accent backdrop-blur-sm transition hover:bg-accent-tint"
-          >
+          <Link href="/profile" className="inline-flex items-center gap-2 rounded-full border border-accent-line bg-[rgba(238,236,255,0.62)] px-3 py-1.5 text-[12.5px] font-semibold text-accent backdrop-blur-sm transition hover:bg-accent-tint">
             <Orb size={18} /> Roam remembers how you like to travel
           </Link>
         </div>
 
-        <div className="prompt-shell mx-auto mt-4 w-full max-w-[760px]">
-          <span className="prompt-shell__glow" aria-hidden />
-          <span className="prompt-shell__edge" aria-hidden />
+        <div className="home-prompt-shell mx-auto mt-4 w-full max-w-[760px]">
+          <span className="home-prompt-glow" aria-hidden />
+          <span className="home-prompt-edge" aria-hidden />
           <form
             onSubmit={(event) => {
               event.preventDefault();
               submit(value);
             }}
-            className="prompt-shell__surface relative z-10 m-px flex items-center gap-3 rounded-full bg-[rgba(255,255,255,0.9)] p-2.5 pl-5 shadow-[0_20px_60px_-34px_rgba(27,26,23,0.36)] backdrop-blur-xl transition-[box-shadow,transform] duration-300 focus-within:-translate-y-0.5 focus-within:shadow-[0_26px_64px_-34px_rgba(27,26,23,0.42)]"
+            className="relative z-10 m-px flex items-center gap-3 rounded-full bg-white p-2.5 pl-5 shadow-[0_18px_48px_-34px_rgba(27,26,23,0.32)] transition-[box-shadow,transform] duration-300 focus-within:-translate-y-0.5 focus-within:shadow-[0_24px_58px_-32px_rgba(27,26,23,0.38)]"
           >
             <Orb size={30} />
             <div className="relative min-w-0 flex-1">
               {!value && (
                 <span
                   aria-hidden
-                  className={`pointer-events-none absolute inset-y-0 left-0 flex max-w-full items-center truncate pr-2 font-display text-[18px] font-medium tracking-[-0.02em] text-faint transition-all duration-200 ${
-                    promptVisible
-                      ? "translate-y-0 opacity-100"
-                      : "-translate-y-1.5 opacity-0"
-                  }`}
+                  className={`pointer-events-none absolute inset-y-0 left-0 flex max-w-full items-center truncate pr-2 font-display text-[18px] font-medium tracking-[-0.02em] text-faint transition-all duration-200 ${promptVisible ? "translate-y-0 opacity-100" : "-translate-y-1.5 opacity-0"}`}
                 >
                   {PROMPT_SUGGESTIONS[promptIndex]}
                 </span>
@@ -210,28 +197,15 @@ export default function Home() {
                 onChange={(event) => setValue(event.target.value)}
                 placeholder=""
                 aria-label="Describe your trip"
-                className="relative z-10 w-full rounded-full bg-transparent py-1 font-display text-[18px] font-medium tracking-[-0.02em] outline-none focus-visible:outline-none"
+                className="home-prompt-input relative z-10 w-full rounded-full bg-transparent py-1 font-display text-[18px] font-medium tracking-[-0.02em]"
               />
             </div>
-            <button
-              type="button"
-              aria-label="Voice (visual only)"
-              className="hidden h-11 w-11 place-items-center rounded-full border border-hair text-ink-soft transition hover:bg-hair-2 sm:grid"
-              tabIndex={-1}
-            >
-              ⌥
-            </button>
-            <button
-              type="submit"
-              aria-label="Send"
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink text-paper transition duration-200 hover:scale-[1.04] active:scale-95"
-            >
-              →
-            </button>
+            <button type="button" aria-label="Voice (visual only)" className="hidden h-11 w-11 place-items-center rounded-full border border-hair text-ink-soft transition hover:bg-hair-2 sm:grid" tabIndex={-1}>⌥</button>
+            <button type="submit" aria-label="Send" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink text-paper transition duration-200 hover:scale-[1.04] active:scale-95">→</button>
           </form>
         </div>
 
-        <div className="mx-auto mt-8 w-full max-w-[900px]">
+        <div className="mx-auto mt-8 w-screen max-w-none overflow-hidden">
           <p className="mb-3 text-center text-[12px] text-faint">Or start from an idea</p>
           <div className="grid gap-2.5">
             <PromptMarquee items={TOP_IDEAS} direction="right" onPick={submit} />
@@ -239,111 +213,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @property --prompt-angle {
-          syntax: "<angle>";
-          inherits: false;
-          initial-value: 0deg;
-        }
-        @property --prompt-glow-angle {
-          syntax: "<angle>";
-          inherits: false;
-          initial-value: 150deg;
-        }
-        .prompt-shell {
-          position: relative;
-          isolation: isolate;
-          border-radius: 999px;
-        }
-        .prompt-shell__edge,
-        .prompt-shell__glow {
-          position: absolute;
-          pointer-events: none;
-          border-radius: inherit;
-        }
-        .prompt-shell__edge {
-          z-index: 0;
-          inset: 0;
-          background: conic-gradient(
-            from var(--prompt-angle),
-            rgba(122, 169, 137, 0.78),
-            rgba(100, 87, 255, 0.78),
-            rgba(226, 167, 111, 0.72),
-            rgba(122, 169, 137, 0.78)
-          );
-          animation: prompt-edge-flow 18s linear infinite;
-        }
-        .prompt-shell__glow {
-          z-index: -1;
-          inset: -4px;
-          background: conic-gradient(
-            from var(--prompt-glow-angle),
-            rgba(126, 174, 141, 0.33),
-            rgba(101, 88, 255, 0.31),
-            rgba(229, 170, 112, 0.28),
-            rgba(126, 174, 141, 0.33)
-          );
-          filter: blur(10px);
-          opacity: 0.3;
-          animation: prompt-glow-flow 24s linear infinite;
-        }
-        .prompt-shell__surface {
-          overflow: hidden;
-        }
-        .marquee-viewport {
-          overflow: hidden;
-          padding-block: 1px;
-          mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-          -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-        }
-        .marquee-track {
-          display: flex;
-          width: max-content;
-          will-change: transform;
-        }
-        .marquee-set {
-          display: flex;
-          gap: 8px;
-          padding-right: 8px;
-        }
-        .marquee-track--right {
-          animation: marquee-right 38s linear infinite;
-        }
-        .marquee-track--left {
-          animation: marquee-left 42s linear infinite;
-        }
-        .marquee-viewport:hover .marquee-track,
-        .marquee-viewport:focus-within .marquee-track {
-          animation-play-state: paused;
-        }
-        @keyframes prompt-edge-flow {
-          to { --prompt-angle: 360deg; }
-        }
-        @keyframes prompt-glow-flow {
-          to { --prompt-glow-angle: 510deg; }
-        }
-        @keyframes marquee-right {
-          from { transform: translateX(-50%); }
-          to { transform: translateX(0); }
-        }
-        @keyframes marquee-left {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .prompt-shell__edge,
-          .prompt-shell__glow,
-          .marquee-track {
-            animation: none;
-          }
-          .marquee-viewport {
-            overflow-x: auto;
-            mask-image: none;
-            -webkit-mask-image: none;
-          }
-        }
-      `}</style>
     </div>
   );
 }
