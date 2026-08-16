@@ -53,12 +53,9 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Tailwind v4 consumes @theme font values for utilities, but these explicit
-   bindings keep Next's runtime local-font variables as the computed families. */
 .font-display { font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif; }
 .font-ui { font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif; }
 
-/* faint paper grain */
 body::after {
   content: "";
   position: fixed;
@@ -70,32 +67,138 @@ body::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/></svg>");
 }
 
-:focus-visible {
+/* Interactive controls keep the shared accessibility ring. Form fields keep
+   their own radius so the ring follows the whole control instead of becoming
+   a small rectangular box inside it. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+summary:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 6px;
 }
-::selection {
-  background: var(--color-accent-tint);
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
+::selection { background: var(--color-accent-tint); }
 
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb {
   background: var(--color-hair);
   border-radius: 10px;
   border: 3px solid var(--color-paper);
 }
 
+/* Homepage prompt — edge/glow exist only while focused. The surface itself is
+   an opaque neutral fill so no gradient leaks into the input background. */
+@property --home-prompt-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --home-glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 145deg;
+}
+.home-prompt-shell {
+  position: relative;
+  isolation: isolate;
+  border-radius: 999px;
+}
+.home-prompt-edge,
+.home-prompt-glow {
+  position: absolute;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.home-prompt-edge {
+  z-index: 0;
+  inset: 0;
+  background: conic-gradient(
+    from var(--home-prompt-angle),
+    rgba(122, 169, 137, 0.88),
+    rgba(100, 87, 255, 0.9),
+    rgba(226, 167, 111, 0.86),
+    rgba(122, 169, 137, 0.88)
+  );
+}
+.home-prompt-glow {
+  z-index: -1;
+  inset: -5px;
+  background: conic-gradient(
+    from var(--home-glow-angle),
+    rgba(126, 174, 141, 0.32),
+    rgba(101, 88, 255, 0.3),
+    rgba(229, 170, 112, 0.28),
+    rgba(126, 174, 141, 0.32)
+  );
+  filter: blur(9px);
+}
+.home-prompt-shell:focus-within .home-prompt-edge {
+  opacity: 1;
+  animation: homePromptEdge 7.5s linear infinite;
+}
+.home-prompt-shell:focus-within .home-prompt-glow {
+  opacity: 0.34;
+  animation: homePromptGlow 9.5s linear infinite;
+}
+.home-prompt-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+@keyframes homePromptEdge { to { --home-prompt-angle: 360deg; } }
+@keyframes homePromptGlow { to { --home-glow-angle: 505deg; } }
+
+/* Homepage idea rows. These live globally because the marquee markup is a
+   child component and styled-jsx scoping would otherwise break the animation. */
+.home-marquee-viewport {
+  overflow: hidden;
+  width: 100%;
+  padding-block: 1px;
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+.home-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.home-marquee-set {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  padding-right: 8px;
+}
+.home-marquee-right { animation: homeMarqueeRight 30s linear infinite; }
+.home-marquee-left { animation: homeMarqueeLeft 32s linear infinite; }
+.home-marquee-viewport:hover .home-marquee-track,
+.home-marquee-viewport:focus-within .home-marquee-track { animation-play-state: paused; }
+@keyframes homeMarqueeRight {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+@keyframes homeMarqueeLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  .home-marquee-viewport {
+    overflow-x: auto;
+    mask-image: none;
+    -webkit-mask-image: none;
   }
 }
 
@@ -150,12 +253,10 @@ body::after {
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-/* mock editorial hero tones (no live imagery required) */
 .hero-hakone { background: linear-gradient(150deg, #3a4a3c 0%, #6f7b58 45%, #c9a97f 100%); }
 .hero-perth { background: linear-gradient(150deg, #5f7a86 0%, #8fb0bc 45%, #e6cf9f 100%); }
 .hero-queenstown { background: linear-gradient(150deg, #46506b 0%, #7d8aa3 45%, #cbb79b 100%); }
 
-/* small shared helpers */
 .editorial {
   font-family: var(--font-newsreader), Georgia, serif;
   font-weight: 400;
@@ -165,36 +266,23 @@ body::after {
   transform: translateY(10px);
   animation: reveal 0.6s var(--ease-out) forwards;
 }
-@keyframes reveal {
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
+@keyframes reveal { to { opacity: 1; transform: none; } }
 
-/* readable measures + composed spacing */
 .measure { max-width: 640px; }
 .measure-narrow { max-width: 560px; }
 
-/* progressive-disclosure reveal (respects reduced-motion via the global rule) */
-.disclose {
-  animation: disclose 0.24s var(--ease-out);
-}
+.disclose { animation: disclose 0.24s var(--ease-out); }
 @keyframes disclose {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
 }
 
-/* gentle rise used on proposal sections */
-.rise {
-  animation: rise 0.5s var(--ease-out) both;
-}
+.rise { animation: rise 0.5s var(--ease-out) both; }
 @keyframes rise {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
 
-/* First-time calibration: choices become profile intelligence. */
 .cal-atmosphere {
   position: absolute;
   inset: 0;
@@ -265,10 +353,7 @@ body::after {
   80%, 96% { opacity: 1; transform: translateY(-50%) scale(1); }
   100% { opacity: 0; transform: translateY(calc(-50% - 4px)) scale(0.995); }
 }
-@keyframes calProgress {
-  0% { width: 12.5%; }
-  100% { width: 100%; }
-}
+@keyframes calProgress { 0% { width: 12.5%; } 100% { width: 100%; } }
 
 @media (prefers-reduced-motion: reduce) {
   .cal-scene { display: none; }
