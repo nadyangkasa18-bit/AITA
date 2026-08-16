@@ -179,15 +179,15 @@ export function InteractiveTravelField() {
       const desired = desiredCursor.current;
 
       currentCursor.current = {
-        x: current.x + (desired.x - current.x) * 0.28,
-        y: current.y + (desired.y - current.y) * 0.28,
+        x: current.x + (desired.x - current.x) * 0.22,
+        y: current.y + (desired.y - current.y) * 0.22,
       };
 
-      // Use a deliberately soft exponential settle instead of snapping the
-      // deformation strength down when the pointer goes idle. The smaller
-      // return coefficient gives the grid a gentle ease-out without bounce.
+      // The active deformation should respond quickly, but once the pointer
+      // becomes idle the field should linger and dissolve back into the base
+      // grid. A small return coefficient creates a long, gentle ease-out.
       const returning = targetStrength.current === 0;
-      const ease = returning ? 0.105 : 0.18;
+      const ease = returning ? 0.04 : 0.16;
       currentStrength.current +=
         (targetStrength.current - currentStrength.current) * ease;
 
@@ -201,7 +201,7 @@ export function InteractiveTravelField() {
         targetStrength.current - currentStrength.current,
       );
 
-      if (cursorDelta > 0.12 || strengthDelta > 0.08) {
+      if (cursorDelta > 0.08 || strengthDelta > 0.04) {
         frameRef.current = requestAnimationFrame(tick);
       } else {
         currentStrength.current = targetStrength.current;
@@ -317,7 +317,7 @@ export function InteractiveTravelField() {
     <div
       className="street-field"
       data-state={active ? "active" : "idle"}
-      data-traffic="real-circles-v3"
+      data-traffic="real-circles-v4"
       style={
         {
           "--cursor-x": cursorPercent.x,
@@ -339,15 +339,15 @@ export function InteractiveTravelField() {
       >
         <defs>
           <linearGradient id="streetInk" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="rgba(20,25,20,0.13)" />
-            <stop offset="0.45" stopColor="rgba(20,25,20,0.26)" />
-            <stop offset="0.76" stopColor="rgba(84,108,87,0.23)" />
-            <stop offset="1" stopColor="rgba(20,25,20,0.11)" />
+            <stop offset="0" stopColor="#465048" stopOpacity="0.26" />
+            <stop offset="0.42" stopColor="#39433c" stopOpacity="0.42" />
+            <stop offset="0.76" stopColor="#58705f" stopOpacity="0.36" />
+            <stop offset="1" stopColor="#465048" stopOpacity="0.24" />
           </linearGradient>
           <linearGradient id="streetWarm" x1="1" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="rgba(197,154,101,0.09)" />
-            <stop offset="0.5" stopColor="rgba(181,135,82,0.2)" />
-            <stop offset="1" stopColor="rgba(20,25,20,0.09)" />
+            <stop offset="0" stopColor="#a78566" stopOpacity="0.22" />
+            <stop offset="0.52" stopColor="#8f735a" stopOpacity="0.34" />
+            <stop offset="1" stopColor="#465048" stopOpacity="0.2" />
           </linearGradient>
           <radialGradient id="cursorHalo">
             <stop offset="0" stopColor="rgba(255,255,255,0.16)" />
@@ -469,11 +469,12 @@ export function InteractiveTravelField() {
           border-radius: 999px;
           background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.06) 44%, transparent 72%);
           opacity: 0;
-          transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: opacity 720ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .street-field[data-state="active"] .street-field__cursor-wash {
           opacity: 0.86;
+          transition-duration: 160ms;
         }
 
         .street-field__map {
@@ -481,57 +482,52 @@ export function InteractiveTravelField() {
           inset: -3%;
           width: 106%;
           height: 106%;
-          opacity: 0.92;
+          opacity: 0.98;
           filter: saturate(0.94);
+        }
+
+        .street-field__streets {
+          opacity: 1;
         }
 
         .street {
           fill: none;
-          stroke-width: 0.72;
+          stroke-width: 0.82;
           stroke-linecap: round;
           stroke-linejoin: round;
           vector-effect: non-scaling-stroke;
-          opacity: 0.76;
-          transition:
-            opacity 340ms cubic-bezier(0.22, 1, 0.36, 1),
-            stroke-width 340ms cubic-bezier(0.22, 1, 0.36, 1);
+          opacity: 0.9;
         }
 
         .street--major {
-          stroke-width: 1.08;
-          opacity: 0.9;
+          stroke-width: 1.18;
+          opacity: 1;
         }
 
         .street--diagonal {
           stroke-dasharray: 2 8;
-          opacity: 0.58;
-        }
-
-        .street-field[data-state="active"] .street {
-          opacity: 0.83;
-        }
-
-        .street-field[data-state="active"] .street--major {
-          opacity: 0.95;
+          opacity: 0.72;
         }
 
         .street-field__traffic {
           opacity: 0.78;
-          transition: opacity 260ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: opacity 620ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .street-field[data-state="active"] .street-field__traffic {
           opacity: 0.58;
+          transition-duration: 180ms;
         }
 
         .street-field__halo {
           mix-blend-mode: screen;
           opacity: 0;
-          transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: opacity 720ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .street-field[data-state="active"] .street-field__halo {
           opacity: 0.54;
+          transition-duration: 160ms;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -549,7 +545,7 @@ export function InteractiveTravelField() {
             inset: -14%;
             width: 128%;
             height: 128%;
-            opacity: 0.68;
+            opacity: 0.78;
           }
           .street-field__cursor-wash {
             display: none;
@@ -558,7 +554,7 @@ export function InteractiveTravelField() {
             opacity: 0.56;
           }
           .street {
-            opacity: 0.64;
+            opacity: 0.78;
           }
         }
       `}</style>
