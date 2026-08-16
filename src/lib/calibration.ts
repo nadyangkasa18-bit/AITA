@@ -474,7 +474,7 @@ export const CONTRA_FLIGHTS = {
     arrive: "18:05",
     duration: "7h 45m",
     stops: "Nonstop",
-    price: "≈ $760 pp",
+    price: "Rp 12.800.000 pp",
     aligns: true,
   },
   oneStopAna: {
@@ -486,7 +486,7 @@ export const CONTRA_FLIGHTS = {
     arrive: "19:30",
     duration: "10h 50m",
     stops: "1 stop · SIN",
-    price: "≈ $590 pp",
+    price: "Rp 10.400.000 pp",
     aligns: false,
   },
 };

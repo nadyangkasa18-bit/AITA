@@ -10,7 +10,7 @@ const ok = (name, cond) => {
 };
 
 const browser = await chromium.launch({
-  executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+  ...(process.env.ROAM_CHROMIUM_PATH ? { executablePath: process.env.ROAM_CHROMIUM_PATH } : {}),
   args: ["--no-sandbox"],
 });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -22,8 +22,12 @@ page.on("pageerror", (e) => errors.push(String(e)));
 await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
 await page.waitForTimeout(800);
 ok("1. redirected to /calibrate from /", page.url().includes("/calibrate"));
-ok("welcome heading shown", await page.getByText("Teach Roam how you travel").isVisible());
+ok("welcome heading shown", await page.getByText("Teach Roam your travel taste.").isVisible());
 ok("no skip button on welcome", (await page.getByRole("button", { name: /skip/i }).count()) === 0);
+const headingFont = await page.getByRole("heading", { name: "Teach Roam your travel taste." }).evaluate((el) => getComputedStyle(el).fontFamily);
+const bodyFont = await page.getByText(/Eight quick choices help Roam/).evaluate((el) => getComputedStyle(el).fontFamily);
+ok("display copy uses Bricolage Grotesque", headingFont.toLowerCase().includes("bricolage"));
+ok("body copy uses Hanken Grotesk", bodyFont.toLowerCase().includes("hanken"));
 
 // try to jump straight to the main prompt — should bounce back
 await page.goto(`${BASE}/trips`, { waitUntil: "networkidle" });
@@ -97,6 +101,42 @@ for (const [name, path, needle] of [
   await page.waitForTimeout(700);
   ok(`13. ${name} still works`, await page.getByText(needle).first().isVisible().catch(() => false));
 }
+
+// 14. Start creates the persistent Trip Home before payment
+await page.goto(`${BASE}/trips/girls-getaway/destinations`, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: /Start with this trip/i }).click();
+await page.waitForTimeout(700);
+ok("14. start creates and opens Trip Home", page.url().includes("/trips/girls-getaway/home"));
+ok("Trip Home begins in planning state", await page.getByText(/trip is taking shape/i).isVisible());
+
+// 15. Exact-flight tracking persists and receives a deterministic fare drop
+await page.getByRole("link", { name: /Choose or track/i }).click();
+await page.getByRole("button", { name: /Singapore Airlines/i }).click();
+await page.getByRole("button", { name: /^Track price$/i }).click();
+ok("15. selected flight is tracked, not booked", await page.getByText("Tracked — not booked").isVisible());
+await page.getByRole("button", { name: /Simulate price drop/i }).click();
+ok("fare changes from Rp 12.8m to Rp 11.9m", await page.getByText("Rp 11.900.000").isVisible());
+await page.reload({ waitUntil: "networkidle" });
+ok("tracking survives refresh", await page.getByText("Tracked — not booked").isVisible());
+
+// 16. Itinerary is one click, editable, and can remain trip-scoped
+await page.getByRole("link", { name: /Back to Trip Home/i }).first().click();
+await page.getByRole("button", { name: /^Sketch itinerary$/i }).click();
+ok("16. itinerary draft appears without a wizard", await page.getByText(/loose Hakone rhythm/i).isVisible());
+await page.getByLabel("Day 1 title").fill("Arrive, soak, and keep the evening empty");
+await page.getByLabel("Refine itinerary").fill("Keep every morning slow");
+await page.getByRole("button", { name: /^Refine$/i }).click();
+await page.getByRole("button", { name: /Only for this trip/i }).click();
+ok("trip-only refinement is visibly applied", await page.getByText(/Applied: Keep every morning slow/i).isVisible());
+
+// 17. Partial booking and coordinated success update the same home
+await page.getByRole("button", { name: /Mark stay booked/i }).click();
+ok("17. lifecycle becomes partially booked", await page.getByText("partially booked", { exact: true }).isVisible());
+await page.goto(`${BASE}/trips/girls-getaway/checkout`, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: /Confirm prototype booking/i }).click();
+ok("brief in-place success moment is shown", await page.getByText("Hakone is yours.").isVisible());
+await page.waitForURL(/\/trips\/girls-getaway\/home/, { timeout: 4000 });
+ok("booked Trip Home replaces planning state", await page.getByText("Everything you chose is confirmed.", { exact: false }).isVisible());
 
 // 12. contradiction learning end-to-end
 await page.goto(`${BASE}/trips/girls-getaway/flights`, { waitUntil: "networkidle" });

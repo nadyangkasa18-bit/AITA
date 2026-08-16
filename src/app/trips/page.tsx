@@ -17,7 +17,7 @@ function TripRow({ trip }: { trip: Trip }) {
   const selected = trip.destinationProposals.find((p) => p.id === trip.selectedProposalId);
   const status = STATUS_COPY[trip.status];
   const primaryHref = trip.selectedProposalId
-    ? `/trips/${trip.id}/workspace`
+    ? `/trips/${trip.id}/home`
     : `/trips/${trip.id}/brief`;
   return (
     <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">

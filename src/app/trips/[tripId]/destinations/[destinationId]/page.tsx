@@ -54,7 +54,7 @@ export default function DestinationDetailPage() {
         onPrimary={() => {
           store.buildTrip(trip.id, proposal.id);
           toast(`Starting your ${proposal.destination} trip…`);
-          router.push(`/trips/${trip.id}/workspace`);
+          router.push(`/trips/${trip.id}/home`);
         }}
         primaryLabel="Start with this trip"
         secondary={

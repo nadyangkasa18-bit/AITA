@@ -9,7 +9,7 @@
   --color-surface: #ffffff;
   --color-surface-2: #fbfaf6;
 
-  --color-ink: #1b1a17;
+  --color-ink: #0e0e0d;
   --color-ink-soft: #3c3a33;
   --color-muted: #5e5b52;
   --color-faint: #837f74;
@@ -17,10 +17,10 @@
   --color-hair: rgba(27, 26, 23, 0.12);
   --color-hair-2: rgba(27, 26, 23, 0.06);
 
-  --color-accent: #2f4a38;
-  --color-accent-press: #243a2c;
-  --color-accent-tint: #e6ece3;
-  --color-accent-line: rgba(47, 74, 56, 0.24);
+  --color-accent: #6257ff;
+  --color-accent-press: #4f45e8;
+  --color-accent-tint: #eeecff;
+  --color-accent-line: rgba(98, 87, 255, 0.24);
 
   --color-amber: #9a6b24;
   --color-amber-tint: #f2ead9;
@@ -187,4 +187,91 @@ body::after {
 @keyframes rise {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
+}
+
+/* First-time calibration: choices become profile intelligence. */
+.cal-atmosphere {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(98, 87, 255, 0.15), transparent 28%),
+    radial-gradient(circle at 10% 86%, rgba(235, 184, 117, 0.19), transparent 31%),
+    radial-gradient(circle at 58% 70%, rgba(148, 196, 181, 0.13), transparent 27%);
+}
+.cal-vignette {
+  overflow: hidden;
+  border: 1px solid rgba(14, 14, 13, 0.1);
+  border-radius: 26px;
+  background: rgba(251, 250, 246, 0.83);
+  box-shadow: 0 35px 90px -50px rgba(14, 14, 13, 0.46), inset 0 1px rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(18px);
+}
+.cal-window-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 48px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--color-hair-2);
+  color: var(--color-faint);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cal-window-bar span { width: 7px; height: 7px; border-radius: 999px; background: var(--color-hair); }
+.cal-window-bar b { margin-left: 6px; font-weight: 650; }
+.cal-scene {
+  position: absolute;
+  inset: 50% 20px auto;
+  opacity: 0;
+  transform: translateY(calc(-50% + 12px)) scale(0.985);
+  pointer-events: none;
+}
+.cal-question { font-family: var(--font-display); font-size: clamp(20px, 2.1vw, 27px); font-weight: 650; letter-spacing: -0.03em; }
+.cal-choice { display: flex; min-height: 84px; align-items: center; gap: 12px; border: 1px solid var(--color-hair); border-radius: 16px; padding: 15px; background: rgba(255, 255, 255, 0.78); }
+.cal-choice strong, .cal-choice span { display: block; }
+.cal-choice strong { font-family: var(--font-display); font-size: 15px; letter-spacing: -0.015em; }
+.cal-choice span { margin-top: 3px; font-size: 11.5px; color: var(--color-muted); }
+.cal-choice-selected { border-color: var(--color-accent-line); box-shadow: 0 0 0 2px rgba(98, 87, 255, 0.07); }
+.cal-vignette-footer { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--color-hair-2); padding: 14px 20px; font-size: 10.5px; color: var(--color-faint); }
+.cal-progress { width: 12.5%; animation: calProgress 8.4s linear infinite; }
+.cal-scene-flight { animation: calFlight 8.4s var(--ease-out) infinite; }
+.cal-scene-flight-profile { animation: calFlightProfile 8.4s var(--ease-out) infinite; }
+.cal-scene-stay { animation: calStay 8.4s var(--ease-out) infinite; }
+.cal-scene-final { animation: calFinal 8.4s var(--ease-out) infinite; }
+@keyframes calFlight {
+  0%, 4% { opacity: 0; transform: translateY(calc(-50% + 12px)) scale(0.985); }
+  9%, 24% { opacity: 1; transform: translateY(-50%) scale(1); }
+  31%, 100% { opacity: 0; transform: translateY(calc(-50% - 10px)) scale(0.985); }
+}
+@keyframes calFlightProfile {
+  0%, 27% { opacity: 0; transform: translateY(calc(-50% + 12px)) scale(0.985); }
+  34%, 43% { opacity: 1; transform: translateY(-50%) scale(1); }
+  49%, 100% { opacity: 0; transform: translateY(calc(-50% - 10px)) scale(0.985); }
+}
+@keyframes calStay {
+  0%, 46% { opacity: 0; transform: translateY(calc(-50% + 12px)) scale(0.985); }
+  53%, 69% { opacity: 1; transform: translateY(-50%) scale(1); }
+  76%, 100% { opacity: 0; transform: translateY(calc(-50% - 10px)) scale(0.985); }
+}
+@keyframes calFinal {
+  0%, 73% { opacity: 0; transform: translateY(calc(-50% + 12px)) scale(0.985); }
+  80%, 96% { opacity: 1; transform: translateY(-50%) scale(1); }
+  100% { opacity: 0; transform: translateY(calc(-50% - 4px)) scale(0.995); }
+}
+@keyframes calProgress {
+  0% { width: 12.5%; }
+  100% { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-scene { display: none; }
+  .cal-scene-final { display: block; opacity: 1; transform: translateY(-50%) scale(1); }
+  .cal-progress { width: 100%; }
+}
+
+.booking-success-mark { animation: bookingSuccess 0.58s var(--ease-spring) both; }
+@keyframes bookingSuccess {
+  from { opacity: 0; transform: scale(0.72) rotate(-8deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
 }

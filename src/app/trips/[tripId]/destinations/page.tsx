@@ -47,7 +47,7 @@ export default function DestinationsPage() {
   const start = () => {
     store.buildTrip(trip.id, featured.id);
     toast(`Starting your ${featured.destination} trip…`);
-    router.push(`/trips/${trip.id}/workspace`);
+    router.push(`/trips/${trip.id}/home`);
   };
   const saveIdea = () => {
     store.toggleSaveProposal(trip.id, featured.id);

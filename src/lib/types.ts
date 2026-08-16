@@ -176,6 +176,40 @@ export interface RuledOut {
 /* -------------------- Trip -------------------- */
 
 export type TripStatus = "draft" | "proposing" | "version-selected" | "booked";
+export type TripLifecycle = "planning" | "partially-booked" | "booked";
+export type TripComponent = "stay" | "flight" | "experiences";
+export type TripComponentState = "undecided" | "saved" | "tracked" | "confirmed";
+
+export interface TrackedFlight {
+  id: string;
+  airline: string;
+  route: string;
+  depart: string;
+  arrive: string;
+  duration: string;
+  stops: string;
+  originalFare: number;
+  currentFare: number;
+  lastCheckedAt: string;
+  priceDropped: boolean;
+}
+
+export interface ItineraryDay {
+  day: string;
+  title: string;
+  morning: string;
+  afternoon: string;
+  evening: string;
+  freeTime: string;
+}
+
+export interface ItineraryDraft {
+  status: "draft";
+  createdAt: string;
+  updatedAt: string;
+  days: ItineraryDay[];
+  refinements: string[];
+}
 
 export interface TripVersion {
   id: string;
@@ -198,6 +232,12 @@ export interface Trip {
   savedProposalIds: string[];
   selectedProposalId: string | null;
   tripVersions: TripVersion[];
+  homeCreatedAt: string | null;
+  lifecycle: TripLifecycle;
+  componentStates: Record<TripComponent, TripComponentState>;
+  trackedFlight: TrackedFlight | null;
+  itineraryDraft: ItineraryDraft | null;
+  paymentSuccessAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

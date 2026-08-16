@@ -21,6 +21,8 @@ import type {
   ProfileState,
   ProtectChoice,
   Trip,
+  TripComponent,
+  TrackedFlight,
 } from "@/lib/types";
 import { makeSeedTrip, SEED_TRIP_ID } from "@/lib/mock/seed";
 
@@ -54,6 +56,29 @@ const empty: PersistShape = {
   profile: emptyProfile,
 };
 
+function normalizeTrip(trip: Trip): Trip {
+  return {
+    ...trip,
+    homeCreatedAt: trip.homeCreatedAt ?? (trip.selectedProposalId ? trip.updatedAt : null),
+    lifecycle: trip.lifecycle ?? (trip.status === "booked" ? "booked" : "planning"),
+    componentStates: trip.componentStates ?? {
+      stay: trip.status === "booked" ? "confirmed" : "undecided",
+      flight: trip.status === "booked" ? "confirmed" : "undecided",
+      experiences: "undecided",
+    },
+    trackedFlight: trip.trackedFlight ?? null,
+    itineraryDraft: trip.itineraryDraft ?? null,
+    paymentSuccessAt: trip.paymentSuccessAt ?? null,
+  };
+}
+
+function lifecycleFor(componentStates: Trip["componentStates"]): Trip["lifecycle"] {
+  const confirmed = [componentStates.stay, componentStates.flight].filter(
+    (state) => state === "confirmed"
+  ).length;
+  return confirmed === 2 ? "booked" : confirmed === 1 ? "partially-booked" : "planning";
+}
+
 interface StoreValue {
   hydrated: boolean;
   trips: Record<string, Trip>;
@@ -76,6 +101,13 @@ interface StoreValue {
   setTripLength: (id: string, nights: number | null) => void;
   toggleSaveProposal: (id: string, proposalId: string) => void;
   buildTrip: (id: string, proposalId: string) => void;
+  trackFlight: (id: string, flight: Omit<TrackedFlight, "lastCheckedAt" | "priceDropped">) => void;
+  stopTrackingFlight: (id: string) => void;
+  simulateTrackedFareDrop: (id: string) => void;
+  confirmTripComponent: (id: string, component: TripComponent) => void;
+  completeBooking: (id: string) => void;
+  sketchItinerary: (id: string) => void;
+  refineItinerary: (id: string, instruction: string) => void;
   applyReaction: (id: string, reaction: string) => string;
   orderedProposals: (id: string) => DestinationProposal[];
   reset: () => void;
@@ -126,8 +158,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       // One-time hydration from localStorage (an external store) on mount — the
       // endorsed use of setState in an effect, not a render-cascade.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (raw) setState({ ...empty, ...(JSON.parse(raw) as PersistShape) });
+      if (raw) {
+        const parsed = JSON.parse(raw) as PersistShape;
+        const trips = Object.fromEntries(
+          Object.entries(parsed.trips ?? {}).map(([id, trip]) => [id, normalizeTrip(trip)])
+        );
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setState({ ...empty, ...parsed, trips });
+      }
     } catch {
       /* ignore corrupt storage */
     }
@@ -284,6 +322,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ...t,
           status: "version-selected",
           selectedProposalId: proposalId,
+          homeCreatedAt: t.homeCreatedAt ?? new Date().toISOString(),
+          lifecycle: t.lifecycle ?? "planning",
           tripVersions: t.tripVersions.some((v) => v.destinationId === proposalId)
             ? t.tripVersions
             : [
@@ -296,6 +336,98 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 },
               ],
         })),
+      trackFlight: (id, flight) =>
+        updateTrip(id, (t) => ({
+          ...t,
+          trackedFlight: {
+            ...flight,
+            lastCheckedAt: new Date().toISOString(),
+            priceDropped: false,
+          },
+          componentStates: { ...t.componentStates, flight: "tracked" },
+        })),
+      stopTrackingFlight: (id) =>
+        updateTrip(id, (t) => ({
+          ...t,
+          trackedFlight: null,
+          componentStates: {
+            ...t.componentStates,
+            flight: t.componentStates.flight === "confirmed" ? "confirmed" : "undecided",
+          },
+        })),
+      simulateTrackedFareDrop: (id) =>
+        updateTrip(id, (t) =>
+          t.trackedFlight
+            ? {
+                ...t,
+                trackedFlight: {
+                  ...t.trackedFlight,
+                  currentFare: 11_900_000,
+                  priceDropped: true,
+                  lastCheckedAt: new Date().toISOString(),
+                },
+              }
+            : t
+        ),
+      confirmTripComponent: (id, component) =>
+        updateTrip(id, (t) => {
+          const componentStates = { ...t.componentStates, [component]: "confirmed" as const };
+          const lifecycle = lifecycleFor(componentStates);
+          return {
+            ...t,
+            componentStates,
+            lifecycle,
+            status: lifecycle === "booked" ? "booked" : t.status,
+          };
+        }),
+      completeBooking: (id) =>
+        updateTrip(id, (t) => ({
+          ...t,
+          status: "booked",
+          lifecycle: "booked",
+          componentStates: { ...t.componentStates, stay: "confirmed", flight: "confirmed" },
+          paymentSuccessAt: new Date().toISOString(),
+        })),
+      sketchItinerary: (id) =>
+        updateTrip(id, (t) => {
+          if (t.itineraryDraft) return t;
+          const selected = t.destinationProposals.find((p) => p.id === t.selectedProposalId);
+          if (!selected) return t;
+          const now = new Date().toISOString();
+          const rhythm = selected.rhythmPreview.length
+            ? selected.rhythmPreview
+            : [{ day: "Day 1", summary: "Arrive and settle in" }];
+          return {
+            ...t,
+            itineraryDraft: {
+              status: "draft",
+              createdAt: now,
+              updatedAt: now,
+              refinements: [],
+              days: rhythm.map((item, index) => ({
+                day: item.day,
+                title: item.summary,
+                morning: index === 0 ? "Travel gently and arrive without a rush." : "Slow start, breakfast, and room to change your mind.",
+                afternoon: selected.moments[index % selected.moments.length]?.note ?? "Keep the afternoon open.",
+                evening: index === rhythm.length - 1 ? "An easy final dinner close to the stay." : selected.dining.note,
+                freeTime: "At least two hours intentionally left open.",
+              })),
+            },
+          };
+        }),
+      refineItinerary: (id, instruction) =>
+        updateTrip(id, (t) =>
+          t.itineraryDraft
+            ? {
+                ...t,
+                itineraryDraft: {
+                  ...t.itineraryDraft,
+                  updatedAt: new Date().toISOString(),
+                  refinements: [...t.itineraryDraft.refinements, instruction],
+                },
+              }
+            : t
+        ),
       applyReaction: (id, reaction) => {
         const target = REACTION_TARGET[reaction];
         setState((s) => {
