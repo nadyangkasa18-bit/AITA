@@ -26,9 +26,9 @@ export function TravelField() {
           </linearGradient>
         </defs>
         <g style={{ transform: `translate(${pointer.x * 10}px, ${pointer.y * 7}px)`, transition: "transform 320ms cubic-bezier(.22,1,.36,1)" }}>
-          <path className="travel-field-route travel-field-route-a" d="M-80 650 C 190 470, 300 510, 505 342 S 890 185, 1190 300 S 1440 270, 1530 180" fill="none" stroke="url(#routeFade)" strokeWidth="1.1" />
-          <path className="travel-field-route travel-field-route-b" d="M-120 230 C 140 380, 340 205, 545 300 S 850 610, 1110 505 S 1380 420, 1540 590" fill="none" stroke="url(#routeFade)" strokeWidth="0.9" />
-          <path className="travel-field-route travel-field-route-c" d="M120 920 C 230 690, 510 725, 665 555 S 925 290, 1045 45" fill="none" stroke="rgba(98,87,255,0.10)" strokeWidth="1" />
+          <path className="route routeA" d="M-80 650 C 190 470, 300 510, 505 342 S 890 185, 1190 300 S 1440 270, 1530 180" fill="none" stroke="url(#routeFade)" strokeWidth="1.1" />
+          <path className="route routeB" d="M-120 230 C 140 380, 340 205, 545 300 S 850 610, 1110 505 S 1380 420, 1540 590" fill="none" stroke="url(#routeFade)" strokeWidth="0.9" />
+          <path className="route routeC" d="M120 920 C 230 690, 510 725, 665 555 S 925 290, 1045 45" fill="none" stroke="rgba(98,87,255,0.10)" strokeWidth="1" />
           <circle cx="505" cy="342" r="4" fill="rgba(14,14,13,0.18)" />
           <circle cx="1110" cy="505" r="3.5" fill="rgba(14,14,13,0.14)" />
           <circle cx="665" cy="555" r="4" fill="rgba(98,87,255,0.18)" />
@@ -38,6 +38,18 @@ export function TravelField() {
           <circle cx="1240" cy="690" r="170" fill="rgba(235,184,117,0.08)" />
         </g>
       </svg>
+      <style jsx>{`
+        .route {
+          stroke-dasharray: 5 18;
+          animation: routeDrift 26s linear infinite;
+        }
+        .routeB { animation-duration: 32s; animation-direction: reverse; }
+        .routeC { animation-duration: 38s; }
+        @keyframes routeDrift { to { stroke-dashoffset: -230; } }
+        @media (prefers-reduced-motion: reduce) {
+          .route { animation: none; }
+        }
+      `}</style>
     </div>
   );
 }
