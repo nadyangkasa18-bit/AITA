@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useState, type ReactNode } from "react";
 import { PRODUCT } from "@/config/product";
 import { Orb, useToast } from "@/components/ui";
 import { useStore } from "@/lib/store";
@@ -68,15 +68,15 @@ export function AssistantComposer({ lifted = false }: { lifted?: boolean }) {
     const prompt = value.trim();
     setValue("");
     setOpen(false);
-    if (prompt) toast("Roam is considering that — I'll fold it into the options.");
+    if (prompt) toast(`${PRODUCT.assistantName} is considering that — I'll fold it into the options.`);
   }
 
   return (
     <div className={`fixed right-5 z-40 print:hidden ${lifted ? "bottom-24" : "bottom-5"}`}>
       <div className="flex items-center rounded-full border border-hair bg-surface p-1.5 shadow-[var(--shadow-pop)] transition-all duration-[400ms] [transition-timing-function:var(--ease-spring)]">
-        <button onClick={() => setOpen((current) => !current)} aria-label={open ? "Close assistant" : "Ask Roam"} className="grid place-items-center rounded-full p-0.5"><Orb size={38} /></button>
+        <button onClick={() => setOpen((current) => !current)} aria-label={open ? "Close assistant" : `Ask ${PRODUCT.assistantName}`} className="grid place-items-center rounded-full p-0.5"><Orb size={38} /></button>
         <div className={`flex items-center overflow-hidden transition-all duration-[400ms] [transition-timing-function:var(--ease-spring)] ${open ? "ml-2 max-w-[420px] opacity-100" : "max-w-0 opacity-0"}`}>
-          <input value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => event.key === "Enter" && submit()} placeholder="Ask Roam, or tell me what to change…" className="w-[300px] max-w-[52vw] bg-transparent px-1 text-[15px] outline-none placeholder:text-faint" />
+          <input value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => event.key === "Enter" && submit()} placeholder={`Ask ${PRODUCT.assistantName}, or tell me what to change…`} className="w-[300px] max-w-[52vw] bg-transparent px-1 text-[15px] outline-none placeholder:text-faint" />
           <button onClick={submit} aria-label="Send" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-paper">→</button>
         </div>
       </div>
@@ -84,30 +84,16 @@ export function AssistantComposer({ lifted = false }: { lifted?: boolean }) {
   );
 }
 
-function CalibrationGate() {
-  const { hydrated, profile } = useStore();
-  const pathname = usePathname();
-  const router = useRouter();
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!profile.calibrated && pathname !== "/calibrate") router.replace("/calibrate");
-  }, [hydrated, profile.calibrated, pathname, router]);
-  return null;
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { hydrated, profile } = useStore();
   const onboarding = pathname === "/calibrate";
-  const blocked = hydrated && !profile.calibrated && !onboarding;
   const liftedAssistant = /\/brief$/.test(pathname) || /\/destinations(?:\/|$)/.test(pathname) || /\/itinerary$/.test(pathname);
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <CalibrationGate />
       {!onboarding && <GlobalNavigation />}
-      <main className="flex-1">{blocked ? null : children}</main>
-      {!onboarding && !blocked && <AssistantComposer lifted={liftedAssistant} />}
+      <main className="flex-1">{children}</main>
+      {!onboarding && <AssistantComposer lifted={liftedAssistant} />}
     </div>
   );
 }
