@@ -91,7 +91,7 @@ export default function Home() {
     try {
       if (sessionStorage.getItem("roam.justCalibrated")) {
         sessionStorage.removeItem("roam.justCalibrated");
-        toast("You’re all set — Roam knows your travel style now.");
+        toast(`You’re all set — ${PRODUCT.name} knows your travel style now.`);
       }
     } catch {
       /* ignore */
@@ -168,7 +168,7 @@ export default function Home() {
 
         <div className="mx-auto mt-6 flex items-center justify-center">
           <Link href="/profile" className="inline-flex items-center gap-2 rounded-full border border-accent-line bg-[rgba(238,236,255,0.62)] px-3 py-1.5 text-[12.5px] font-semibold text-accent backdrop-blur-sm transition hover:bg-accent-tint">
-            <Orb size={18} /> Roam remembers how you like to travel
+            <Orb size={18} /> {PRODUCT.name} remembers how you like to travel
           </Link>
         </div>
 
