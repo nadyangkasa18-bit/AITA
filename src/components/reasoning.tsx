@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { ReasoningStep } from "@/lib/types";
 import { InteractiveTravelField } from "@/components/interactive-travel-field";
 import { Orb } from "@/components/ui";
+import { PRODUCT } from "@/config/product";
 
 /**
  * Transparent, non-linear reasoning reveal. Deterministic timing, no fake API.
@@ -89,7 +90,7 @@ export function ReasoningProgress({
           })}
         </ul>
         <p className="mt-6 text-[13px] text-faint">
-          Roam isn&apos;t querying live systems — this is a transparent, illustrative pass.
+          {PRODUCT.name} isn&apos;t querying live systems — this is a transparent, illustrative pass.
         </p>
       </div>
     </div>
