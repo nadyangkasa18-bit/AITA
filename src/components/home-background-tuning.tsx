@@ -3,34 +3,35 @@
 export function HomeBackgroundTuning() {
   return (
     <style jsx global>{`
+      .clean-field__grid {
+        background-image:
+          linear-gradient(to right, rgba(70, 80, 72, 0.088) 1px, transparent 1px) !important,
+          linear-gradient(to bottom, rgba(70, 80, 72, 0.088) 1px, transparent 1px) !important;
+      }
+
       .clean-field__focus-grid {
         background-image:
-          linear-gradient(to right, rgba(42, 53, 47, 0.20) 1px, transparent 1px) !important,
-          linear-gradient(to bottom, rgba(42, 53, 47, 0.20) 1px, transparent 1px) !important;
+          linear-gradient(to right, rgba(42, 53, 47, 0.135) 1px, transparent 1px) !important,
+          linear-gradient(to bottom, rgba(42, 53, 47, 0.135) 1px, transparent 1px) !important;
         mask-image: radial-gradient(
-          circle 165px at var(--focus-x) var(--focus-y),
-          #000 0%,
-          rgba(0, 0, 0, 0.78) 38%,
-          rgba(0, 0, 0, 0.38) 70%,
+          circle 112px at var(--focus-x) var(--focus-y),
+          rgba(0, 0, 0, 0.72) 0%,
+          rgba(0, 0, 0, 0.54) 42%,
+          rgba(0, 0, 0, 0.24) 72%,
           transparent 100%
         ) !important;
         -webkit-mask-image: radial-gradient(
-          circle 165px at var(--focus-x) var(--focus-y),
-          #000 0%,
-          rgba(0, 0, 0, 0.78) 38%,
-          rgba(0, 0, 0, 0.38) 70%,
+          circle 112px at var(--focus-x) var(--focus-y),
+          rgba(0, 0, 0, 0.72) 0%,
+          rgba(0, 0, 0, 0.54) 42%,
+          rgba(0, 0, 0, 0.24) 72%,
           transparent 100%
         ) !important;
       }
 
       .clean-field__focus-halo {
-        background: radial-gradient(
-          circle,
-          rgba(52, 72, 62, 0.035) 0%,
-          rgba(72, 73, 162, 0.014) 44%,
-          transparent 76%
-        ) !important;
-        filter: blur(12px) !important;
+        background: transparent !important;
+        filter: none !important;
       }
     `}</style>
   );
