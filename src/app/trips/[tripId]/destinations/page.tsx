@@ -137,8 +137,17 @@ export default function DestinationsPage() {
 
   const generateMore = () => {
     if (!reasons.length) return;
+    const preferredId = reasons.some((reason) => reason.includes("expensive") || reason.includes("travel time") || reason.includes("busy"))
+      ? "perth"
+      : reasons.some((reason) => reason.includes("Hotels") || reason.includes("surprising") || reason.includes("quiet"))
+        ? "queenstown"
+        : effectiveOrder.find((id) => id !== featured.id);
+    if (preferredId && effectiveOrder.includes(preferredId)) {
+      setDeckOrder([preferredId, ...effectiveOrder.filter((id) => id !== preferredId)]);
+    }
+    store.patchTrip(trip.id, { learnings: [...trip.learnings, ...reasons] });
     setRefining(false);
-    toast(`Got it — Roam would generate 3 new trip concepts avoiding: ${reasons.slice(0, 2).join(", ")}${reasons.length > 2 ? "…" : ""}`);
+    toast("Recommendations updated for this trip.");
     setReasons([]);
   };
 
@@ -147,9 +156,9 @@ export default function DestinationsPage() {
       <div className="w-full max-w-[560px] rounded-[24px] border border-hair bg-paper p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
         <Eyebrow>Help me adjust</Eyebrow>
         <h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.035em]">What didn&apos;t work about these?</h2>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">Choose as many as apply. Roam will use this as feedback for this trip, not as a permanent traveler preference.</p>
+        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">Choose as many as apply. We&apos;ll update this trip now without turning the feedback into a permanent preference.</p>
         <div className="mt-5 flex flex-wrap gap-2">{REFINEMENT_REASONS.map((reason) => <button key={reason} onClick={() => toggleReason(reason)} className={`rounded-full border px-3.5 py-2 text-[13px] font-semibold transition ${reasons.includes(reason) ? "border-ink bg-ink text-paper" : "border-hair bg-surface text-ink-soft hover:border-ink/35"}`}>{reason}</button>)}</div>
-        <div className="mt-6 flex items-center justify-end gap-2"><button onClick={() => setRefining(false)} className="px-3 py-2 text-[13px] font-semibold text-muted">Cancel</button><Button variant="accent" disabled={!reasons.length} onClick={generateMore}>Generate 3 new concepts</Button></div>
+        <div className="mt-6 flex items-center justify-end gap-2"><button onClick={() => setRefining(false)} className="px-3 py-2 text-[13px] font-semibold text-muted">Cancel</button><Button variant="accent" disabled={!reasons.length} onClick={generateMore}>Update recommendations</Button></div>
       </div>
     </div>
   ) : null;

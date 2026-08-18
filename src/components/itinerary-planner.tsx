@@ -44,14 +44,14 @@ export function ItineraryPlanner({ tripId }: { tripId: string }) {
   return (
     <div className="mx-auto max-w-[900px]">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link href={`/trips/${trip.id}/home`} className="text-[13px] font-semibold text-muted transition hover:text-ink">← Back to Trip Home</Link>
-        <span className="rounded-full bg-paper-2 px-3 py-1.5 text-[11.5px] font-semibold text-muted">{selected.destination} · Draft</span>
+        <Link href={`/trips/${trip.id}/home`} className="text-[13px] font-semibold text-muted transition hover:text-ink">← Back to trip overview</Link>
+        <span className="rounded-full bg-paper-2 px-3 py-1.5 text-[11.5px] font-semibold text-muted">{selected.destination} · Shared itinerary</span>
       </div>
 
       <div className="mx-auto mt-9 max-w-[680px] text-center">
-        <Eyebrow>Itinerary planning</Eyebrow>
-        <h1 className="mt-3 font-display text-[clamp(34px,5vw,52px)] font-semibold leading-[1.02] tracking-[-0.04em]">Give the trip a rhythm</h1>
-        <p className="mt-4 text-[16px] leading-relaxed text-muted">Start loose. Roam uses the trip brief, your selected stay and anything you have saved or tracked, while deliberately protecting free time.</p>
+        <Eyebrow>Shared itinerary</Eyebrow>
+        <h1 className="mt-3 font-display text-[clamp(34px,5vw,52px)] font-semibold leading-[1.02] tracking-[-0.04em]">Your trip, already organized.</h1>
+        <p className="mt-4 text-[16px] leading-relaxed text-muted">Your bookings, useful trip services and a flexible day-by-day plan live together here. Every line stays editable.</p>
       </div>
 
       {!trip.itineraryDraft ? (
@@ -63,7 +63,7 @@ export function ItineraryPlanner({ tripId }: { tripId: string }) {
       ) : (
         <>
           <div className="mt-10 flex flex-wrap items-end justify-between gap-3">
-            <div><Eyebrow>Your draft</Eyebrow><h2 className="mt-1 font-display text-3xl font-semibold tracking-[-0.035em]">A loose {selected.destination} rhythm</h2></div>
+            <div><Eyebrow>Your plan</Eyebrow><h2 className="mt-1 font-display text-3xl font-semibold tracking-[-0.035em]">A flexible {selected.destination} rhythm</h2></div>
             <span className="rounded-full bg-accent-tint px-3 py-1.5 text-[12px] font-semibold text-accent">Free time protected</span>
           </div>
 
@@ -102,8 +102,20 @@ export function ItineraryPlanner({ tripId }: { tripId: string }) {
         </>
       )}
 
-      <StickyAction meta="Itinerary is separate from booking decisions" note="Trip Home stays focused on trip status and actions.">
-        <Link href={`/trips/${trip.id}/home`} className={buttonClass("ink", "sm")}>Back to Trip Home →</Link>
+      <section className="mt-9 grid gap-4 md:grid-cols-[1.15fr_.85fr]">
+        <div className="rounded-[22px] border border-hair bg-surface p-5">
+          <Eyebrow>Travel group</Eyebrow>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-display text-[22px] font-semibold tracking-[-0.03em]">{trip.collaborators.length} traveler{trip.collaborators.length === 1 ? "" : "s"} connected</h2><p className="mt-1 text-[12.5px] text-muted">Invite the group to react and suggest changes in one shared place.</p></div><Link href={`/trips/${trip.id}/travelers`} className={buttonClass("ghost", "sm")}>Invite travelers</Link></div>
+          <div className="mt-4 flex -space-x-2">{trip.collaborators.slice(0, 5).map((traveler) => <span key={traveler.id} title={traveler.name} className="grid h-9 w-9 place-items-center rounded-full border-2 border-surface bg-ink text-[11px] font-semibold text-paper">{traveler.name.charAt(0).toUpperCase()}</span>)}</div>
+        </div>
+        <div className="rounded-[22px] border border-hair bg-surface-2 p-5">
+          <Eyebrow>Next needs</Eyebrow>
+          {trip.selectedAddonIds.length ? <div className="mt-3 flex flex-wrap gap-2">{trip.selectedAddonIds.map((id) => <span key={id} className="rounded-full bg-white px-3 py-1.5 text-[11.5px] font-semibold text-ink-soft">{id === "entry" ? "Entry check" : id === "esim" ? "Travel eSIM" : "Travel protection"} ✓</span>)}</div> : <p className="mt-3 text-[12.5px] leading-relaxed text-muted">Entry checks, connectivity and protection stay optional until they are relevant.</p>}
+        </div>
+      </section>
+
+      <StickyAction meta="Bookings and plans stay in sync" note="Share changes with everyone traveling.">
+        <Link href={`/trips/${trip.id}/travelers`} className={buttonClass("ink", "sm")}>Share this itinerary →</Link>
       </StickyAction>
     </div>
   );

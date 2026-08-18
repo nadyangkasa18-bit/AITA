@@ -63,12 +63,18 @@ export function AssistantComposer({ lifted = false }: { lifted?: boolean }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const { toast } = useToast();
+  const pathname = usePathname();
+  const store = useStore();
+  const tripId = pathname.match(/^\/trips\/([^/]+)/)?.[1];
 
   function submit() {
     const prompt = value.trim();
     setValue("");
     setOpen(false);
-    if (prompt) toast(`${PRODUCT.assistantName} is considering that — I'll fold it into the options.`);
+    if (prompt && tripId && store.trips[tripId]) {
+      store.addBriefItem(tripId, prompt, "prioritize");
+      toast("Added to this trip. Recommendations will use it next.");
+    }
   }
 
   return (
@@ -88,12 +94,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const onboarding = pathname === "/calibrate";
   const liftedAssistant = /\/brief$/.test(pathname) || /\/destinations(?:\/|$)/.test(pathname) || /\/itinerary$/.test(pathname);
+  const showAssistant = /^\/trips\/[^/]+/.test(pathname) && !/\/checkout$/.test(pathname);
 
   return (
     <div className="flex min-h-dvh flex-col">
       {!onboarding && <GlobalNavigation />}
       <main className="flex-1">{children}</main>
-      {!onboarding && <AssistantComposer lifted={liftedAssistant} />}
+      {!onboarding && showAssistant && <AssistantComposer lifted={liftedAssistant} />}
     </div>
   );
 }

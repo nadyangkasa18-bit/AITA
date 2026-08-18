@@ -5,7 +5,7 @@ export default function ExplorePage() {
     <PlaceholderPage
       eyebrow="Coming next"
       title="Explore"
-      body="A place to browse ideas before you have a trip in mind — editorial destination stories, seasonal windows, and starting points shaped by how you like to travel. In this prototype, planning begins from the home prompt instead."
+      body="Browse editorial destination stories, seasonal windows and starting points shaped by how you like to travel. For this demo, start planning from the home page."
       bullets={[
         "Editorial, opinionated destination pieces — not a wall of listings",
         "Seasonal “good right now” windows tuned to your comfort preferences",

@@ -29,9 +29,9 @@ const newsreader = localFont({
 });
 
 export const metadata: Metadata = {
-  title: `${PRODUCT.name} — agentic travel`,
+  title: `${PRODUCT.name} — personalized travel, handled`,
   description:
-    "Tell Roam what you know. It understands, proposes a few coherent trip directions, learns from your reactions, and looks after the trip.",
+    "Plan, book and share a personalized trip that learns from every choice you make.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

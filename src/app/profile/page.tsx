@@ -308,16 +308,17 @@ export default function ProfilePage() {
           How you like to travel
         </h1>
         <p className="mt-3 text-[16px] leading-relaxed text-muted">
-          What Roam has learned, kept apart from any single trip. Everything here is editable, and
+          Preferences learned across your trips. Everything here is editable, and
           nothing changes without you. Categories are collapsed — open one to refine it.
         </p>
       </header>
 
       {!profile.calibrated && (
         <div className="mb-6 rounded-card border border-accent-line bg-accent-tint/50 p-5">
-          <p className="text-[15px] text-ink">Your profile isn&apos;t calibrated yet.</p>
+          <p className="text-[15px] text-ink">No saved preferences yet.</p>
+          <p className="mt-1 text-[12.5px] text-muted">You can add them directly, use the optional guided questions, or let your trip choices build them over time.</p>
           <Link href="/calibrate" className={`mt-3 ${buttonClass("accent", "sm")}`}>
-            Calibrate now →
+            Add guided preferences →
           </Link>
         </div>
       )}

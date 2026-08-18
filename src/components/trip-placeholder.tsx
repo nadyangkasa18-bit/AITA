@@ -9,7 +9,7 @@ export function TripPlaceholder({
   body,
   bullets,
   back = "home",
-  backLabel = "Back to Trip Home",
+  backLabel = "Back to trip overview",
 }: {
   eyebrow?: string;
   title: string;
@@ -30,3 +30,4 @@ export function TripPlaceholder({
     />
   );
 }
+

@@ -8,7 +8,7 @@ export default function ReviewPage() {
       bullets={[
         "Every requirement checked off before you commit",
         "The full, honest total — no surprise fees",
-        "Explicit approval required; the prototype never charges anything",
+        "Explicit approval required; the demo never charges anything",
       ]}
     />
   );

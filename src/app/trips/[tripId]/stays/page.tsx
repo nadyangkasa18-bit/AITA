@@ -42,7 +42,7 @@ const ROOM_OFFERS: RoomOffer[] = [
     cancellation: "Free cancellation until 18 Oct, 18:00 local time",
     payment: "Pay at property",
     available: true,
-    label: "Roam’s pick",
+    label: "Recommended",
   },
   {
     id: "twin-flex",
@@ -143,7 +143,7 @@ export default function StaysPage() {
     return (
       <EmptyState
         title="Choose a trip direction first"
-        body="Roam needs the destination and trip context before it can recommend an exact stay."
+        body="We need the destination and trip context before recommending an exact stay."
         action={<Link href={`/trips/${trip.id}/destinations`} className={buttonClass("ink", "sm")}>See recommendations →</Link>}
       />
     );
@@ -191,7 +191,7 @@ export default function StaysPage() {
     setRoomsOpen(false);
     setWatchPrimary(false);
     persistWatch(false, watchFallback);
-    toast(`${room.room} selected. Roam updated the exact rate and cancellation terms.`);
+    toast(`${room.room} selected. The exact rate and cancellation terms are updated.`);
   };
 
   const secureStay = () => {
@@ -206,13 +206,13 @@ export default function StaysPage() {
     } catch {
       /* ignore */
     }
-    toast(flightTracked ? "Refundable stay secured while Roam keeps watching your flights." : "Stay secured. Trip Home has been updated.");
+    toast(flightTracked ? "Refundable stay secured while we keep watching your flights." : "Stay secured. Your trip overview is updated.");
   };
 
   return (
     <div className="mx-auto max-w-[1040px] pb-20">
       <div className="mb-6 flex items-center justify-between gap-3">
-        <Link href={`/trips/${trip.id}/home`} className="text-[13px] font-semibold text-muted transition hover:text-ink">← Back to Trip Home</Link>
+        <Link href={`/trips/${trip.id}/home`} className="text-[13px] font-semibold text-muted transition hover:text-ink">← Back to trip overview</Link>
         <PrototypeBadge />
       </div>
 
@@ -222,8 +222,8 @@ export default function StaysPage() {
         {stayBooked && <span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">Booked ✓</span>}
         {!stayBooked && stayTracked && <span className="rounded-full bg-accent-tint px-2.5 py-1 text-[10.5px] font-semibold text-accent">Watching price</span>}
       </div>
-      <h1 className="mt-3 max-w-[18ch] font-display text-[clamp(38px,6vw,62px)] font-semibold leading-[0.97] tracking-[-0.05em]">I’d take this room, not just this hotel.</h1>
-      <p className="mt-4 max-w-[68ch] text-[15px] leading-relaxed text-muted">Roam considered hotels, resorts, serviced apartments, ryokans and villas where they made sense. The recommendation below is the exact property, room and rate that best fits this trip.</p>
+      <h1 className="mt-3 max-w-[18ch] font-display text-[clamp(38px,6vw,62px)] font-semibold leading-[0.97] tracking-[-0.05em]">The best room and rate for your trip.</h1>
+      <p className="mt-4 max-w-[68ch] text-[15px] leading-relaxed text-muted">We compared the relevant property types, then selected the exact hotel, room and cancellation terms that best fit this trip.</p>
 
       <section className="mt-9 overflow-hidden rounded-[26px] border border-hair bg-surface shadow-[var(--shadow-card)]">
         <div className="grid lg:grid-cols-[0.92fr_1.08fr]">
@@ -259,7 +259,7 @@ export default function StaysPage() {
 
             <div className="mt-6 border-t border-hair pt-5">
               <Eyebrow>Why this exact offer</Eyebrow>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{selected.stay.why} Roam chose the flexible rate because the cancellation window keeps your hotel decision reversible while the rest of the trip is still moving.</p>
+              <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{selected.stay.why} The flexible rate keeps your hotel decision reversible while the rest of the trip is still moving.</p>
             </div>
 
             {flightTracked && !stayBooked && selectedRoom.cancellation.toLowerCase().includes("free cancellation") && (
@@ -287,33 +287,33 @@ export default function StaysPage() {
             <div className="text-right"><p className="font-display text-xl font-semibold">{IDR.format(FALLBACK.total)}</p><p className="text-[11px] text-faint">full-stay total</p></div>
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hair-2 pt-4">
-            <p className="text-[12px] text-muted">{FALLBACK.cancellation}. Roam keeps this only as a fallback, not a second recommendation you need to compare.</p>
+            <p className="text-[12px] text-muted">{FALLBACK.cancellation}. This stays in the background as a fallback, not a second recommendation you need to compare.</p>
             {!stayBooked && <Button variant="ghost" size="sm" onClick={toggleFallbackWatch}>{watchFallback ? "Fallback watched ✓" : "Watch fallback too"}</Button>}
           </div>
         </div>
 
         <aside className="rounded-[22px] border border-hair bg-surface-2 p-5 md:p-6">
-          <Eyebrow>How Roam narrowed it</Eyebrow>
+          <Eyebrow>How we narrowed it</Eyebrow>
           <div className="mt-4 grid gap-3 text-[12.5px] text-muted">
             <div className="flex items-center justify-between gap-3"><span>Hotels & design hotels</span><span className="font-semibold text-ink">Considered</span></div>
             <div className="flex items-center justify-between gap-3"><span>Resorts / ryokans</span><span className="font-semibold text-ink">When they fit</span></div>
             <div className="flex items-center justify-between gap-3"><span>Serviced apartments</span><span className="font-semibold text-ink">Considered</span></div>
             <div className="flex items-center justify-between gap-3"><span>Villas</span><span className="font-semibold text-ink">Ruled out for this trip</span></div>
           </div>
-          <p className="mt-4 border-t border-hair-2 pt-4 text-[11.5px] leading-relaxed text-faint">Hotel loyalty is used only as a tie-breaker. Roam won’t send you to a worse-fit stay just to earn points.</p>
+          <p className="mt-4 border-t border-hair-2 pt-4 text-[11.5px] leading-relaxed text-faint">Hotel loyalty is used only as a tie-breaker. We won&apos;t recommend a worse-fit stay just to earn points.</p>
         </aside>
       </section>
 
       {(watchPrimary || watchFallback) && !stayBooked && (
         <section className="mt-7 rounded-[22px] border border-accent-line bg-accent-tint/25 p-5 md:p-6">
           <Eyebrow>Stay price watch</Eyebrow>
-          <h2 className="mt-2 font-display text-2xl font-semibold tracking-[-0.03em]">Roam is watching {Number(watchPrimary) + Number(watchFallback)} {Number(watchPrimary) + Number(watchFallback) === 1 ? "offer" : "offers"}.</h2>
+          <h2 className="mt-2 font-display text-2xl font-semibold tracking-[-0.03em]">Watching {Number(watchPrimary) + Number(watchFallback)} {Number(watchPrimary) + Number(watchFallback) === 1 ? "offer" : "offers"}.</h2>
           <p className="mt-2 max-w-[64ch] text-[13px] leading-relaxed text-muted">The exact room + rate is the primary watch. The fallback is there only in case availability disappears or the price gap becomes meaningful.</p>
         </section>
       )}
 
       <SidePanel open={roomsOpen} onClose={() => setRoomsOpen(false)} title={`Other rooms at ${selected.stay.name}`}>
-        <p className="text-[13.5px] leading-relaxed text-muted">Roam still recommends one exact offer. These are here when the room itself—not the hotel—is what you want to change.</p>
+        <p className="text-[13.5px] leading-relaxed text-muted">The best-fit offer stays selected. These alternatives are here when the room itself—not the hotel—is what you want to change.</p>
         <div className="mt-5 grid gap-3">
           {ROOM_OFFERS.map((room) => {
             const active = room.id === selectedRoom.id;

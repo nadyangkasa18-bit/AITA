@@ -1,5 +1,5 @@
 /* ============================================================
-   Roam — typed domain models (prototype)
+   RoaminRabbit — typed domain models
    ============================================================ */
 
 export type PreferenceScope = "all" | "similar" | "this-trip";
@@ -218,6 +218,15 @@ export interface TripVersion {
   createdAt: string;
 }
 
+export interface TripCollaborator {
+  id: string;
+  name: string;
+  email: string;
+  status: "organizer" | "invited" | "joined";
+}
+
+export type TripAddonId = "entry" | "esim" | "insurance";
+
 export interface Trip {
   id: string;
   name: string;
@@ -237,6 +246,11 @@ export interface Trip {
   componentStates: Record<TripComponent, TripComponentState>;
   trackedFlight: TrackedFlight | null;
   itineraryDraft: ItineraryDraft | null;
+  /** Feedback learned from choices and rejections for this trip. */
+  learnings: string[];
+  /** Optional services chosen during checkout. */
+  selectedAddonIds: TripAddonId[];
+  collaborators: TripCollaborator[];
   paymentSuccessAt: string | null;
   createdAt: string;
   updatedAt: string;

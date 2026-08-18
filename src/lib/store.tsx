@@ -68,6 +68,11 @@ function normalizeTrip(trip: Trip): Trip {
     },
     trackedFlight: trip.trackedFlight ?? null,
     itineraryDraft: trip.itineraryDraft ?? null,
+    learnings: trip.learnings ?? [],
+    selectedAddonIds: trip.selectedAddonIds ?? [],
+    collaborators: trip.collaborators ?? [
+      { id: "traveler-organizer", name: "Nadya", email: "nadya@example.com", status: "organizer" },
+    ],
     paymentSuccessAt: trip.paymentSuccessAt ?? null,
   };
 }
@@ -188,7 +193,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const touch = (t: Trip): Trip => ({ ...t, updatedAt: new Date().toISOString() });
 
   const createTripFromPrompt = useCallback((prompt: string) => {
-    const trip = makeSeedTrip(prompt);
+    const seed = makeSeedTrip(prompt);
+    const trip = {
+      ...seed,
+      id: `trip-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+    };
     setState((s) => ({
       ...s,
       trips: { ...s.trips, [trip.id]: trip },
@@ -381,13 +390,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           };
         }),
       completeBooking: (id) =>
-        updateTrip(id, (t) => ({
-          ...t,
-          status: "booked",
-          lifecycle: "booked",
-          componentStates: { ...t.componentStates, stay: "confirmed", flight: "confirmed" },
-          paymentSuccessAt: new Date().toISOString(),
-        })),
+        updateTrip(id, (t) => {
+          const selected = t.destinationProposals.find((p) => p.id === t.selectedProposalId);
+          const now = new Date().toISOString();
+          const rhythm = selected?.rhythmPreview.length
+            ? selected.rhythmPreview
+            : [{ day: "Day 1", summary: "Arrive and settle in" }];
+          const itineraryDraft = t.itineraryDraft ?? (selected
+            ? {
+                status: "draft" as const,
+                createdAt: now,
+                updatedAt: now,
+                refinements: [],
+                days: rhythm.map((item, index) => ({
+                  day: item.day,
+                  title: item.summary,
+                  morning: index === 0 ? "Travel gently and arrive without a rush." : "Slow start, breakfast, and room to change your mind.",
+                  afternoon: selected.moments[index % selected.moments.length]?.note ?? "Keep the afternoon open.",
+                  evening: index === rhythm.length - 1 ? "An easy final dinner close to the stay." : selected.dining.note,
+                  freeTime: "At least two hours intentionally left open.",
+                })),
+              }
+            : null);
+          return {
+            ...t,
+            status: "booked",
+            lifecycle: "booked",
+            componentStates: { ...t.componentStates, stay: "confirmed", flight: "confirmed" },
+            itineraryDraft,
+            paymentSuccessAt: now,
+          };
+        }),
       sketchItinerary: (id) =>
         updateTrip(id, (t) => {
           if (t.itineraryDraft) return t;
@@ -424,6 +457,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                   ...t.itineraryDraft,
                   updatedAt: new Date().toISOString(),
                   refinements: [...t.itineraryDraft.refinements, instruction],
+                  days: t.itineraryDraft.days.map((day, index) =>
+                    index === 0
+                      ? { ...day, freeTime: `Adjusted for your request: ${instruction}` }
+                      : day
+                  ),
                 },
               }
             : t

@@ -12,7 +12,7 @@ const SOURCE_LABEL: Record<string, string> = {
 };
 
 const BOARD_GROUPS: { key: ProfilePref["priority"]; label: string; helper: string }[] = [
-  { key: "always", label: "Must-have", helper: "Roam should protect these first." },
+  { key: "always", label: "Must-have", helper: "Protect these first." },
   { key: "usually", label: "Prioritize", helper: "Important, but worth trading when needed." },
   { key: "flexible", label: "Flexible", helper: "Useful context, not a constraint." },
 ];
@@ -133,7 +133,7 @@ export function ProfilePriorityBoard({
 
       <div className="mx-auto mt-8 max-w-[760px] text-center">
         <h1 className="font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[1.02] tracking-[-0.04em]">
-          Here&apos;s how Roam understands you
+          Your travel preferences
         </h1>
         <p className="mx-auto mt-4 max-w-[58ch] text-[16px] leading-relaxed text-muted">
           Review the buckets at a glance. Open any item to edit it, then save before it moves somewhere else.
@@ -168,7 +168,7 @@ export function ProfilePriorityBoard({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <Eyebrow>Avoid</Eyebrow>
-            <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.025em]">Things Roam should steer around</h2>
+            <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.025em]">Things to steer around</h2>
           </div>
           <span className="rounded-full bg-paper-2 px-2.5 py-1 text-[11px] font-semibold text-muted">{avoids.length}</span>
         </div>

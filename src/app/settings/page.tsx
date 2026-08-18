@@ -37,7 +37,7 @@ export default function SettingsPage() {
   function reset() {
     store.reset();
     setConfirming(false);
-    toast("Prototype reset — starting fresh.");
+    toast("Demo reset — starting fresh.");
     router.push("/");
   }
 
@@ -46,13 +46,13 @@ export default function SettingsPage() {
       <header className="mb-8">
         <div className="mb-3 flex items-center gap-3">
           <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-            {PRODUCT.name} · prototype
+            {PRODUCT.name} · demo workspace
           </p>
           <PrototypeBadge />
         </div>
         <h1 className="font-display text-4xl tracking-[-0.035em] md:text-5xl">Settings</h1>
         <p className="mt-3 text-lg leading-relaxed text-muted">
-          This is a design prototype. Your trips live only in this browser — there&apos;s no account,
+          This is a product demo. Your trips live only in this browser — there&apos;s no account,
           no server, and nothing is ever booked or charged.
         </p>
       </header>
@@ -86,7 +86,7 @@ export default function SettingsPage() {
         </Row>
 
         <Row
-          title="Reset the prototype"
+          title="Reset the demo"
           body="Clear all trips, saved directions and refinements, and return to the seeded starting point. This can't be undone."
         >
           {confirming ? (
@@ -100,7 +100,7 @@ export default function SettingsPage() {
             </div>
           ) : (
             <Button variant="ghost" size="sm" onClick={() => setConfirming(true)}>
-              Reset prototype
+              Reset demo
             </Button>
           )}
         </Row>

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTrip } from "@/lib/store";
 import { Button, Eyebrow, PrototypeBadge, useToast } from "@/components/ui";
-import { PRODUCT } from "@/config/product";
 
 type FlightOption = {
   id: string;
@@ -169,7 +168,7 @@ function flightReason(preference: string, flight: FlightOption) {
   return "It is the cleanest balance of journey time, fare and arrival timing.";
 }
 
-function stayReason(preference: string, stay: StayOption) {
+function stayReason(preference: string) {
   if (preference.includes("Design")) return "This is the stay with the strongest atmosphere without giving up too much convenience.";
   if (preference.includes("location") || preference.includes("Location")) return "The location removes the most day-to-day transit work once you arrive.";
   if (preference.includes("comfort") || preference.includes("Comfort")) return "It gives you the strongest room and comfort trade-off for this trip.";
@@ -228,6 +227,10 @@ export default function BookingPlanPage() {
   const [showStays, setShowStays] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [watching, setWatching] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackUpdate, setFeedbackUpdate] = useState("");
+  const [lastFeedback, setLastFeedback] = useState("");
+  const [remembered, setRemembered] = useState(false);
 
   const prompt = trip?.originalPrompt ?? "";
   const destination = field(prompt, "Destination") || "Tokyo, Japan";
@@ -272,7 +275,7 @@ export default function BookingPlanPage() {
         name: chosenStay.name,
         location: chosenStay.area,
         price: `${IDR.format(chosenStay.price)} total`,
-        why: stayReason(stayPreference, chosenStay),
+        why: stayReason(stayPreference),
       },
       flight: {
         ...base.flight,
@@ -313,8 +316,55 @@ export default function BookingPlanPage() {
 
   const saveForLater = () => {
     persistPlan();
-    toast("Saved — this recommendation is waiting in Trip Home.");
+    toast("Saved — this recommendation is waiting in your trip overview.");
     router.push(`/trips/${trip.id}/home`);
+  };
+
+  const applyFeedback = (reason: string) => {
+    let nextFlight = chosenFlight;
+    let nextStay = chosenStay;
+    let update = "We moved to the next best overall combination.";
+
+    if (reason === "Too expensive") {
+      nextFlight = [...data.flights].sort((a, b) => a.price - b.price)[0];
+      nextStay = [...data.stays].sort((a, b) => a.price - b.price)[0];
+      update = "Lower total prioritized; the best-value flight and stay are now selected.";
+    } else if (reason === "Flight timing") {
+      nextFlight = [...data.flights].sort((a, b) => a.timing - b.timing || a.price - b.price)[0];
+      update = "Easier departure and arrival times are now prioritized.";
+    } else if (reason === "Hotel or location") {
+      nextStay = rankedStays.find((item) => item.id !== chosenStay.id) ?? chosenStay;
+      update = "We changed the stay and rebalanced location, atmosphere and comfort.";
+    } else if (reason === "Too much travel") {
+      nextFlight = data.flights.find((item) => item.direct && item.id !== chosenFlight.id) ?? data.flights.find((item) => item.direct) ?? chosenFlight;
+      update = "A simpler direct journey is now prioritized.";
+    } else {
+      nextFlight = rankedFlights.find((item) => item.id !== chosenFlight.id) ?? chosenFlight;
+      nextStay = rankedStays.find((item) => item.id !== chosenStay.id) ?? chosenStay;
+    }
+
+    setFlightId(nextFlight.id);
+    setStayId(nextStay.id);
+    setFeedbackUpdate(update);
+    setLastFeedback(reason);
+    setFeedbackOpen(false);
+    setRemembered(false);
+    store.patchTrip(trip.id, { learnings: [...trip.learnings, reason] });
+  };
+
+  const rememberFeedback = () => {
+    const statement = lastFeedback;
+    if (!statement || remembered) return;
+    store.addPref({
+      category: statement.includes("Hotel") ? "Stays" : statement.includes("Flight") || statement.includes("travel") ? "Flights" : statement.includes("expensive") ? "Spending" : "Pace",
+      statement: `Avoid recommendations that feel like: ${statement.toLowerCase()}`,
+      priority: "usually",
+      scope: "all",
+      source: "confirmed",
+      confidence: 0.78,
+    });
+    setRemembered(true);
+    toast("Saved as a preference for future trips.");
   };
 
   const checkout = () => {
@@ -326,24 +376,24 @@ export default function BookingPlanPage() {
     return (
       <div className="mx-auto max-w-[860px] pb-20">
         <button onClick={() => setReviewing(false)} className="text-[13px] font-semibold text-muted hover:text-ink">← Change recommendation</button>
-        <div className="mt-8 flex flex-wrap items-center gap-3"><Eyebrow>Review booking plan</Eyebrow><PrototypeBadge /></div>
-        <h1 className="mt-3 font-display text-[clamp(38px,6vw,58px)] font-semibold leading-[0.98] tracking-[-0.045em]">One last look before anything consequential.</h1>
-        <p className="mt-4 max-w-[60ch] text-[15px] leading-relaxed text-muted">These are the two options you chose for {data.city}. In production, {PRODUCT.name} would re-check live availability, fare rules and any material price change before you approve payment.</p>
+        <div className="mt-8 flex flex-wrap items-center gap-3"><Eyebrow>Review your trip</Eyebrow><PrototypeBadge /></div>
+        <h1 className="mt-3 font-display text-[clamp(38px,6vw,58px)] font-semibold leading-[0.98] tracking-[-0.045em]">Review your trip before booking.</h1>
+        <p className="mt-4 max-w-[60ch] text-[15px] leading-relaxed text-muted">These are the flight and stay selected for {data.city}. We&apos;ll show the full price, terms and optional trip services before you complete the demo booking.</p>
 
         <div className="mt-8 overflow-hidden rounded-[24px] border border-hair bg-surface">
           <div className="grid gap-4 border-b border-hair-2 p-5 sm:grid-cols-[1fr_auto] md:p-6">
-            <div><Eyebrow>Flight</Eyebrow><h2 className="mt-2 font-display text-[22px] font-semibold">{chosenFlight.airline} · {chosenFlight.route}</h2><p className="mt-1 text-[13px] text-muted">{chosenFlight.time} · {chosenFlight.detail}</p></div>
+            <div><Eyebrow>Flight</Eyebrow><h2 className="mt-2 font-display text-[22px] font-semibold">{chosenFlight.airline} · {chosenFlight.route}</h2><p className="mt-1 text-[13px] text-muted">{chosenFlight.time} · {chosenFlight.detail}</p><p className="mt-2 text-[11px] text-faint">Provided by airline · last checked moments ago</p></div>
             <div className="sm:text-right"><p className="font-display text-[20px] font-semibold">{IDR.format(chosenFlight.price)} pp</p><button onClick={() => setWatching((value) => !value)} className="mt-2 text-[11.5px] font-semibold text-accent">{watching ? "Price watch on ✓" : "Watch this price"}</button></div>
           </div>
           <div className="grid gap-4 p-5 sm:grid-cols-[1fr_auto] md:p-6">
-            <div><Eyebrow>Stay</Eyebrow><h2 className="mt-2 font-display text-[22px] font-semibold">{chosenStay.name}</h2><p className="mt-1 text-[13px] text-muted">{chosenStay.area} · {chosenStay.detail}</p></div>
+            <div><Eyebrow>Stay</Eyebrow><h2 className="mt-2 font-display text-[22px] font-semibold">{chosenStay.name}</h2><p className="mt-1 text-[13px] text-muted">{chosenStay.area} · {chosenStay.detail}</p><p className="mt-2 text-[11px] text-faint">Free cancellation shown at checkout · last checked moments ago</p></div>
             <p className="font-display text-[20px] font-semibold sm:text-right">{IDR.format(chosenStay.price)} total</p>
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-ink px-5 py-4 text-paper"><div><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/50">Illustrative trip total</p><p className="mt-1 text-[12px] text-white/62">{travelers} traveler{travelers === 1 ? "" : "s"} · flight + stay</p></div><p className="font-display text-[25px] font-semibold">{IDR.format(total)}</p></div>
 
-        <div className="mt-7 flex flex-wrap items-center justify-end gap-3"><Button variant="ghost" onClick={saveForLater}>Save for later</Button><Button variant="ink" onClick={checkout}>Approve & continue to checkout →</Button></div>
+        <div className="mt-7 flex flex-wrap items-center justify-end gap-3"><Button variant="ghost" onClick={saveForLater}>Save for later</Button><Button variant="ink" onClick={checkout}>Continue to checkout →</Button></div>
       </div>
     );
   }
@@ -351,8 +401,8 @@ export default function BookingPlanPage() {
   return (
     <div className="mx-auto max-w-[1040px] pb-20">
       <div className="flex flex-wrap items-center gap-3"><Eyebrow>Your recommendation</Eyebrow><span className="rounded-full bg-accent-tint px-2.5 py-1 text-[11px] font-semibold text-accent">{data.city} · {dates}</span><PrototypeBadge /></div>
-      <h1 className="mt-3 max-w-[18ch] font-display text-[clamp(36px,6vw,58px)] font-semibold leading-[0.98] tracking-[-0.045em]">You know where you&apos;re going. Here&apos;s the combination I&apos;d take.</h1>
-      <p className="mt-4 max-w-[64ch] text-[14.5px] leading-relaxed text-muted sm:text-[15px]">No destination shortlist. {PRODUCT.name} used the trip you fixed and your four trade-offs to narrow the flight and stay first. Alternatives are there only if you want them.</p>
+      <h1 className="mt-3 max-w-[18ch] font-display text-[clamp(36px,6vw,58px)] font-semibold leading-[0.98] tracking-[-0.045em]">Your best-fit flight and stay.</h1>
+      <p className="mt-4 max-w-[64ch] text-[14.5px] leading-relaxed text-muted sm:text-[15px]">Based on your dates, group and priorities, this combination gives you the best overall balance. Alternatives are ready when you want them.</p>
 
       <div className="mt-6 flex flex-wrap gap-2 text-[11.5px] text-muted">
         <span className="rounded-full border border-hair bg-surface px-3 py-1.5">{travelers} traveler{travelers === 1 ? "" : "s"}</span>
@@ -363,13 +413,34 @@ export default function BookingPlanPage() {
       </div>
       {extra && <div className="mt-3 rounded-[14px] border border-accent-line bg-accent-tint/30 px-4 py-3 text-[12.5px] text-ink-soft"><strong className="font-semibold">Specific request:</strong> {extra}</div>}
 
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button size="sm" variant="ghost" onClick={() => setFeedbackOpen((value) => !value)}>Not for me</Button>
+        <span className="text-[11.5px] text-faint">Tell us why and we&apos;ll update this trip—not restart it.</span>
+      </div>
+      {feedbackOpen && (
+        <section className="disclose mt-4 rounded-[20px] border border-hair bg-surface p-5">
+          <Eyebrow>What missed the mark?</Eyebrow>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {["Too expensive", "Flight timing", "Hotel or location", "Too much travel", "Just not my style"].map((reason) => (
+              <button key={reason} type="button" onClick={() => applyFeedback(reason)} className="rounded-full border border-hair bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted transition hover:border-ink/30 hover:bg-white hover:text-ink">{reason}</button>
+            ))}
+          </div>
+        </section>
+      )}
+      {feedbackUpdate && (
+        <section className="disclose mt-4 flex flex-col gap-3 rounded-[20px] border border-accent-line bg-accent-tint/45 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div><Eyebrow className="text-accent">What changed</Eyebrow><p className="mt-1 text-[13.5px] font-medium leading-relaxed text-ink-soft">{feedbackUpdate}</p><p className="mt-1 text-[11.5px] text-faint">Applied to this trip only.</p></div>
+          <Button size="sm" variant="ghost" disabled={remembered} onClick={rememberFeedback}>{remembered ? "Saved for future trips ✓" : "Remember for future trips"}</Button>
+        </section>
+      )}
+
       <section className="mt-8 grid gap-5 lg:grid-cols-2">
         <article className="rounded-[22px] border border-hair bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6 lg:rounded-[26px]">
-          <div className="flex items-center justify-between gap-3"><Eyebrow>1 · Flight</Eyebrow><span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">{chosenFlight.id === recommendedFlight.id ? "My pick" : "Your pick"}</span></div>
+          <div className="flex items-center justify-between gap-3"><Eyebrow>1 · Flight</Eyebrow><span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">{chosenFlight.id === recommendedFlight.id ? "Recommended" : "Updated pick"}</span></div>
           <h2 className="mt-4 font-display text-[25px] font-semibold tracking-[-0.035em] sm:text-[27px]">{chosenFlight.airline}</h2>
           <p className="mt-1 text-[13px] text-muted">{chosenFlight.route}</p>
           <div className="mt-6 grid grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-4"><div><p className="font-display text-[21px] font-semibold sm:text-[23px]">{chosenFlight.time.split(" → ")[0]}</p><p className="text-[10px] uppercase tracking-[0.1em] text-faint">Depart</p></div><div className="text-center"><div className="h-px bg-hair" /><p className="mt-2 text-[10.5px] text-muted sm:text-[11px]">{chosenFlight.detail}</p></div><div className="text-right"><p className="font-display text-[21px] font-semibold sm:text-[23px]">{chosenFlight.time.split(" → ")[1]}</p><p className="text-[10px] uppercase tracking-[0.1em] text-faint">Arrive</p></div></div>
-          <div className="mt-5 rounded-[16px] bg-surface-2 p-4"><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">Why this one</p><p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{flightReason(flightPreference, chosenFlight)}</p></div>
+          <div className="mt-5 rounded-[16px] bg-surface-2 p-4"><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">Why it fits your trip</p><p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{flightReason(flightPreference, chosenFlight)}</p></div>
           <div className="mt-5 flex items-center justify-between gap-3"><p className="font-display text-[19px] font-semibold sm:text-[20px]">{IDR.format(chosenFlight.price)} pp</p><button onClick={() => setShowFlights((value) => !value)} className="text-[12px] font-semibold text-accent">{showFlights ? "Hide alternatives" : "See other flights"}</button></div>
           {showFlights && (
             <div className="mt-4 grid gap-2 border-t border-hair-2 pt-4">
@@ -388,11 +459,11 @@ export default function BookingPlanPage() {
         </article>
 
         <article className="rounded-[22px] border border-hair bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6 lg:rounded-[26px]">
-          <div className="flex items-center justify-between gap-3"><Eyebrow>2 · Stay</Eyebrow><span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">{chosenStay.id === recommendedStay.id ? "I&apos;d pair it" : "Your pick"}</span></div>
+          <div className="flex items-center justify-between gap-3"><Eyebrow>2 · Stay</Eyebrow><span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">{chosenStay.id === recommendedStay.id ? "Recommended" : "Updated pick"}</span></div>
           <h2 className="mt-4 font-display text-[25px] font-semibold tracking-[-0.035em] sm:text-[27px]">{chosenStay.name}</h2>
           <p className="mt-1 text-[13px] text-muted">{chosenStay.area}</p>
           <div className="mt-6 rounded-[18px] border border-hair bg-surface-2 p-4 sm:p-5"><p className="text-[12.5px] font-semibold text-ink-soft">{chosenStay.detail}</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Location {chosenStay.central}/3</span><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Design {chosenStay.design}/3</span><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Comfort {chosenStay.comfort}/3</span></div></div>
-          <div className="mt-4 rounded-[16px] bg-surface-2 p-4"><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">Why this one</p><p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{stayReason(stayPreference, chosenStay)}</p></div>
+          <div className="mt-4 rounded-[16px] bg-surface-2 p-4"><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">Why it fits your trip</p><p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{stayReason(stayPreference)}</p></div>
           <div className="mt-5 flex items-center justify-between gap-3"><p className="font-display text-[19px] font-semibold sm:text-[20px]">{IDR.format(chosenStay.price)} total</p><button onClick={() => setShowStays((value) => !value)} className="text-[12px] font-semibold text-accent">{showStays ? "Hide alternatives" : "See other stays"}</button></div>
           {showStays && (
             <div className="mt-4 grid gap-2 border-t border-hair-2 pt-4">
@@ -413,7 +484,7 @@ export default function BookingPlanPage() {
 
       <section className="mt-5 flex flex-col gap-4 rounded-[22px] bg-ink px-5 py-5 text-paper sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:px-6"><div><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/48">The combination</p><p className="mt-1 text-[13px] text-white/65">{chosenFlight.airline} + {chosenStay.name} · {travelers} traveler{travelers === 1 ? "" : "s"}</p></div><div className="flex items-center justify-between gap-4 sm:justify-end"><div className="text-left sm:text-right"><p className="text-[10.5px] text-white/48">Illustrative total</p><p className="font-display text-[23px] font-semibold sm:text-[25px]">{IDR.format(total)}</p></div><Button variant="accent" onClick={() => setReviewing(true)}>Review these →</Button></div></section>
 
-      <p className="mt-5 text-center text-[11.5px] text-faint">Prototype availability and prices are illustrative. The interaction is the thing being tested here.</p>
+      <p className="mt-5 text-center text-[11.5px] text-faint">Demo data · prices and availability are illustrative and clearly rechecked before a real booking.</p>
     </div>
   );
 }

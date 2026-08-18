@@ -4,7 +4,7 @@
  */
 export const PRODUCT = {
   name: "RoaminRabbit",
-  tagline: "The world quietly rearranged around you.",
+  tagline: "Personalized travel, handled.",
   assistantName: "RoaminRabbit",
   ecosystem: {
     esim: "RoaminRabbit",
@@ -12,7 +12,7 @@ export const PRODUCT = {
     itinerary: "OtterWay",
   },
   /** Global marker so prototype data is never mistaken for live data. */
-  prototypeNote: "Prototype data — prices, weather and availability are illustrative, not live.",
+  prototypeNote: "Demo mode — prices, weather and availability are illustrative. No payment is processed.",
 } as const;
 
 export type Product = typeof PRODUCT;

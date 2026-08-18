@@ -7,7 +7,7 @@ import { Button, Disclosure, Eyebrow, PrototypeBadge } from "@/components/ui";
 import { StickyAction } from "@/components/sticky-action";
 
 const RECO_EYEBROW: Record<string, string> = {
-  top: "The one I'd choose for you",
+  top: "Recommended",
   easier: "The easier alternative",
   wildcard: "The wildcard",
 };
@@ -180,7 +180,7 @@ export function ProposalView({
 
         {activeTab === "addons" && (
           <section>
-            <div className="text-center"><Eyebrow>Useful because of this trip</Eyebrow><h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.035em]">Add-ons, only when they remove work</h2><p className="mx-auto mt-3 max-w-[55ch] text-[14.5px] leading-relaxed text-muted">Roam can keep these with the trip so you do not have to remember separate checklists.</p></div>
+            <div className="text-center"><Eyebrow>Useful because of this trip</Eyebrow><h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.035em]">Add-ons, only when they remove work</h2><p className="mx-auto mt-3 max-w-[55ch] text-[14.5px] leading-relaxed text-muted">Keep entry checks, connectivity and other useful services with the trip instead of juggling separate checklists.</p></div>
             <div className="mt-7 grid gap-4 md:grid-cols-3">
               {[
                 ["Entry requirements", "VisaRoo", "We’ll check passport-specific entry rules before anything needs action."],

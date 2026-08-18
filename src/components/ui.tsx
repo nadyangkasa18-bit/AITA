@@ -67,7 +67,7 @@ export function PrototypeBadge({ className = "" }: { className?: string }) {
       className={`inline-flex items-center gap-1.5 rounded-full bg-amber-tint px-2.5 py-1 text-[11px] font-semibold text-amber ${className}`}
       title={PRODUCT.prototypeNote}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-amber" /> Prototype data
+      <span className="h-1.5 w-1.5 rounded-full bg-amber" /> Demo data
     </span>
   );
 }
@@ -75,7 +75,7 @@ export function PrototypeBadge({ className = "" }: { className?: string }) {
 const SOURCE_COPY: Record<PreferenceSource, string> = {
   user: "You said this",
   profile: "From your Traveler Profile",
-  inferred: "Roam inferred this",
+  inferred: "Inferred from your choices",
 };
 export function SourceTag({ source }: { source: PreferenceSource }) {
   return (
@@ -106,9 +106,9 @@ export function ConfidenceLabel({ confidence }: { confidence: Confidence }) {
 }
 
 const RECO: Record<RecommendationType, string> = {
-  top: "The one I'd choose",
-  easier: "The easier alternative",
-  wildcard: "The wildcard",
+  top: "Recommended",
+  easier: "Easier alternative",
+  wildcard: "Wildcard option",
 };
 export function RecommendationLabel({ type }: { type: RecommendationType }) {
   return (

@@ -104,7 +104,9 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (valu
           onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); if (event.key === "ArrowDown") setOpen(true); }}
           placeholder="Tokyo, Japan"
           aria-label="Destination"
+          role="combobox"
           aria-expanded={open}
+          aria-controls="destination-options"
           className="min-w-0 flex-1 bg-transparent font-display text-[16px] font-semibold text-ink placeholder:font-normal placeholder:text-faint"
           style={{ outline: "none", boxShadow: "none" }}
         />
@@ -121,7 +123,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (valu
       </div>
 
       {open && (
-        <div className="absolute left-0 right-0 top-[82px] z-50 overflow-hidden rounded-[18px] border border-[rgba(27,26,23,0.12)] bg-[rgba(255,255,255,0.96)] p-1.5 shadow-[0_22px_54px_-28px_rgba(27,26,23,0.38)] backdrop-blur-xl">
+        <div id="destination-options" role="listbox" className="absolute left-0 right-0 top-[82px] z-50 overflow-hidden rounded-[18px] border border-[rgba(27,26,23,0.12)] bg-[rgba(255,255,255,0.96)] p-1.5 shadow-[0_22px_54px_-28px_rgba(27,26,23,0.38)] backdrop-blur-xl">
           <div className="max-h-[250px] overflow-y-auto">
             {filtered.map((item) => {
               const selected = item.value.toLowerCase() === normalized;
@@ -129,6 +131,8 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (valu
                 <button
                   key={item.value}
                   type="button"
+                  role="option"
+                  aria-selected={selected}
                   onClick={() => { onChange(item.value); setOpen(false); }}
                   className={`flex w-full items-center justify-between gap-3 rounded-[13px] px-3 py-2.5 text-left transition ${selected ? "bg-paper-2" : "hover:bg-surface-2"}`}
                 >
@@ -284,17 +288,17 @@ export function HomeExperience() {
           <div className="mx-auto max-w-[780px] text-center">
             <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">Plan a trip</p>
             {stage === "basics" ? (
-              <h1 className="mx-auto mt-3 max-w-[15ch] font-display text-[clamp(38px,5.6vw,62px)] font-bold leading-[0.98] tracking-[-0.045em]">Start with what you already know.</h1>
+              <h1 className="mx-auto mt-3 max-w-[15ch] font-display text-[clamp(38px,5.6vw,62px)] font-bold leading-[0.98] tracking-[-0.045em]">Plan your trip around what matters.</h1>
             ) : (
               <h1 className="mx-auto mt-3 max-w-[18ch] font-display text-[clamp(36px,5.2vw,58px)] font-bold leading-[0.98] tracking-[-0.045em]">
-                <span className="block">A few trade-offs</span>
-                <span className="block">to tune your trip.</span>
+                <span className="block">What matters most</span>
+                <span className="block">for this trip?</span>
               </h1>
             )}
             <p className="mx-auto mt-4 max-w-[58ch] text-[15px] leading-relaxed text-muted sm:text-[15.5px]">
               {stage === "basics"
-                ? `Give ${PRODUCT.name} the parts that are fixed. We’ll only ask about the trade-offs that can actually improve the result.`
-                : "These are preferences, not rules. We’ll balance them against each other and show you the smallest useful set of options."}
+                ? "Add your destination, dates and travelers. We’ll recommend the best flight and stay—and explain why."
+                : "Optional: tune the recommendation now, or skip and teach us from the options you accept and reject."}
             </p>
           </div>
 
@@ -328,11 +332,15 @@ export function HomeExperience() {
                 ))}
               </div>
 
-              <div className="mt-5 flex items-center justify-center">
-                <button type="button" disabled={!basicsReady} onClick={() => setStage("preferences")} className="rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-30">
-                  Continue with these details →
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                <button type="button" disabled={!basicsReady} onClick={startGuidedRecommendation} className="rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-30">
+                  See my recommendations →
+                </button>
+                <button type="button" disabled={!basicsReady} onClick={() => setStage("preferences")} className="rounded-full border border-hair bg-white/70 px-5 py-3 text-[12.5px] font-semibold text-muted backdrop-blur transition hover:border-ink/30 hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30">
+                  Add preferences first
                 </button>
               </div>
+              <p className="mt-3 text-center text-[11.5px] text-faint">No account required. You can change every choice later.</p>
 
               <section className="relative left-1/2 mt-9 w-screen max-w-none -translate-x-1/2 overflow-hidden border-t border-hair-2 pt-7">
                 <div className="mx-auto flex max-w-[1000px] flex-wrap items-end justify-between gap-4 px-5 md:px-8">
@@ -365,8 +373,9 @@ export function HomeExperience() {
                   <input value={extra} onChange={(event) => setExtra(event.target.value)} placeholder="Optional — no red-eyes, near a station, must have a pool…" className="w-full bg-transparent text-[13px] text-ink placeholder:text-faint sm:text-[13.5px]" style={{ outline: "none", boxShadow: "none" }} />
                 </div>
               </label>
-              <div className="mt-5 flex justify-center">
-                <button type="button" onClick={startGuidedRecommendation} className="rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01]">Show me the best options →</button>
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <button type="button" onClick={startGuidedRecommendation} className="rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01]">See my recommendations →</button>
+                <button type="button" onClick={startGuidedRecommendation} className="rounded-full px-5 py-3 text-[12.5px] font-semibold text-muted transition hover:text-ink">Skip for now</button>
               </div>
             </div>
           )}

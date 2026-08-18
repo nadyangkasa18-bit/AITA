@@ -257,7 +257,7 @@ export function FlightPriceChart({
         )}
       </div>
 
-      <p className="mt-1 text-[11.5px] text-faint">Illustrative prototype history, not live fare data.</p>
+      <p className="mt-1 text-[11.5px] text-faint">Illustrative demo history, not live fare data.</p>
     </section>
   );
 }

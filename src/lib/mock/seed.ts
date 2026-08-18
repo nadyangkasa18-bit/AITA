@@ -211,7 +211,7 @@ const proposals: DestinationProposal[] = [
         "Works with nobody driving",
       ],
       rightNow: [
-        "Late-October foliage is near peak in the prototype window",
+        "Late-October foliage is near peak in the demo window",
         "Shoulder-season resort rates before the winter climb",
         "Weekday arrival avoids the Tokyo-day-tripper crowd",
       ],
@@ -219,7 +219,7 @@ const proposals: DestinationProposal[] = [
     tradeoffs: ["Main trade-off: a flight plus a train transfer to reach the valley"],
     externalSignals: [
       { label: "Weather window", value: "14–19°C · low humidity" },
-      { label: "Foliage", value: "Near peak (prototype)" },
+      { label: "Foliage", value: "Near peak (demo)" },
       { label: "Resort rates", value: "Shoulder season" },
     ],
     rhythmPreview: [
@@ -341,7 +341,7 @@ const proposals: DestinationProposal[] = [
         "Four travelers, laid-back rhythm",
       ],
       rightNow: [
-        "October is dry-season spring in the prototype data",
+        "October is dry-season spring in the demo data",
         "Quokka-season Rottnest is calm midweek",
       ],
     },
@@ -466,7 +466,7 @@ const proposals: DestinationProposal[] = [
         "Private transfers make driving unnecessary",
       ],
       rightNow: [
-        "November is quiet between ski and peak summer (prototype)",
+        "November is quiet between ski and peak summer (demo)",
         "Lodge availability is open in the window",
       ],
     },
@@ -513,6 +513,11 @@ export function makeSeedTrip(prompt: string): Trip {
     componentStates: { stay: "undecided", flight: "undecided", experiences: "undecided" },
     trackedFlight: null,
     itineraryDraft: null,
+    learnings: [],
+    selectedAddonIds: [],
+    collaborators: [
+      { id: "traveler-organizer", name: "Nadya", email: "nadya@example.com", status: "organizer" },
+    ],
     paymentSuccessAt: null,
     createdAt: now,
     updatedAt: now,
