@@ -68,7 +68,7 @@ export function AssistantComposer({ lifted = false }: { lifted?: boolean }) {
     const prompt = value.trim();
     setValue("");
     setOpen(false);
-    if (prompt) toast(`${PRODUCT.assistantName} is considering that — I&apos;ll fold it into the options.`);
+    if (prompt) toast(`${PRODUCT.assistantName} is considering that — I'll fold it into the options.`);
   }
 
   return (
