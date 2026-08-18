@@ -68,15 +68,15 @@ export function AssistantComposer({ lifted = false }: { lifted?: boolean }) {
     const prompt = value.trim();
     setValue("");
     setOpen(false);
-    if (prompt) toast("Roam is considering that — I'll fold it into the options.");
+    if (prompt) toast(`${PRODUCT.assistantName} is considering that — I&apos;ll fold it into the options.`);
   }
 
   return (
     <div className={`fixed right-5 z-40 print:hidden ${lifted ? "bottom-24" : "bottom-5"}`}>
       <div className="flex items-center rounded-full border border-hair bg-surface p-1.5 shadow-[var(--shadow-pop)] transition-all duration-[400ms] [transition-timing-function:var(--ease-spring)]">
-        <button onClick={() => setOpen((current) => !current)} aria-label={open ? "Close assistant" : "Ask Roam"} className="grid place-items-center rounded-full p-0.5"><Orb size={38} /></button>
+        <button onClick={() => setOpen((current) => !current)} aria-label={open ? "Close assistant" : `Ask ${PRODUCT.assistantName}`} className="grid place-items-center rounded-full p-0.5"><Orb size={38} /></button>
         <div className={`flex items-center overflow-hidden transition-all duration-[400ms] [transition-timing-function:var(--ease-spring)] ${open ? "ml-2 max-w-[420px] opacity-100" : "max-w-0 opacity-0"}`}>
-          <input value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => event.key === "Enter" && submit()} placeholder="Ask Roam, or tell me what to change…" className="w-[300px] max-w-[52vw] bg-transparent px-1 text-[15px] outline-none placeholder:text-faint" />
+          <input value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => event.key === "Enter" && submit()} placeholder={`Ask ${PRODUCT.assistantName}, or tell me what to change…`} className="w-[300px] max-w-[52vw] bg-transparent px-1 text-[15px] outline-none placeholder:text-faint" />
           <button onClick={submit} aria-label="Send" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-paper">→</button>
         </div>
       </div>
