@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { InteractiveTravelField } from "@/components/interactive-travel-field";
@@ -32,6 +31,7 @@ const STAY_OPTIONS = ["Best location", "Design & atmosphere", "Room comfort", "B
 const FLIGHT_OPTIONS = ["Direct if possible", "Better times", "Lowest fare", "More flexible"] as const;
 const BUDGET_OPTIONS = ["Keep the total down", "Balanced", "Spend more on the stay", "Flexible"] as const;
 
+type HomeMode = "guided" | "idea";
 type GuidedStage = "basics" | "preferences" | "reasoning";
 type PartyType = (typeof PARTY_TYPES)[number];
 
@@ -84,12 +84,12 @@ function ChoiceRow({
   onChange: (next: string) => void;
 }) {
   return (
-    <div className="border-b border-hair-2 py-4 last:border-b-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+    <div className="grid gap-3 border-b border-hair-2 py-4 last:border-b-0 md:grid-cols-[220px_1fr] md:items-center">
+      <div>
         <p className="text-[13.5px] font-semibold text-ink">{label}</p>
-        <p className="text-[11.5px] text-faint">{helper}</p>
+        <p className="mt-0.5 text-[11.5px] text-faint">{helper}</p>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 md:justify-end">
         {options.map((option) => {
           const active = value === option;
           return (
@@ -98,7 +98,7 @@ function ChoiceRow({
               type="button"
               onClick={() => onChange(option)}
               aria-pressed={active}
-              className={`rounded-full border px-3.5 py-2 text-[12.5px] font-semibold transition ${active ? "border-ink bg-ink text-paper shadow-[0_8px_20px_-14px_rgba(27,26,23,0.65)]" : "border-hair bg-white text-muted hover:border-ink/30 hover:text-ink"}`}
+              className={`rounded-full border px-3.5 py-2 text-[12.5px] font-semibold transition ${active ? "border-ink bg-ink text-paper" : "border-hair bg-white/72 text-muted hover:border-ink/30 hover:bg-white hover:text-ink"}`}
             >
               {option}
             </button>
@@ -115,11 +115,15 @@ function compactDate(value: string) {
   return new Intl.DateTimeFormat("en", { day: "numeric", month: "short" }).format(date);
 }
 
+const fieldShell =
+  "h-[60px] rounded-full border border-[rgba(27,26,23,0.14)] bg-[rgba(255,255,255,0.72)] px-4 backdrop-blur-md transition-[border-color,box-shadow,background-color] duration-200 hover:bg-[rgba(255,255,255,0.9)] focus-within:border-accent focus-within:bg-white focus-within:shadow-[0_0_0_1px_var(--color-accent),0_14px_34px_-28px_rgba(27,26,23,0.5)]";
+
 export default function Home() {
   const store = useStore();
   const router = useRouter();
   const { toast } = useToast();
 
+  const [mode, setMode] = useState<HomeMode>("guided");
   const [stage, setStage] = useState<GuidedStage>("basics");
   const [destination, setDestination] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -132,7 +136,6 @@ export default function Home() {
   const [budget, setBudget] = useState("Balanced");
   const [extra, setExtra] = useState("");
   const [tripId, setTripId] = useState<string | null>(null);
-  const [ideaOpen, setIdeaOpen] = useState(false);
   const [idea, setIdea] = useState("");
   const [ideaTripId, setIdeaTripId] = useState<string | null>(null);
   const [ideaReasoning, setIdeaReasoning] = useState(false);
@@ -170,7 +173,9 @@ export default function Home() {
       `Flight priority: ${flight}`,
       `Budget approach: ${budget}`,
       extra.trim() ? `Specific requests: ${extra.trim()}` : null,
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const id = store.createTripFromPrompt(prompt);
     store.patchTrip(id, {
@@ -179,11 +184,6 @@ export default function Home() {
     });
     setTripId(id);
     setStage("reasoning");
-  }
-
-  function startIdea(value?: string) {
-    if (value) setIdea(value);
-    setIdeaOpen(true);
   }
 
   function submitIdea() {
@@ -222,138 +222,194 @@ export default function Home() {
     <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden">
       <InteractiveTravelField />
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(244,242,236,0.1),rgba(244,242,236,0.58)_58%,rgba(244,242,236,0.92)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(244,242,236,0.08),rgba(244,242,236,0.5)_58%,rgba(244,242,236,0.86)_100%)]"
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto max-w-[1120px] px-5 pb-16 pt-10 md:px-8 md:pb-20 md:pt-14">
-        <div className="mx-auto max-w-[760px] text-center">
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">Plan a trip</p>
-          <h1 className="mx-auto mt-3 max-w-[14ch] font-display text-[clamp(40px,6vw,68px)] font-bold leading-[0.97] tracking-[-0.045em]">Start with what you already know.</h1>
-          <p className="mx-auto mt-4 max-w-[55ch] text-[16px] leading-relaxed text-muted">Give {PRODUCT.name} the parts that are fixed. We&apos;ll ask only a few useful trade-offs, then show you the options worth considering.</p>
-        </div>
-
-        <section className="mx-auto mt-7 max-w-[940px] overflow-hidden rounded-[28px] border border-[rgba(27,26,23,0.1)] bg-[rgba(255,255,255,0.9)] shadow-[0_30px_80px_-48px_rgba(27,26,23,0.42)] backdrop-blur-xl">
-          <div className="flex items-center justify-between border-b border-hair-2 px-5 py-3.5 md:px-7">
-            <div className="flex items-center gap-2.5">
-              <span className={`grid h-7 w-7 place-items-center rounded-full text-[11px] font-bold ${stage === "basics" ? "bg-ink text-paper" : "bg-[#dfe9df] text-[#34523b]"}`}>{stage === "basics" ? "1" : "✓"}</span>
-              <span className="text-[12.5px] font-semibold text-ink-soft">The non-negotiables</span>
-              <span className="text-hair">→</span>
-              <span className={`grid h-7 w-7 place-items-center rounded-full text-[11px] font-bold ${stage === "preferences" ? "bg-ink text-paper" : "bg-paper-2 text-faint"}`}>2</span>
-              <span className={`hidden text-[12.5px] font-semibold sm:inline ${stage === "preferences" ? "text-ink-soft" : "text-faint"}`}>A few trade-offs</span>
-            </div>
-            <Link href="/profile" className="hidden items-center gap-1.5 text-[11.5px] font-semibold text-muted hover:text-ink sm:flex"><Orb size={18} /> Personalize later</Link>
+      {mode === "guided" ? (
+        <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-4rem)] max-w-[1120px] flex-col px-5 pb-8 pt-8 md:px-8 md:pb-10 md:pt-10">
+          <div className="mx-auto max-w-[760px] text-center">
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">Plan a trip</p>
+            <h1 className="mx-auto mt-3 max-w-[15ch] font-display text-[clamp(38px,5.6vw,62px)] font-bold leading-[0.98] tracking-[-0.045em]">
+              {stage === "basics" ? "Start with what you already know." : "A few things to tune the recommendations."}
+            </h1>
+            <p className="mx-auto mt-4 max-w-[58ch] text-[15.5px] leading-relaxed text-muted">
+              {stage === "basics"
+                ? `Give ${PRODUCT.name} the parts that are fixed. We’ll only ask about the trade-offs that can actually improve the result.`
+                : "These are preferences, not rules. We’ll balance them against each other and show you the smallest useful set of options."}
+            </p>
           </div>
 
           {stage === "basics" ? (
-            <div className="p-5 md:p-7">
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-faint">Step 1</p>
-                  <h2 className="mt-1 font-display text-[28px] font-semibold tracking-[-0.035em]">What&apos;s fixed for this trip?</h2>
-                </div>
-                <p className="max-w-[34ch] text-[12px] leading-relaxed text-faint">If the destination is still open, skip this and start from an idea below.</p>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-[1.05fr_1.25fr_.9fr]">
-                <label className="rounded-[18px] border border-hair bg-surface p-4 transition focus-within:border-ink/30 focus-within:shadow-[0_10px_24px_-20px_rgba(27,26,23,0.55)]">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">Where</span>
-                  <input
-                    value={destination}
-                    onChange={(event) => setDestination(event.target.value)}
-                    list="direct-destinations"
-                    placeholder="Tokyo, Japan"
-                    className="mt-2 w-full bg-transparent font-display text-[17px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-faint"
-                  />
-                  <datalist id="direct-destinations"><option value="Tokyo, Japan" /><option value="Seoul, South Korea" /><option value="Singapore" /><option value="Bangkok, Thailand" /></datalist>
+            <div className="mx-auto mt-7 w-full max-w-[1000px]">
+              <div className="grid gap-4 md:grid-cols-[1.05fr_1.35fr_1fr]">
+                <label className="block">
+                  <span className="mb-2 block pl-2 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-faint">Where</span>
+                  <div className={`${fieldShell} flex items-center`}>
+                    <input
+                      value={destination}
+                      onChange={(event) => setDestination(event.target.value)}
+                      list="direct-destinations"
+                      placeholder="Tokyo, Japan"
+                      className="w-full bg-transparent font-display text-[16px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-faint"
+                    />
+                    <span className="ml-2 text-[11px] text-faint" aria-hidden>⌄</span>
+                  </div>
+                  <datalist id="direct-destinations">
+                    <option value="Tokyo, Japan" />
+                    <option value="Seoul, South Korea" />
+                    <option value="Singapore" />
+                    <option value="Bangkok, Thailand" />
+                  </datalist>
                 </label>
 
-                <div className="rounded-[18px] border border-hair bg-surface p-4">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">When</span>
-                  <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="min-w-0 bg-transparent text-[13px] font-semibold text-ink outline-none" aria-label="Departure date" />
+                <div>
+                  <span className="mb-2 block pl-2 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-faint">When</span>
+                  <div className={`${fieldShell} grid grid-cols-[1fr_auto_1fr] items-center gap-2`}>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(event) => setStartDate(event.target.value)}
+                      className="min-w-0 bg-transparent text-[13px] font-semibold text-ink outline-none"
+                      aria-label="Departure date"
+                    />
                     <span className="text-hair">→</span>
-                    <input type="date" min={startDate || undefined} value={endDate} onChange={(event) => setEndDate(event.target.value)} className="min-w-0 bg-transparent text-[13px] font-semibold text-ink outline-none" aria-label="Return date" />
+                    <input
+                      type="date"
+                      min={startDate || undefined}
+                      value={endDate}
+                      onChange={(event) => setEndDate(event.target.value)}
+                      className="min-w-0 bg-transparent text-[13px] font-semibold text-ink outline-none"
+                      aria-label="Return date"
+                    />
                   </div>
                 </div>
 
-                <div className="rounded-[18px] border border-hair bg-surface p-4">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">With who</span>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="text-[13px] font-semibold text-ink-soft">{partyType || "Choose group"}</span>
-                    <div className="flex items-center gap-2 rounded-full border border-hair bg-white px-2 py-1">
-                      <button type="button" onClick={() => setTravelers((value) => Math.max(1, value - 1))} className="grid h-6 w-6 place-items-center rounded-full text-[15px] text-muted hover:bg-paper-2">−</button>
-                      <span className="min-w-4 text-center text-[12.5px] font-bold text-ink">{travelers}</span>
-                      <button type="button" onClick={() => setTravelers((value) => Math.min(9, value + 1))} className="grid h-6 w-6 place-items-center rounded-full text-[15px] text-muted hover:bg-paper-2">+</button>
+                <div>
+                  <span className="mb-2 block pl-2 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-faint">With who</span>
+                  <div className={`${fieldShell} flex items-center gap-3`}>
+                    <select
+                      value={partyType}
+                      onChange={(event) => chooseParty(event.target.value as PartyType)}
+                      className="min-w-0 flex-1 bg-transparent text-[13.5px] font-semibold text-ink-soft outline-none"
+                      aria-label="Travel group"
+                    >
+                      <option value="" disabled>Choose group</option>
+                      {PARTY_TYPES.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                    <span className="h-6 w-px bg-hair-2" />
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => setTravelers((value) => Math.max(1, value - 1))} className="grid h-8 w-8 place-items-center rounded-full text-[16px] text-muted hover:bg-paper-2">−</button>
+                      <span className="min-w-5 text-center text-[13px] font-bold text-ink">{travelers}</span>
+                      <button type="button" onClick={() => setTravelers((value) => Math.min(9, value + 1))} className="grid h-8 w-8 place-items-center rounded-full text-[16px] text-muted hover:bg-paper-2">+</button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {PARTY_TYPES.map((option) => (
-                  <button key={option} type="button" onClick={() => chooseParty(option)} className={`rounded-full border px-3 py-1.5 text-[11.5px] font-semibold transition ${partyType === option ? "border-ink bg-ink text-paper" : "border-hair bg-white text-muted hover:border-ink/30"}`}>{option}</button>
-                ))}
+              <div className="mt-6 flex items-center justify-center">
+                <button
+                  type="button"
+                  disabled={!basicsReady}
+                  onClick={() => setStage("preferences")}
+                  className="rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  Continue with these details →
+                </button>
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-hair-2 pt-5">
-                <p className="text-[12px] text-faint">No account setup required. These details stay attached to this trip.</p>
-                <button type="button" disabled={!basicsReady} onClick={() => setStage("preferences")} className="rounded-full bg-ink px-5 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-35">Continue →</button>
+              <div className="mx-auto mt-8 max-w-[760px] border-t border-hair-2 pt-6">
+                <p className="text-center text-[11.5px] font-semibold uppercase tracking-[0.12em] text-faint">Or start less specifically</p>
+                <button
+                  type="button"
+                  onClick={() => setMode("idea")}
+                  className="group mt-3 flex h-[60px] w-full items-center gap-3 rounded-full border border-[rgba(27,26,23,0.13)] bg-[rgba(255,255,255,0.72)] p-2 pl-4 text-left shadow-[0_18px_44px_-38px_rgba(27,26,23,0.4)] backdrop-blur-md transition hover:border-ink/25 hover:bg-white"
+                >
+                  <Orb size={32} />
+                  <span className="min-w-0 flex-1 truncate font-display text-[15.5px] font-medium tracking-[-0.015em] text-muted group-hover:text-ink">Describe a trip idea in your own words…</span>
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-paper transition group-hover:scale-[1.03]">→</span>
+                </button>
               </div>
             </div>
           ) : (
-            <div className="p-5 md:p-7">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-faint">Step 2</p>
-                  <h2 className="mt-1 font-display text-[28px] font-semibold tracking-[-0.035em]">What should we optimize for?</h2>
-                  <p className="mt-2 text-[13px] text-muted">Four quick choices. These are negotiable — we&apos;ll trade them against each other when there&apos;s a better overall trip.</p>
-                </div>
-                <button type="button" onClick={() => setStage("basics")} className="rounded-full border border-hair bg-white px-3 py-2 text-[11.5px] font-semibold text-muted hover:border-ink/30 hover:text-ink">Edit {destination.trim()} · {dateSummary}</button>
+            <div className="mx-auto mt-6 w-full max-w-[920px]">
+              <div className="flex justify-center">
+                <button type="button" onClick={() => setStage("basics")} className="rounded-full border border-hair bg-white/70 px-3.5 py-2 text-[11.5px] font-semibold text-muted backdrop-blur hover:border-ink/30 hover:text-ink">
+                  ← Edit {destination.trim()} · {dateSummary}
+                </button>
               </div>
 
-              <div className="mt-5 rounded-[20px] border border-hair bg-surface-2 px-4 md:px-5">
+              <div className="mt-3 px-1 md:px-3">
                 <ChoiceRow label="How should the trip feel?" helper="Pace" options={PACE_OPTIONS} value={pace} onChange={setPace} />
                 <ChoiceRow label="What matters most in the stay?" helper="Hotel trade-off" options={STAY_OPTIONS} value={stay} onChange={setStay} />
                 <ChoiceRow label="What should flights optimize for?" helper="Journey trade-off" options={FLIGHT_OPTIONS} value={flight} onChange={setFlight} />
                 <ChoiceRow label="How should we treat the budget?" helper="Spend trade-off" options={BUDGET_OPTIONS} value={budget} onChange={setBudget} />
               </div>
 
-              <label className="mt-4 block rounded-[18px] border border-hair bg-surface p-4 transition focus-within:border-ink/30">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint">Anything more specific?</span>
-                <textarea value={extra} onChange={(event) => setExtra(event.target.value)} rows={2} placeholder="Optional — e.g. no red-eyes, hotel within 500m of a station, must have a pool…" className="mt-2 w-full resize-none bg-transparent text-[13.5px] leading-relaxed text-ink outline-none placeholder:text-faint" />
+              <label className="mt-4 block">
+                <span className="mb-2 block pl-2 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-faint">Anything more specific?</span>
+                <div className={`${fieldShell} flex items-center`}>
+                  <input
+                    value={extra}
+                    onChange={(event) => setExtra(event.target.value)}
+                    placeholder="Optional — no red-eyes, near a station, must have a pool…"
+                    className="w-full bg-transparent text-[13.5px] text-ink outline-none placeholder:text-faint"
+                  />
+                </div>
               </label>
 
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-hair-2 pt-5">
-                <div className="flex flex-wrap gap-1.5 text-[11.5px] text-muted"><span className="rounded-full bg-paper-2 px-2.5 py-1">{travelers} traveler{travelers === 1 ? "" : "s"}</span><span className="rounded-full bg-paper-2 px-2.5 py-1">{pace}</span><span className="rounded-full bg-paper-2 px-2.5 py-1">{flight}</span></div>
-                <button type="button" onClick={startGuidedRecommendation} className="rounded-full bg-ink px-5 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01]">Show me the best options →</button>
+              <div className="mt-6 flex justify-center">
+                <button type="button" onClick={startGuidedRecommendation} className="rounded-full bg-ink px-6 py-3 text-[13px] font-semibold text-paper transition hover:scale-[1.01]">
+                  Show me the best options →
+                </button>
               </div>
             </div>
           )}
-        </section>
+        </div>
+      ) : (
+        <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-4rem)] max-w-[1120px] flex-col justify-center px-5 py-10 md:px-8">
+          <div className="mx-auto w-full max-w-[900px] text-center">
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-faint">Start from an idea</p>
+            <h1 className="mx-auto mt-4 max-w-[14ch] font-display text-[clamp(42px,6.4vw,72px)] font-bold leading-[0.97] tracking-[-0.045em]">What kind of trip do you need?</h1>
+            <p className="mx-auto mt-5 max-w-[54ch] text-[16.5px] leading-relaxed text-muted">Tell {PRODUCT.name} whatever you know. A place, a feeling, a constraint, or the problem you want the trip to solve.</p>
 
-        <section className="relative left-1/2 mt-12 w-screen max-w-none -translate-x-1/2 overflow-hidden pb-2">
-          <div className="mx-auto mb-4 flex max-w-[940px] flex-wrap items-end justify-between gap-3 px-5 md:px-8">
-            <div><p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-faint">Start from an idea</p><h2 className="mt-1 font-display text-[23px] font-semibold tracking-[-0.03em]">Don&apos;t know the destination yet? That&apos;s fine.</h2></div>
-            <button type="button" onClick={() => startIdea()} className="rounded-full border border-hair bg-[rgba(255,255,255,0.72)] px-3.5 py-2 text-[12px] font-semibold text-muted backdrop-blur hover:border-ink/30 hover:text-ink">Describe your own idea</button>
-          </div>
-
-          {ideaOpen && (
-            <div className="mx-auto mb-5 max-w-[760px] px-5 md:px-8">
-              <div className="rounded-[22px] border border-hair bg-[rgba(255,255,255,0.88)] p-4 shadow-[0_24px_60px_-42px_rgba(27,26,23,0.42)] backdrop-blur-xl md:p-5">
-                <div className="flex items-center gap-2"><Orb size={24} /><p className="text-[12.5px] font-semibold text-ink-soft">Tell {PRODUCT.name} whatever you know</p></div>
-                <textarea autoFocus value={idea} onChange={(event) => setIdea(event.target.value)} rows={3} placeholder="Somewhere warm for Chinese New Year, good food, not too crowded, four adults…" className="mt-3 w-full resize-none bg-transparent font-display text-[17px] font-medium leading-relaxed tracking-[-0.015em] text-ink outline-none placeholder:text-faint" />
-                <div className="mt-3 flex items-center justify-between gap-3 border-t border-hair-2 pt-3"><button type="button" onClick={() => { setIdeaOpen(false); setIdea(""); }} className="text-[11.5px] font-semibold text-muted hover:text-ink">Cancel</button><button type="button" onClick={submitIdea} disabled={!idea.trim()} className="rounded-full bg-ink px-4 py-2.5 text-[12px] font-semibold text-paper disabled:opacity-35">Explore this idea →</button></div>
-              </div>
+            <div className="home-prompt-shell mx-auto mt-7 w-full max-w-[760px]">
+              <span className="home-prompt-glow" aria-hidden />
+              <span className="home-prompt-edge" aria-hidden />
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submitIdea();
+                }}
+                className="relative z-10 m-px flex h-[62px] items-center gap-3 rounded-full bg-white p-2 pl-4 shadow-[0_18px_48px_-34px_rgba(27,26,23,0.32)]"
+              >
+                <Orb size={32} />
+                <input
+                  autoFocus
+                  value={idea}
+                  onChange={(event) => setIdea(event.target.value)}
+                  placeholder="Somewhere warm for Chinese New Year, good food, not too crowded…"
+                  aria-label="Describe your trip idea"
+                  className="home-prompt-input min-w-0 flex-1 rounded-full bg-transparent font-display text-[16.5px] font-medium tracking-[-0.02em]"
+                />
+                <button type="submit" disabled={!idea.trim()} aria-label="Explore this idea" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-paper transition hover:scale-[1.04] active:scale-95 disabled:opacity-30">→</button>
+              </form>
             </div>
-          )}
 
-          <div className="grid gap-2.5">
-            <PromptMarquee items={TOP_IDEAS} direction="right" onPick={startIdea} />
-            <PromptMarquee items={BOTTOM_IDEAS} direction="left" onPick={startIdea} />
+            <button type="button" onClick={() => setMode("guided")} className="mt-4 rounded-full border border-hair bg-white/58 px-4 py-2 text-[12px] font-semibold text-muted backdrop-blur transition hover:border-ink/30 hover:bg-white hover:text-ink">
+              I know where, when and who → use trip controls
+            </button>
           </div>
-        </section>
-      </div>
+
+          <div className="relative left-1/2 mt-9 w-screen max-w-none -translate-x-1/2 overflow-hidden">
+            <p className="mb-3 text-center text-[11.5px] font-semibold uppercase tracking-[0.11em] text-faint">Or borrow an idea</p>
+            <div className="grid gap-2.5">
+              <PromptMarquee items={TOP_IDEAS} direction="right" onPick={setIdea} />
+              <PromptMarquee items={BOTTOM_IDEAS} direction="left" onPick={setIdea} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
