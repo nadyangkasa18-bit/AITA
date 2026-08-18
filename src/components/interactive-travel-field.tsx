@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Point = { x: number; y: number };
-type Candidate = { point: Point; startedAt: number };
 type Route = { kind: "h"; value: number } | { kind: "v"; value: number };
+type Mode = "idle" | "gather" | "disperse";
 
 type Particle = {
   routeIndex: number;
@@ -30,14 +30,9 @@ const HEIGHT = 900;
 const DOT_COUNT = 24;
 const IDLE_DELAY_MS = 800;
 const RESUME_RAMP_MS = 1000;
-const ACTIVATION_DISTANCE_PX = 14;
-const ACTIVATION_WINDOW_MS = 135;
-const ACTIVE_STEP_PX = 4;
-
-// Intentionally dense: materially tighter than the previous 34 × 29 spacing.
-// The goal is more streets in the same viewport, not a fainter-looking map.
 const VERTICAL_SPACING = 28;
 const HORIZONTAL_SPACING = 24;
+
 const GRID_VERTICAL = Array.from(
   { length: Math.ceil((WIDTH + 96) / VERTICAL_SPACING) + 1 },
   (_, index) => -48 + index * VERTICAL_SPACING,
@@ -46,7 +41,6 @@ const GRID_HORIZONTAL = Array.from(
   { length: Math.ceil((HEIGHT + 96) / HORIZONTAL_SPACING) + 1 },
   (_, index) => -48 + index * HORIZONTAL_SPACING,
 );
-
 const DIAGONAL_ROADS = [
   { offset: -180, slope: 0.24 },
   { offset: 118, slope: 0.3 },
@@ -57,7 +51,6 @@ const DIAGONAL_ROADS = [
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const wrap = (value: number) => ((value % 1) + 1) % 1;
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
-
 const seeded = (seed: number) => {
   const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
   return value - Math.floor(value);
@@ -180,22 +173,20 @@ function GridLines({ focus = false }: { focus?: boolean }) {
 }
 
 export function InteractiveTravelField() {
+  const fieldRef = useRef<HTMLDivElement | null>(null);
   const routes = useMemo(() => buildRoutes(), []);
   const particlesRef = useRef<Particle[]>(buildParticles(routes));
-  const modeRef = useRef<"idle" | "gather" | "disperse">("idle");
-  const visualCursorRef = useRef<Point>({ x: WIDTH * 0.5, y: HEIGHT * 0.46 });
-  const swarmTargetRef = useRef<Point>(visualCursorRef.current);
-  const candidateRef = useRef<Candidate | null>(null);
-  const lastMeaningfulPointer = useRef<Point | null>(null);
+  const modeRef = useRef<Mode>("idle");
+  const swarmTargetRef = useRef<Point>({ x: WIDTH * 0.5, y: HEIGHT * 0.46 });
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastFrameRef = useRef<number | null>(null);
   const reducedMotionRef = useRef(false);
 
   const [particles, setParticles] = useState<Point[]>(() => particlesRef.current.map((particle) => particle.position));
-  const [cursor, setCursor] = useState<Point>(visualCursorRef.current);
   const [swarmCenter, setSwarmCenter] = useState<Point>(swarmTargetRef.current);
-  const [mode, setMode] = useState<"idle" | "gather" | "disperse">("idle");
+  const [cursorScreen, setCursorScreen] = useState<Point>({ x: 0, y: 0 });
+  const [mode, setMode] = useState<Mode>("idle");
   const [pointerSeen, setPointerSeen] = useState(false);
   const [overTextInput, setOverTextInput] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -210,14 +201,25 @@ export function InteractiveTravelField() {
       document.documentElement.classList.add("roam-swarm-cursor");
     }
 
-    const toFieldPoint = (point: Point) => ({
-      x: (point.x / window.innerWidth) * WIDTH,
-      y: (point.y / window.innerHeight) * HEIGHT,
-    });
+    const toFieldPoint = (point: Point) => {
+      const rect = fieldRef.current?.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return swarmTargetRef.current;
+
+      // Match SVG preserveAspectRatio="xMidYMid slice" exactly so the swarm and
+      // the real pointer share the same visual coordinate, even below the nav.
+      const scale = Math.max(rect.width / WIDTH, rect.height / HEIGHT);
+      const renderedWidth = WIDTH * scale;
+      const renderedHeight = HEIGHT * scale;
+      const offsetX = (rect.width - renderedWidth) / 2;
+      const offsetY = (rect.height - renderedHeight) / 2;
+      return {
+        x: (point.x - rect.left - offsetX) / scale,
+        y: (point.y - rect.top - offsetY) / scale,
+      };
+    };
 
     const beginDisperse = () => {
       if (modeRef.current !== "gather") return;
-
       const now = performance.now();
       const origin = { ...swarmTargetRef.current };
       const nearbyRoutes = routes
@@ -256,52 +258,26 @@ export function InteractiveTravelField() {
       idleTimer.current = setTimeout(beginDisperse, IDLE_DELAY_MS);
     };
 
-    const activate = (point: Point) => {
-      const mapped = toFieldPoint(point);
-      swarmTargetRef.current = mapped;
-      visualCursorRef.current = mapped;
-      setSwarmCenter(mapped);
-      setCursor(mapped);
-      setPointerSeen(true);
-      modeRef.current = "gather";
-      setMode("gather");
-      lastMeaningfulPointer.current = point;
-      candidateRef.current = null;
-      armIdle();
-    };
-
     const onPointerMove = (event: PointerEvent) => {
-      const point = { x: event.clientX, y: event.clientY };
-      const mapped = toFieldPoint(point);
-      const now = performance.now();
+      const screen = { x: event.clientX, y: event.clientY };
       const target = event.target instanceof Element ? event.target : null;
-      setOverTextInput(Boolean(target?.closest("input, textarea, [contenteditable='true']")));
+      const isText = Boolean(target?.closest("input, textarea, [contenteditable='true']"));
 
-      visualCursorRef.current = mapped;
-      setCursor(mapped);
+      setCursorScreen(screen);
       setPointerSeen(true);
+      setOverTextInput(isText);
 
       if (reducedMotionRef.current) return;
 
-      if (modeRef.current === "gather") {
-        const previous = lastMeaningfulPointer.current;
-        if (previous && distance(point, previous) < ACTIVE_STEP_PX) return;
-        activate(point);
-        return;
-      }
-
-      const pending = candidateRef.current;
-      if (!pending || now - pending.startedAt > ACTIVATION_WINDOW_MS) {
-        candidateRef.current = { point, startedAt: now };
-        return;
-      }
-      if (distance(point, pending.point) < ACTIVATION_DISTANCE_PX) return;
-      activate(point);
+      const mapped = toFieldPoint(screen);
+      swarmTargetRef.current = mapped;
+      setSwarmCenter(mapped);
+      modeRef.current = "gather";
+      setMode("gather");
+      armIdle();
     };
 
     const onPointerLeave = () => {
-      candidateRef.current = null;
-      lastMeaningfulPointer.current = null;
       setOverTextInput(false);
       if (idleTimer.current) clearTimeout(idleTimer.current);
       beginDisperse();
@@ -312,7 +288,7 @@ export function InteractiveTravelField() {
       const dt = Math.min(0.05, (now - previous) / 1000);
       lastFrameRef.current = now;
       const currentMode = modeRef.current;
-      const gatherEase = 1 - Math.exp(-dt * 8.4);
+      const gatherEase = 1 - Math.exp(-dt * 11.5);
       let dispersing = false;
 
       particlesRef.current.forEach((particle) => {
@@ -399,19 +375,10 @@ export function InteractiveTravelField() {
   }, [routes]);
 
   const focusOpacity = mode === "gather" ? 1 : mode === "disperse" ? 0.28 : 0;
-  const cursorDotOpacity = overTextInput
-    ? 0
-    : pointerSeen
-      ? mode === "gather"
-        ? 1
-        : mode === "disperse"
-          ? 0.42
-          : 0.3
-      : 0;
-  const cursorDotRadius = mode === "gather" ? 6.5 : mode === "disperse" ? 4.2 : 3;
+  const cursorOpacity = pointerSeen && !overTextInput && !reducedMotion ? 1 : 0;
 
   return (
-    <div className="street-field" data-state={mode} aria-hidden>
+    <div ref={fieldRef} className="street-field" data-state={mode} aria-hidden>
       <div className="street-field__base" />
       <div className="street-field__wash street-field__wash--sage" />
       <div className="street-field__wash street-field__wash--sand" />
@@ -452,6 +419,8 @@ export function InteractiveTravelField() {
         <g className="street-field__traffic">
           {particles.map((point, index) => {
             const particle = particlesRef.current[index];
+            const remaining = distance(point, swarmCenter);
+            const gatherFade = mode === "gather" ? clamp((remaining - 5) / 24) : 1;
             return (
               <circle
                 key={`particle-${index}`}
@@ -459,7 +428,7 @@ export function InteractiveTravelField() {
                 cy={point.y}
                 r={particle?.radius ?? 2.25}
                 fill={particle?.color ?? "rgba(49,70,59,0.74)"}
-                opacity={mode === "gather" ? 0.7 : 0.92}
+                opacity={(mode === "gather" ? 0.72 : 0.92) * gatherFade}
               />
             );
           })}
@@ -469,11 +438,9 @@ export function InteractiveTravelField() {
       <div
         className="street-field__cursor-dot"
         style={{
-          left: `${(cursor.x / WIDTH) * 100}%`,
-          top: `${(cursor.y / HEIGHT) * 100}%`,
-          width: cursorDotRadius * 2,
-          height: cursorDotRadius * 2,
-          opacity: cursorDotOpacity,
+          left: cursorScreen.x,
+          top: cursorScreen.y,
+          opacity: cursorOpacity,
         }}
       />
 
@@ -532,9 +499,9 @@ export function InteractiveTravelField() {
         }
         .street-field__map {
           position: absolute;
-          inset: -3%;
-          width: 106%;
-          height: 106%;
+          inset: 0;
+          width: 100%;
+          height: 100%;
           opacity: 1;
           filter: saturate(0.96);
         }
@@ -542,20 +509,19 @@ export function InteractiveTravelField() {
           transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
         }
         .street-field[data-state="gather"] .street-field__focus-grid {
-          transition-duration: 180ms;
+          transition-duration: 120ms;
         }
         .street-field__cursor-dot {
-          position: absolute;
-          z-index: 80;
+          position: fixed;
+          z-index: 1000;
+          width: 10px;
+          height: 10px;
           transform: translate(-50%, -50%);
           border-radius: 999px;
           pointer-events: none;
           background: #414996;
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7), 0 4px 16px rgba(57, 67, 60, 0.1);
-          transition:
-            width 240ms cubic-bezier(0.22, 1, 0.36, 1),
-            height 240ms cubic-bezier(0.22, 1, 0.36, 1),
-            opacity 620ms cubic-bezier(0.22, 1, 0.36, 1);
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.72), 0 4px 14px rgba(57, 67, 60, 0.08);
+          transition: opacity 120ms ease;
         }
         @media (prefers-reduced-motion: reduce) {
           .street-field__traffic,
@@ -563,12 +529,7 @@ export function InteractiveTravelField() {
           .street-field__cursor-dot { display: none; }
         }
         @media (max-width: 700px) {
-          .street-field__map {
-            inset: -14%;
-            width: 128%;
-            height: 128%;
-            opacity: 0.88;
-          }
+          .street-field__map { opacity: 0.88; }
           .street-field__focus-grid,
           .street-field__cursor-dot { display: none; }
         }
