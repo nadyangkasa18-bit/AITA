@@ -6,11 +6,12 @@ import type { BriefLevel, ProtectChoice, Trip, TripBriefItem } from "@/lib/types
 import { useStore } from "@/lib/store";
 import { Button, Disclosure, Eyebrow } from "@/components/ui";
 import { StickyAction } from "@/components/sticky-action";
+import { PRODUCT } from "@/config/product";
 
 const BOARD_LEVELS: { level: BriefLevel; label: string; helper: string }[] = [
-  { level: "must", label: "Must-have", helper: "Non-negotiables. Roam should never trade these away." },
+  { level: "must", label: "Must-have", helper: `Non-negotiables. ${PRODUCT.name} should never trade these away.` },
   { level: "prioritize", label: "Prioritize", helper: "Important, but worth balancing against the whole trip." },
-  { level: "flexible", label: "Flexible", helper: "Preferences Roam can negotiate when there is a better fit." },
+  { level: "flexible", label: "Flexible", helper: `Preferences ${PRODUCT.name} can negotiate when there is a better fit.` },
 ];
 
 const LEVELS: { level: BriefLevel; label: string }[] = [
@@ -131,7 +132,7 @@ export function TripBrief({ trip }: { trip: Trip }) {
         <Eyebrow>Your trip brief</Eyebrow>
         <h1 className="mt-3 font-display text-[clamp(34px,5vw,52px)] font-semibold leading-[1.02] tracking-[-0.04em]">Here&apos;s what matters</h1>
         <p className="mx-auto mt-4 max-w-[58ch] text-[17px] leading-relaxed text-muted">{summarize(trip)}</p>
-        <p className="mt-3 text-[12.5px] text-faint">Drag anything between columns to change how strongly Roam should protect it.</p>
+        <p className="mt-3 text-[12.5px] text-faint">Drag anything between columns to change how strongly {PRODUCT.name} should protect it.</p>
       </div>
 
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
@@ -168,7 +169,7 @@ export function TripBrief({ trip }: { trip: Trip }) {
         </Disclosure>
       </div>
 
-      <StickyAction meta="Brief ready" note="Roam has 3 distinct directions ready to compare."><Button variant="accent" onClick={() => router.push(`/trips/${trip.id}/destinations`)}>See 3 trip directions →</Button></StickyAction>
+      <StickyAction meta="Brief ready" note={`${PRODUCT.name} has 3 distinct concepts ready to compare.`}><Button variant="accent" onClick={() => router.push(`/trips/${trip.id}/destinations`)}>See 3 trip concepts →</Button></StickyAction>
     </div>
   );
 }
