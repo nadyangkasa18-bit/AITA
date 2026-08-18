@@ -41,12 +41,6 @@ const GRID_HORIZONTAL = Array.from(
   { length: Math.ceil((HEIGHT + 96) / HORIZONTAL_SPACING) + 1 },
   (_, index) => -48 + index * HORIZONTAL_SPACING,
 );
-const DIAGONAL_ROADS = [
-  { offset: -180, slope: 0.24 },
-  { offset: 118, slope: 0.3 },
-  { offset: 430, slope: 0.23 },
-  { offset: 705, slope: -0.18 },
-];
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const wrap = (value: number) => ((value % 1) + 1) % 1;
@@ -150,24 +144,6 @@ function GridLines({ focus = false }: { focus?: boolean }) {
           vectorEffect="non-scaling-stroke"
         />
       ))}
-      {DIAGONAL_ROADS.map((road, index) => {
-        const x1 = -100;
-        const x2 = WIDTH + 100;
-        return (
-          <line
-            key={`${focus ? "focus" : "base"}-d-${index}`}
-            x1={x1}
-            y1={x1 * road.slope + road.offset}
-            x2={x2}
-            y2={x2 * road.slope + road.offset}
-            stroke={focus ? "#725b4b" : "url(#oceanWarm)"}
-            strokeWidth={focus ? 0.76 : 0.64}
-            opacity={focus ? 0.2 : 1}
-            strokeDasharray="2 8"
-            vectorEffect="non-scaling-stroke"
-          />
-        );
-      })}
     </>
   );
 }
@@ -204,9 +180,6 @@ export function InteractiveTravelField() {
     const toFieldPoint = (point: Point) => {
       const rect = fieldRef.current?.getBoundingClientRect();
       if (!rect || rect.width <= 0 || rect.height <= 0) return swarmTargetRef.current;
-
-      // Match SVG preserveAspectRatio="xMidYMid slice" exactly so the swarm and
-      // the real pointer share the same visual coordinate, even below the nav.
       const scale = Math.max(rect.width / WIDTH, rect.height / HEIGHT);
       const renderedWidth = WIDTH * scale;
       const renderedHeight = HEIGHT * scale;
@@ -395,14 +368,6 @@ export function InteractiveTravelField() {
             <stop offset="1" stopColor="#465048" stopOpacity="0.075" />
             {!reducedMotion && <animateTransform attributeName="gradientTransform" type="translate" values="-220 -70; 240 90; -220 -70" dur="20s" repeatCount="indefinite" />}
           </linearGradient>
-          <linearGradient id="oceanWarm" gradientUnits="userSpaceOnUse" x1="0" y1="-180" x2="1100" y2="760">
-            <stop offset="0" stopColor="#8d755f" stopOpacity="0.062" />
-            <stop offset="0.36" stopColor="#9a8067" stopOpacity="0.096" />
-            <stop offset="0.58" stopColor="#7777a3" stopOpacity="0.12" />
-            <stop offset="0.8" stopColor="#8d755f" stopOpacity="0.078" />
-            <stop offset="1" stopColor="#8d755f" stopOpacity="0.055" />
-            {!reducedMotion && <animateTransform attributeName="gradientTransform" type="translate" values="160 70; -180 -50; 160 70" dur="24s" repeatCount="indefinite" />}
-          </linearGradient>
           <radialGradient id="gridFocusMaskGradient" gradientUnits="userSpaceOnUse" cx={swarmCenter.x} cy={swarmCenter.y} r="112">
             <stop offset="0" stopColor="white" stopOpacity="1" />
             <stop offset="0.58" stopColor="white" stopOpacity="0.9" />
@@ -437,11 +402,7 @@ export function InteractiveTravelField() {
 
       <div
         className="street-field__cursor-dot"
-        style={{
-          left: cursorScreen.x,
-          top: cursorScreen.y,
-          opacity: cursorOpacity,
-        }}
+        style={{ left: cursorScreen.x, top: cursorScreen.y, opacity: cursorOpacity }}
       />
 
       <style jsx global>{`
