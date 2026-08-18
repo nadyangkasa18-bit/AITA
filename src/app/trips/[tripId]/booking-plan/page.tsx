@@ -177,6 +177,46 @@ function stayReason(preference: string, stay: StayOption) {
   return "It is the best overall fit between location, comfort and price.";
 }
 
+function compactDelta(value: number) {
+  const millions = Math.abs(value) / 1_000_000;
+  return `Rp ${millions >= 10 ? millions.toFixed(0) : millions.toFixed(1)}m`;
+}
+
+function flightDifferenceTags(item: FlightOption, baseline: FlightOption) {
+  const tags: string[] = [];
+  const delta = item.price - baseline.price;
+  if (Math.abs(delta) >= 250_000) tags.push(`${compactDelta(delta)} ${delta < 0 ? "less" : "more"}`);
+  if (item.direct !== baseline.direct) tags.push(item.direct ? "Direct" : "1 stop");
+  if (item.timing < baseline.timing) tags.push("Better timing");
+  else if (item.timing > baseline.timing + 1) tags.push("Less ideal timing");
+  if (item.flex > baseline.flex) tags.push("More flexible");
+  else if (item.flex < baseline.flex) tags.push("Less flexible");
+  return tags.slice(0, 2);
+}
+
+function stayDifferenceTags(item: StayOption, baseline: StayOption) {
+  const tags: string[] = [];
+  const delta = item.price - baseline.price;
+  if (Math.abs(delta) >= 250_000) tags.push(`${compactDelta(delta)} ${delta < 0 ? "less" : "more"}`);
+  if (item.central > baseline.central) tags.push("More central");
+  else if (item.central < baseline.central) tags.push("Less central");
+  if (item.comfort > baseline.comfort) tags.push("More comfort");
+  if (item.design > baseline.design) tags.push("More design-led");
+  if (item.value > baseline.value) tags.push("Better value");
+  return tags.slice(0, 2);
+}
+
+function DifferenceTags({ tags }: { tags: string[] }) {
+  if (!tags.length) return null;
+  return (
+    <span className="mt-2 flex flex-wrap gap-1.5">
+      {tags.map((tag) => (
+        <span key={tag} className="rounded-full border border-hair bg-white px-2 py-1 text-[10px] font-semibold text-muted">{tag}</span>
+      ))}
+    </span>
+  );
+}
+
 export default function BookingPlanPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const router = useRouter();
@@ -311,8 +351,8 @@ export default function BookingPlanPage() {
   return (
     <div className="mx-auto max-w-[1040px] pb-20">
       <div className="flex flex-wrap items-center gap-3"><Eyebrow>Your recommendation</Eyebrow><span className="rounded-full bg-accent-tint px-2.5 py-1 text-[11px] font-semibold text-accent">{data.city} · {dates}</span><PrototypeBadge /></div>
-      <h1 className="mt-3 max-w-[18ch] font-display text-[clamp(38px,6vw,58px)] font-semibold leading-[0.98] tracking-[-0.045em]">You know where you&apos;re going. Here&apos;s the combination I&apos;d take.</h1>
-      <p className="mt-4 max-w-[64ch] text-[15px] leading-relaxed text-muted">No destination shortlist. {PRODUCT.name} used the trip you fixed and your four trade-offs to narrow the flight and stay first. Alternatives are there only if you want them.</p>
+      <h1 className="mt-3 max-w-[18ch] font-display text-[clamp(36px,6vw,58px)] font-semibold leading-[0.98] tracking-[-0.045em]">You know where you&apos;re going. Here&apos;s the combination I&apos;d take.</h1>
+      <p className="mt-4 max-w-[64ch] text-[14.5px] leading-relaxed text-muted sm:text-[15px]">No destination shortlist. {PRODUCT.name} used the trip you fixed and your four trade-offs to narrow the flight and stay first. Alternatives are there only if you want them.</p>
 
       <div className="mt-6 flex flex-wrap gap-2 text-[11.5px] text-muted">
         <span className="rounded-full border border-hair bg-surface px-3 py-1.5">{travelers} traveler{travelers === 1 ? "" : "s"}</span>
@@ -323,29 +363,55 @@ export default function BookingPlanPage() {
       </div>
       {extra && <div className="mt-3 rounded-[14px] border border-accent-line bg-accent-tint/30 px-4 py-3 text-[12.5px] text-ink-soft"><strong className="font-semibold">Specific request:</strong> {extra}</div>}
 
-      <section className="mt-9 grid gap-5 lg:grid-cols-2">
-        <article className="rounded-[26px] border border-hair bg-surface p-6 shadow-[var(--shadow-card)]">
+      <section className="mt-8 grid gap-5 lg:grid-cols-2">
+        <article className="rounded-[22px] border border-hair bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6 lg:rounded-[26px]">
           <div className="flex items-center justify-between gap-3"><Eyebrow>1 · Flight</Eyebrow><span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">{chosenFlight.id === recommendedFlight.id ? "My pick" : "Your pick"}</span></div>
-          <h2 className="mt-4 font-display text-[27px] font-semibold tracking-[-0.035em]">{chosenFlight.airline}</h2>
+          <h2 className="mt-4 font-display text-[25px] font-semibold tracking-[-0.035em] sm:text-[27px]">{chosenFlight.airline}</h2>
           <p className="mt-1 text-[13px] text-muted">{chosenFlight.route}</p>
-          <div className="mt-6 grid grid-cols-[auto_1fr_auto] items-center gap-4"><div><p className="font-display text-[23px] font-semibold">{chosenFlight.time.split(" → ")[0]}</p><p className="text-[10px] uppercase tracking-[0.1em] text-faint">Depart</p></div><div className="text-center"><div className="h-px bg-hair" /><p className="mt-2 text-[11px] text-muted">{chosenFlight.detail}</p></div><div className="text-right"><p className="font-display text-[23px] font-semibold">{chosenFlight.time.split(" → ")[1]}</p><p className="text-[10px] uppercase tracking-[0.1em] text-faint">Arrive</p></div></div>
+          <div className="mt-6 grid grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-4"><div><p className="font-display text-[21px] font-semibold sm:text-[23px]">{chosenFlight.time.split(" → ")[0]}</p><p className="text-[10px] uppercase tracking-[0.1em] text-faint">Depart</p></div><div className="text-center"><div className="h-px bg-hair" /><p className="mt-2 text-[10.5px] text-muted sm:text-[11px]">{chosenFlight.detail}</p></div><div className="text-right"><p className="font-display text-[21px] font-semibold sm:text-[23px]">{chosenFlight.time.split(" → ")[1]}</p><p className="text-[10px] uppercase tracking-[0.1em] text-faint">Arrive</p></div></div>
           <div className="mt-5 rounded-[16px] bg-surface-2 p-4"><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">Why this one</p><p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{flightReason(flightPreference, chosenFlight)}</p></div>
-          <div className="mt-5 flex items-center justify-between gap-3"><p className="font-display text-[20px] font-semibold">{IDR.format(chosenFlight.price)} pp</p><button onClick={() => setShowFlights((value) => !value)} className="text-[12px] font-semibold text-accent">{showFlights ? "Hide alternatives" : "See other flights"}</button></div>
-          {showFlights && <div className="mt-4 grid gap-2 border-t border-hair-2 pt-4">{rankedFlights.filter((item) => item.id !== chosenFlight.id).map((item) => <button key={item.id} onClick={() => { setFlightId(item.id); setShowFlights(false); }} className="flex items-center justify-between gap-3 rounded-[14px] border border-hair bg-surface-2 px-4 py-3 text-left transition hover:border-ink/25"><span><span className="block text-[12.5px] font-semibold text-ink">{item.airline}</span><span className="mt-0.5 block text-[11px] text-muted">{item.time} · {item.detail}</span></span><span className="shrink-0 text-[12px] font-semibold text-ink-soft">{IDR.format(item.price)}</span></button>)}</div>}
+          <div className="mt-5 flex items-center justify-between gap-3"><p className="font-display text-[19px] font-semibold sm:text-[20px]">{IDR.format(chosenFlight.price)} pp</p><button onClick={() => setShowFlights((value) => !value)} className="text-[12px] font-semibold text-accent">{showFlights ? "Hide alternatives" : "See other flights"}</button></div>
+          {showFlights && (
+            <div className="mt-4 grid gap-2 border-t border-hair-2 pt-4">
+              {rankedFlights.filter((item) => item.id !== chosenFlight.id).map((item) => (
+                <button key={item.id} onClick={() => { setFlightId(item.id); setShowFlights(false); }} className="grid gap-3 rounded-[14px] border border-hair bg-surface-2 px-4 py-3 text-left transition hover:border-ink/25 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <span className="min-w-0">
+                    <span className="block text-[12.5px] font-semibold text-ink">{item.airline}</span>
+                    <DifferenceTags tags={flightDifferenceTags(item, chosenFlight)} />
+                    <span className="mt-2 block text-[11px] leading-relaxed text-muted">{item.time} · {item.detail}</span>
+                  </span>
+                  <span className="shrink-0 text-[12px] font-semibold text-ink-soft sm:text-right">{IDR.format(item.price)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </article>
 
-        <article className="rounded-[26px] border border-hair bg-surface p-6 shadow-[var(--shadow-card)]">
-          <div className="flex items-center justify-between gap-3"><Eyebrow>2 · Stay</Eyebrow><span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">{chosenStay.id === recommendedStay.id ? "I'd pair it" : "Your pick"}</span></div>
-          <h2 className="mt-4 font-display text-[27px] font-semibold tracking-[-0.035em]">{chosenStay.name}</h2>
+        <article className="rounded-[22px] border border-hair bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6 lg:rounded-[26px]">
+          <div className="flex items-center justify-between gap-3"><Eyebrow>2 · Stay</Eyebrow><span className="rounded-full bg-[#dfe9df] px-2.5 py-1 text-[10.5px] font-semibold text-[#34523b]">{chosenStay.id === recommendedStay.id ? "I&apos;d pair it" : "Your pick"}</span></div>
+          <h2 className="mt-4 font-display text-[25px] font-semibold tracking-[-0.035em] sm:text-[27px]">{chosenStay.name}</h2>
           <p className="mt-1 text-[13px] text-muted">{chosenStay.area}</p>
-          <div className="mt-6 rounded-[18px] border border-hair bg-surface-2 p-5"><p className="text-[12.5px] font-semibold text-ink-soft">{chosenStay.detail}</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Location {chosenStay.central}/3</span><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Design {chosenStay.design}/3</span><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Comfort {chosenStay.comfort}/3</span></div></div>
+          <div className="mt-6 rounded-[18px] border border-hair bg-surface-2 p-4 sm:p-5"><p className="text-[12.5px] font-semibold text-ink-soft">{chosenStay.detail}</p><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Location {chosenStay.central}/3</span><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Design {chosenStay.design}/3</span><span className="rounded-full bg-white px-2.5 py-1 text-[10.5px] text-muted">Comfort {chosenStay.comfort}/3</span></div></div>
           <div className="mt-4 rounded-[16px] bg-surface-2 p-4"><p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-faint">Why this one</p><p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{stayReason(stayPreference, chosenStay)}</p></div>
-          <div className="mt-5 flex items-center justify-between gap-3"><p className="font-display text-[20px] font-semibold">{IDR.format(chosenStay.price)} total</p><button onClick={() => setShowStays((value) => !value)} className="text-[12px] font-semibold text-accent">{showStays ? "Hide alternatives" : "See other stays"}</button></div>
-          {showStays && <div className="mt-4 grid gap-2 border-t border-hair-2 pt-4">{rankedStays.filter((item) => item.id !== chosenStay.id).map((item) => <button key={item.id} onClick={() => { setStayId(item.id); setShowStays(false); }} className="flex items-center justify-between gap-3 rounded-[14px] border border-hair bg-surface-2 px-4 py-3 text-left transition hover:border-ink/25"><span><span className="block text-[12.5px] font-semibold text-ink">{item.name}</span><span className="mt-0.5 block text-[11px] text-muted">{item.area} · {item.detail}</span></span><span className="shrink-0 text-[12px] font-semibold text-ink-soft">{IDR.format(item.price)}</span></button>)}</div>}
+          <div className="mt-5 flex items-center justify-between gap-3"><p className="font-display text-[19px] font-semibold sm:text-[20px]">{IDR.format(chosenStay.price)} total</p><button onClick={() => setShowStays((value) => !value)} className="text-[12px] font-semibold text-accent">{showStays ? "Hide alternatives" : "See other stays"}</button></div>
+          {showStays && (
+            <div className="mt-4 grid gap-2 border-t border-hair-2 pt-4">
+              {rankedStays.filter((item) => item.id !== chosenStay.id).map((item) => (
+                <button key={item.id} onClick={() => { setStayId(item.id); setShowStays(false); }} className="grid gap-3 rounded-[14px] border border-hair bg-surface-2 px-4 py-3 text-left transition hover:border-ink/25 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <span className="min-w-0">
+                    <span className="block text-[12.5px] font-semibold text-ink">{item.name}</span>
+                    <DifferenceTags tags={stayDifferenceTags(item, chosenStay)} />
+                    <span className="mt-2 block text-[11px] leading-relaxed text-muted">{item.area} · {item.detail}</span>
+                  </span>
+                  <span className="shrink-0 text-[12px] font-semibold text-ink-soft sm:text-right">{IDR.format(item.price)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </article>
       </section>
 
-      <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-ink px-5 py-5 text-paper md:px-6"><div><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/48">The combination</p><p className="mt-1 text-[13px] text-white/65">{chosenFlight.airline} + {chosenStay.name} · {travelers} traveler{travelers === 1 ? "" : "s"}</p></div><div className="flex items-center gap-4"><div className="text-right"><p className="text-[10.5px] text-white/48">Illustrative total</p><p className="font-display text-[25px] font-semibold">{IDR.format(total)}</p></div><Button variant="accent" onClick={() => setReviewing(true)}>Review these →</Button></div></section>
+      <section className="mt-5 flex flex-col gap-4 rounded-[22px] bg-ink px-5 py-5 text-paper sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:px-6"><div><p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/48">The combination</p><p className="mt-1 text-[13px] text-white/65">{chosenFlight.airline} + {chosenStay.name} · {travelers} traveler{travelers === 1 ? "" : "s"}</p></div><div className="flex items-center justify-between gap-4 sm:justify-end"><div className="text-left sm:text-right"><p className="text-[10.5px] text-white/48">Illustrative total</p><p className="font-display text-[23px] font-semibold sm:text-[25px]">{IDR.format(total)}</p></div><Button variant="accent" onClick={() => setReviewing(true)}>Review these →</Button></div></section>
 
       <p className="mt-5 text-center text-[11.5px] text-faint">Prototype availability and prices are illustrative. The interaction is the thing being tested here.</p>
     </div>
