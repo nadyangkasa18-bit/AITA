@@ -1,3 +1,5 @@
+"use client";
+
 export function HomeBackgroundTuning() {
   return (
     <style jsx global>{`
