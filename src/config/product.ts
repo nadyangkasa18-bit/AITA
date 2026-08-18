@@ -1,12 +1,11 @@
 /**
  * Central product configuration.
- * The product name is a temporary prototype name — change it here to rename
- * everywhere across the app.
+ * Keep product naming here so the prototype can be renamed consistently.
  */
 export const PRODUCT = {
-  name: "Roam",
+  name: "RoaminRabbit",
   tagline: "The world quietly rearranged around you.",
-  assistantName: "Roam",
+  assistantName: "RoaminRabbit",
   ecosystem: {
     esim: "RoaminRabbit",
     entry: "VisaRoo",
