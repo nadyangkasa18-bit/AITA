@@ -20,6 +20,7 @@ type TimelineStatus =
   | "Selected"
   | "Tracked"
   | "Needs booking"
+  | "Needs reservation"
   | "Secured flexibly"
   | "Booked"
   | "Walk-in"
@@ -98,7 +99,7 @@ function itemStatusFromComponent(state: string, fallback: TimelineStatus): Timel
 function statusTone(status: TimelineStatus) {
   if (status === "Booked") return "border-[#b8d1bc] bg-[#e7f1e8] text-[#35543c]";
   if (status === "Tracked") return "border-[#c8c7e4] bg-[#eeedf8] text-[#4a4f91]";
-  if (status === "Needs booking" || status === "Unavailable") return "border-[#e3c5b3] bg-[#f7ece5] text-[#8a5538]";
+  if (status === "Needs booking" || status === "Needs reservation" || status === "Unavailable") return "border-[#e3c5b3] bg-[#f7ece5] text-[#8a5538]";
   if (status === "Secured flexibly") return "border-[#bfd4ca] bg-[#e9f3ef] text-[#41685a]";
   if (status === "Placeholder" || status === "Suggested") return "border-hair bg-surface-2 text-muted";
   return "border-hair bg-white text-ink-soft";
