@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { PRODUCT } from "@/config/product";
 import { Orb, useToast } from "@/components/ui";
+import { ItineraryPeek, itineraryNeedsAttention } from "@/components/itinerary-peek";
 import { useStore } from "@/lib/store";
 
-export function GlobalNavigation() {
+export function GlobalNavigation({ onOpenItinerary }: { onOpenItinerary?: () => void }) {
   const pathname = usePathname();
   const store = useStore();
   const tripMatch = pathname.match(/^\/trips\/([^/]+)/);
@@ -15,6 +16,7 @@ export function GlobalNavigation() {
   const trip = tripId ? store.trips[tripId] : undefined;
   const selected = trip?.destinationProposals.find((proposal) => proposal.id === trip.selectedProposalId);
   const savedCount = Object.values(store.trips).reduce((count, item) => count + item.savedProposalIds.length, 0);
+  const hasTripBrief = Boolean(trip && (trip.originalPrompt.trim() || trip.brief.items.length || trip.brief.assumptions.length));
 
   const link = (href: string, label: ReactNode, active: boolean) => (
     <Link href={href} className={`rounded-full px-3 py-1.5 text-[13.5px] font-medium transition ${active ? "text-ink" : "text-muted hover:text-ink"}`}>{label}</Link>
@@ -39,6 +41,18 @@ export function GlobalNavigation() {
             <span className="mr-1 hidden rounded-full border border-hair bg-surface-2 px-3 py-1.5 text-[11.5px] font-semibold text-muted lg:inline-flex">
               {selected.destination} <span className="mx-1.5 text-hair">•</span> <span className="capitalize">{trip.lifecycle.replace("-", " ")}</span>
             </span>
+          )}
+          {hasTripBrief && onOpenItinerary && trip && (
+            <button
+              type="button"
+              onClick={onOpenItinerary}
+              className="relative rounded-full px-3 py-1.5 text-[13.5px] font-medium text-muted transition hover:bg-white/45 hover:text-ink"
+            >
+              <span className="flex items-center gap-1.5">
+                Itinerary
+                {itineraryNeedsAttention(trip) && <span className="h-1.5 w-1.5 rounded-full bg-[#a46a45]" aria-label="Itinerary needs attention" />}
+              </span>
+            </button>
           )}
           {link("/trips", "Trips", pathname === "/trips")}
           {link(
@@ -92,15 +106,20 @@ export function AssistantComposer({ lifted = false }: { lifted?: boolean }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const store = useStore();
+  const [itineraryOpen, setItineraryOpen] = useState(false);
   const onboarding = pathname === "/calibrate";
   const liftedAssistant = /\/brief$/.test(pathname) || /\/destinations(?:\/|$)/.test(pathname) || /\/itinerary$/.test(pathname);
   const showAssistant = /^\/trips\/[^/]+/.test(pathname) && !/\/checkout$/.test(pathname);
+  const tripId = pathname.match(/^\/trips\/([^/]+)/)?.[1];
+  const trip = tripId ? store.trips[tripId] : undefined;
 
   return (
     <div className="flex min-h-dvh flex-col">
-      {!onboarding && <GlobalNavigation />}
+      {!onboarding && <GlobalNavigation onOpenItinerary={trip ? () => setItineraryOpen(true) : undefined} />}
       <main className="flex-1">{children}</main>
-      {!onboarding && showAssistant && <AssistantComposer lifted={liftedAssistant} />}
+      {!onboarding && showAssistant && <AssistantComposer lifted={liftedAssistant || itineraryOpen} />}
+      {trip && <ItineraryPeek trip={trip} open={itineraryOpen} onClose={() => setItineraryOpen(false)} />}
     </div>
   );
 }

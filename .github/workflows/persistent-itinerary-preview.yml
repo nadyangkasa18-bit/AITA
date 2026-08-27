@@ -1,0 +1,30 @@
+name: Persistent itinerary preview checks
+
+on:
+  push:
+    branches:
+      - agent/persistent-itinerary-side-peek
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint itinerary feature
+        run: npx eslint src/components/itinerary-peek.tsx src/components/shell.tsx 'src/app/trips/[tripId]/itinerary/page.tsx'
+      - name: Repository lint baseline
+        continue-on-error: true
+        run: npm run lint
+      - name: Production build
+        run: npm run build
