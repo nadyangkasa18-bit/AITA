@@ -45,6 +45,14 @@
   animation: homePromptGlow 7.4s linear infinite;
 }
 
+/* The itinerary refinement composer owns its focus state at the rounded
+   container level. Suppress the shared inner input outline so focus reads as
+   one continuous field instead of a rectangle nested inside it. */
+section[aria-label="Trip itinerary"] input[placeholder^="Make the first day easier"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home-prompt-shell:focus-within .home-prompt-edge,
   .home-prompt-shell:focus-within .home-prompt-glow {
