@@ -1,9 +1,9 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { CoworkWorkspace } from "@/components/cowork-workspace";
+import { CoworkWorkspaceV2 } from "@/components/cowork-workspace-v2";
 
 export default function WorkspacePage() {
   const { tripId } = useParams<{ tripId: string }>();
-  return <CoworkWorkspace tripId={tripId} />;
+  return <CoworkWorkspaceV2 tripId={tripId} />;
 }
