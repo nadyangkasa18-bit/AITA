@@ -8,11 +8,11 @@ export type PreferenceStrength = "gentle" | "clear" | "strong";
 
 export interface Preference {
   id: string;
-  category: string; // e.g. "Flights", "Stays", "Pace"
+  category: string;
   statement: string;
   strength: PreferenceStrength;
   scope: PreferenceScope;
-  confidence: number; // 0..1 (prototype)
+  confidence: number;
   source: PreferenceSource;
   lastConfirmedAt: string | null;
 }
@@ -33,7 +33,7 @@ export interface PartyDefaults {
 export interface TravelerProfile {
   id: string;
   name: string;
-  homeAirport: string; // e.g. "Jakarta (CGK)"
+  homeAirport: string;
   partyDefaults: PartyDefaults;
   preferences: Preference[];
   loyaltyPrograms: LoyaltyProgram[];
@@ -47,7 +47,7 @@ export interface TripBriefItem {
   id: string;
   statement: string;
   level: BriefLevel;
-  source: PreferenceSource; // user | profile | inferred
+  source: PreferenceSource;
   editable: boolean;
 }
 
@@ -73,28 +73,22 @@ export type RecommendationType = "top" | "easier" | "wildcard";
 export type Confidence = "strong" | "good-with-tradeoff" | "needs-input";
 
 export interface FitReasons {
-  /** Long-term Traveler Profile preferences relevant here. */
   you: string[];
-  /** Specific Trip Brief requirements this satisfies. */
   thisTrip: string[];
-  /** Prototype date / weather / crowd / price context. */
   rightNow: string[];
 }
 
 export interface RhythmDay {
-  day: string; // "Day 1"
+  day: string;
   summary: string;
 }
 
 /* -------------------- Imagery + editorial content -------------------- */
 
 export interface ImageRef {
-  /** Fixed images.unsplash.com/photo-... URL (query params added by the loader). */
   url: string;
   alt: string;
-  /** object-position, e.g. "center 40%" */
   position?: string;
-  /** Attribution / caption shown subtly where appropriate. */
   credit?: string;
 }
 
@@ -102,25 +96,25 @@ export interface StayPreview {
   name: string;
   location: string;
   image: ImageRef;
-  attributes: string[]; // exactly three essential attributes
-  price: string; // clearly indicative
-  why: string; // one sentence tying it to the traveler
+  attributes: string[];
+  price: string;
+  why: string;
 }
 
 export interface FlightPreview {
   airline: string;
-  route: string; // "CGK → HND"
+  route: string;
   depart: string;
   arrive: string;
   duration: string;
-  stops: string; // "Direct" | "1 stop"
+  stops: string;
   fareType: string;
   price: string;
 }
 
 export interface TripMoment {
-  title: string; // "Slow morning"
-  note: string; // one short sentence
+  title: string;
+  note: string;
   image: ImageRef;
 }
 
@@ -131,24 +125,21 @@ export interface DiningPreview {
 }
 
 export interface DestinationProposal {
-  id: string; // "hakone" | "perth" | "queenstown"
+  id: string;
   destination: string;
   region: string;
   recommendationType: RecommendationType;
   conceptTitle: string;
-  /** One-sentence trip thesis: why this fits, said plainly. */
   thesis: string;
   recommendedWindow: string;
-  indicativePrice: string; // "per person" range, clearly prototype
-  flightTime: string; // for the essential-facts row
+  indicativePrice: string;
+  flightTime: string;
   weatherComfort: string;
   journeyEffort: string;
-  mobilityFit: string; // car-free confidence
+  mobilityFit: string;
   resortFit: string;
   confidence: Confidence;
-  /** Short, verifiable proof points for the confidence strip. */
   confidenceChips: string[];
-  /** Up to three short, specific reasons for the "Why this fits" disclosure. */
   whyThisFits: string[];
   fitReasons: FitReasons;
   tradeoffs: string[];
@@ -159,11 +150,11 @@ export interface DestinationProposal {
   localPleasure: string;
   protectedDowntime: string;
   stillUnconfirmed: string[];
-  heroTone: string; // gradient class hint / graceful image fallback
-  heroImage: ImageRef; // 16:9+ proposal hero
+  heroTone: string;
+  heroImage: ImageRef;
   stay: StayPreview;
   flight: FlightPreview;
-  moments: TripMoment[]; // three image-led rhythm moments
+  moments: TripMoment[];
   dining: DiningPreview;
   status: "suggested" | "saved" | "selected" | "rejected";
 }
@@ -178,7 +169,7 @@ export interface RuledOut {
 export type TripStatus = "draft" | "proposing" | "version-selected" | "booked";
 export type TripLifecycle = "planning" | "partially-booked" | "booked";
 export type TripComponent = "stay" | "flight" | "experiences";
-export type TripComponentState = "undecided" | "saved" | "tracked" | "confirmed";
+export type TripComponentState = "undecided" | "saved" | "tracked" | "needs-review" | "confirmed";
 
 export interface TrackedFlight {
   id: string;
@@ -192,6 +183,21 @@ export interface TrackedFlight {
   currentFare: number;
   lastCheckedAt: string;
   priceDropped: boolean;
+}
+
+/**
+ * A multi-city trip is still one Trip. Flight segments let the trip own each
+ * independent transport decision without splitting Korea + Japan into separate trips.
+ */
+export interface TripFlightSegment {
+  id: string;
+  from: string;
+  to: string;
+  label: string;
+  status: TripComponentState;
+  selectedFlightId: string | null;
+  savedFlightIds: string[];
+  trackedFlightIds: string[];
 }
 
 export interface ItineraryDay {
@@ -235,7 +241,7 @@ export interface Trip {
   travelers: number;
   brief: TripBrief;
   protect: ProtectChoice;
-  tripLength: number | null; // nights
+  tripLength: number | null;
   destinationProposals: DestinationProposal[];
   ruledOut: RuledOut[];
   savedProposalIds: string[];
@@ -244,11 +250,17 @@ export interface Trip {
   homeCreatedAt: string | null;
   lifecycle: TripLifecycle;
   componentStates: Record<TripComponent, TripComponentState>;
+
+  /** Canonical product decisions. View-specific cowork state may mirror these, never replace them. */
+  selectedFlightId: string | null;
+  savedFlightIds: string[];
+  selectedStayId: string | null;
+  savedStayIds: string[];
+  flightSegments: TripFlightSegment[];
+
   trackedFlight: TrackedFlight | null;
   itineraryDraft: ItineraryDraft | null;
-  /** Feedback learned from choices and rejections for this trip. */
   learnings: string[];
-  /** Optional services chosen during checkout. */
   selectedAddonIds: TripAddonId[];
   collaborators: TripCollaborator[];
   paymentSuccessAt: string | null;
@@ -290,7 +302,6 @@ export const PREF_CATEGORIES: PrefCategory[] = [
   "Group travel",
 ];
 
-/** A single, editable Traveler Profile preference. */
 export interface ProfilePref {
   id: string;
   category: PrefCategory;
@@ -298,8 +309,8 @@ export interface ProfilePref {
   priority: PrefPriority;
   scope: PrefScope;
   source: PrefSource;
-  confidence: number; // 0..1 (never shown as a raw score)
-  order: number; // ordering within a priority group
+  confidence: number;
+  order: number;
 }
 
 export interface LoyaltyEntry {
@@ -309,12 +320,10 @@ export interface LoyaltyEntry {
   note?: string;
 }
 
-/** Answer to a comparison round. */
 export type ChoiceValue = "A" | "B" | "depends" | "none";
 
 export interface OnboardingState {
   completed: boolean;
-  /** Resume pointer into the calibration flow. */
   step: number;
   answers: Record<string, ChoiceValue>;
 }
