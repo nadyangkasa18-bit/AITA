@@ -83,8 +83,6 @@ export interface RhythmDay {
   summary: string;
 }
 
-/* -------------------- Imagery + editorial content -------------------- */
-
 export interface ImageRef {
   url: string;
   alt: string;
@@ -185,10 +183,7 @@ export interface TrackedFlight {
   priceDropped: boolean;
 }
 
-/**
- * A multi-city trip is still one Trip. Flight segments let the trip own each
- * independent transport decision without splitting Korea + Japan into separate trips.
- */
+/** A multi-city trip stays one Trip; each transport leg can be decided independently. */
 export interface TripFlightSegment {
   id: string;
   from: string;
@@ -251,12 +246,12 @@ export interface Trip {
   lifecycle: TripLifecycle;
   componentStates: Record<TripComponent, TripComponentState>;
 
-  /** Canonical product decisions. View-specific cowork state may mirror these, never replace them. */
-  selectedFlightId: string | null;
-  savedFlightIds: string[];
-  selectedStayId: string | null;
-  savedStayIds: string[];
-  flightSegments: TripFlightSegment[];
+  /** Canonical product decisions. Optional for backward compatibility with older prototype trips. */
+  selectedFlightId?: string | null;
+  savedFlightIds?: string[];
+  selectedStayId?: string | null;
+  savedStayIds?: string[];
+  flightSegments?: TripFlightSegment[];
 
   trackedFlight: TrackedFlight | null;
   itineraryDraft: ItineraryDraft | null;
