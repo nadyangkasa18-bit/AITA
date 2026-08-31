@@ -1,11 +1,11 @@
 import { HomeBackgroundTuning } from "@/components/home-background-tuning";
-import { HomeExperience } from "@/components/home-experience";
+import { HomeExperienceStakeholder } from "@/components/home-experience-stakeholder";
 
 export default function Home() {
   return (
     <>
       <HomeBackgroundTuning />
-      <HomeExperience />
+      <HomeExperienceStakeholder />
     </>
   );
 }

@@ -21,7 +21,7 @@ const SCOPES: { key: PrefScope; label: string }[] = [
   { key: "none", label: "Don't save" },
 ];
 const SOURCE_LABEL: Record<string, string> = {
-  onboarding: "Onboarding choice",
+  onboarding: "Guided preference",
   added: "Added by you",
   confirmed: "Confirmed from a decision",
 };
@@ -316,8 +316,8 @@ export default function ProfilePage() {
       {!profile.calibrated && (
         <div className="mb-6 rounded-card border border-accent-line bg-accent-tint/50 p-5">
           <p className="text-[15px] text-ink">No saved preferences yet.</p>
-          <p className="mt-1 text-[12.5px] text-muted">You can add them directly, use the optional guided questions, or let your trip choices build them over time.</p>
-          <Link href="/calibrate" className={`mt-3 ${buttonClass("accent", "sm")}`}>
+          <p className="mt-1 text-[12.5px] text-muted">Add them directly, answer a few quick multiple-choice questions, or let your trip choices build them over time.</p>
+          <Link href="/profile/calibrate" className={`mt-3 ${buttonClass("accent", "sm")}`}>
             Add guided preferences →
           </Link>
         </div>
@@ -333,12 +333,12 @@ export default function ProfilePage() {
         <button
           onClick={() => {
             store.resetCalibration();
-            toast("Calibration reset — starting fresh.");
-            router.push("/calibrate");
+            toast("Guided preferences reset — starting fresh.");
+            router.push("/profile/calibrate");
           }}
           className="text-[13.5px] font-medium text-muted transition hover:text-[#8a4b3f]"
         >
-          Reset calibration demo
+          Reset guided preferences
         </button>
         <Link href="/settings" className="text-[13.5px] font-medium text-muted hover:text-ink">
           Settings
