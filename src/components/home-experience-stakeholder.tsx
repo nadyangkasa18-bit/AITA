@@ -181,7 +181,7 @@ export function HomeExperienceStakeholder() {
             </div>
           </div>
 
-          <button onClick={startTrip} className="mt-5 flex w-full items-center justify-between rounded-full bg-ink px-5 py-4 text-left text-[12px] font-semibold text-paper transition hover:bg-ink/90"><span>Find the flight I’d actually take</span><span>→</span></button>
+          <button onClick={startTrip} className="mt-5 flex min-h-[64px] w-full items-center justify-between rounded-full bg-ink px-6 py-5 text-left text-[14px] font-semibold text-paper transition hover:bg-ink/90"><span>Plan my trip</span><span className="text-[17px]">→</span></button>
           <p className="mt-3 text-center text-[9.5px] text-faint">Tell us what you know · we’ll figure out the rest · nothing is booked without approval</p>
         </div>
       </section>
