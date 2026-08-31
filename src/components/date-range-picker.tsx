@@ -7,6 +7,8 @@ type DateRangePickerProps = {
   startDate: string;
   endDate: string;
   onChange: (start: string, end: string) => void;
+  flexible?: boolean;
+  onFlexibleChange?: (flexible: boolean) => void;
 };
 
 type PopoverPosition = {
@@ -71,7 +73,7 @@ function nightsBetween(startDate: string, endDate: string) {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000));
 }
 
-export function DateRangePicker({ startDate, endDate, onChange }: DateRangePickerProps) {
+export function DateRangePicker({ startDate, endDate, onChange, flexible = false, onFlexibleChange }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [position, setPosition] = useState<PopoverPosition>({ top: 0, left: 0, width: DESKTOP_POPOVER_WIDTH, ready: false });
@@ -165,12 +167,19 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
   function choose(date: Date) {
     if (date < today) return;
     const value = toValue(date);
+    if (flexible) onFlexibleChange?.(false);
     if (!startDate || endDate || (start && date < start)) {
       onChange(value, "");
       return;
     }
     onChange(startDate, value);
     window.setTimeout(() => setOpen(false), 160);
+  }
+
+  function chooseFlexible() {
+    onChange("", "");
+    onFlexibleChange?.(true);
+    window.setTimeout(() => setOpen(false), 120);
   }
 
   const popover = open && mounted ? createPortal(
@@ -186,7 +195,7 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
         ref={popoverRef}
         role="dialog"
         aria-label="Choose trip dates"
-        className="date-range-popover fixed z-[200] overflow-hidden rounded-[22px] border border-[rgba(27,26,23,0.12)] bg-[rgba(255,255,255,0.98)] shadow-[0_26px_70px_-28px_rgba(27,26,23,0.42)] backdrop-blur-xl"
+        className="date-range-popover fixed z-[200] overflow-hidden rounded-[24px] border border-[rgba(27,26,23,0.12)] bg-[rgba(255,255,255,0.98)] shadow-[0_26px_70px_-28px_rgba(27,26,23,0.42)] backdrop-blur-xl"
         style={{
           top: position.top,
           left: position.left,
@@ -198,7 +207,7 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
           <button type="button" onClick={() => setVisibleMonth((month) => addMonths(month, -1))} className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-paper-2 hover:text-ink" aria-label="Previous month">←</button>
           <div className="text-center">
             <p className="font-display text-[15px] font-semibold text-ink">{new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(visibleMonth)}</p>
-            <p className="mt-0.5 text-[10.5px] text-faint">{choosingEnd ? "Now choose your return" : endDate ? `${nights} night${nights === 1 ? "" : "s"} selected` : "Choose departure, then return"}</p>
+            <p className="mt-0.5 text-[10.5px] text-faint">{flexible ? "Flexible dates selected" : choosingEnd ? "Now choose your return" : endDate ? `${nights} night${nights === 1 ? "" : "s"} selected` : "Choose departure, then return"}</p>
           </div>
           <button type="button" onClick={() => setVisibleMonth((month) => addMonths(month, 1))} className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-paper-2 hover:text-ink" aria-label="Next month">→</button>
         </div>
@@ -212,9 +221,9 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
               const value = toValue(date);
               const inMonth = date.getMonth() === visibleMonth.getMonth();
               const disabled = date < today;
-              const isStart = sameDay(date, start);
-              const isEnd = sameDay(date, end);
-              const inRange = Boolean(start && end && date > start && date < end);
+              const isStart = !flexible && sameDay(date, start);
+              const isEnd = !flexible && sameDay(date, end);
+              const inRange = Boolean(!flexible && start && end && date > start && date < end);
               return (
                 <button
                   key={value}
@@ -234,9 +243,15 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-hair-2 px-4 py-3">
-          <button type="button" onClick={() => onChange("", "")} className="text-[11px] font-semibold text-muted transition hover:text-ink">Clear</button>
-          <p className="text-[11px] text-faint">{startDate ? readableRange(startDate, endDate) : "Select your trip window"}</p>
+        <div className="border-t border-hair-2 px-4 py-3">
+          <button type="button" onClick={chooseFlexible} className={`flex w-full items-center justify-between rounded-full border px-4 py-3 text-left transition ${flexible ? "border-ink bg-ink text-paper" : "border-hair bg-surface-2/70 text-ink hover:border-ink/25 hover:bg-white"}`}>
+            <span><span className="block text-[11px] font-semibold">My dates are flexible</span><span className={`mt-0.5 block text-[9px] ${flexible ? "text-paper/65" : "text-faint"}`}>I’m open to better-value dates around this trip.</span></span>
+            <span className="text-[12px]">{flexible ? "✓" : "→"}</span>
+          </button>
+          <div className="mt-3 flex items-center justify-between px-1">
+            <button type="button" onClick={() => { onChange("", ""); onFlexibleChange?.(false); }} className="text-[10.5px] font-semibold text-muted transition hover:text-ink">Clear</button>
+            <p className="text-[10.5px] text-faint">{flexible ? "Flexible dates" : startDate ? readableRange(startDate, endDate) : "Select your trip window"}</p>
+          </div>
         </div>
       </div>
     </>,
@@ -258,10 +273,11 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
         className={`home-guided-control flex h-[60px] w-full items-center justify-between gap-3 rounded-full border bg-[rgba(255,255,255,0.74)] px-4 text-left backdrop-blur-md transition ${open ? "border-accent bg-white" : "border-[rgba(27,26,23,0.14)] hover:bg-[rgba(255,255,255,0.92)]"}`}
       >
         <span className="min-w-0">
-          <span className={`block truncate font-display text-[15px] font-semibold ${startDate ? "text-ink" : "text-faint"}`}>
-            {readableRange(startDate, endDate)}
+          <span className={`block truncate font-display text-[15px] font-semibold ${flexible || startDate ? "text-ink" : "text-faint"}`}>
+            {flexible ? "Dates are flexible" : readableRange(startDate, endDate)}
           </span>
-          {endDate && nights > 0 && <span className="mt-0.5 block text-[10.5px] text-faint">{nights} night{nights === 1 ? "" : "s"}</span>}
+          {!flexible && endDate && nights > 0 && <span className="mt-0.5 block text-[10.5px] text-faint">{nights} night{nights === 1 ? "" : "s"}</span>}
+          {flexible && <span className="mt-0.5 block text-[10.5px] text-faint">I’ll compare nearby dates</span>}
         </span>
         <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0 text-muted" aria-hidden>
           <rect x="4" y="5.5" width="16" height="14" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
