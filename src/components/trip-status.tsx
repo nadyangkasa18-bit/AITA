@@ -13,7 +13,15 @@ export type TripStatusItem = {
 
 export function tripStatusItems(trip: Trip): TripStatusItem[] {
   const componentTone = (state: Trip["componentStates"]["flight"]): TripStatusTone =>
-    state === "confirmed" ? "done" : state === "saved" || state === "tracked" ? "active" : "pending";
+    state === "confirmed" ? "done" : state === "saved" || state === "tracked" || state === "needs-review" ? "active" : "pending";
+
+  const componentDetail = (state: Trip["componentStates"]["flight"], kind: "flight" | "stay") => {
+    if (state === "confirmed") return "Booked";
+    if (state === "needs-review") return "Needs re-check";
+    if (state === "tracked") return kind === "flight" ? "Tracking" : "Watching";
+    if (state === "saved") return "Saved";
+    return "Not chosen";
+  };
 
   return [
     {
@@ -21,14 +29,14 @@ export function tripStatusItems(trip: Trip): TripStatusItem[] {
       label: "Flight",
       shortLabel: "Flight",
       tone: componentTone(trip.componentStates.flight),
-      detail: trip.componentStates.flight === "confirmed" ? "Booked" : trip.componentStates.flight === "tracked" ? "Tracking" : trip.componentStates.flight === "saved" ? "Saved" : "Not chosen",
+      detail: componentDetail(trip.componentStates.flight, "flight"),
     },
     {
       key: "stay",
       label: "Stay",
       shortLabel: "Stay",
       tone: componentTone(trip.componentStates.stay),
-      detail: trip.componentStates.stay === "confirmed" ? "Booked" : trip.componentStates.stay === "tracked" ? "Watching" : trip.componentStates.stay === "saved" ? "Saved" : "Not chosen",
+      detail: componentDetail(trip.componentStates.stay, "stay"),
     },
     {
       key: "itinerary",
