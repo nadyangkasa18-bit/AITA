@@ -84,6 +84,16 @@ textarea:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* Composite-field rule: when the surrounding field shell already owns the
+   visible :focus-within treatment, never draw a second ring on the native
+   input inside it. This avoids nested rectangular focus states. */
+[data-focus-owner="container"] input:focus-visible,
+[data-focus-owner="container"] textarea:focus-visible,
+[data-focus-owner="container"] select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
 ::selection { background: var(--color-accent-tint); }
 
 *::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -107,7 +117,7 @@ textarea:focus-visible {
 }
 .home-prompt-shell {
   position: relative;
-  isolation: isolate;
+  isolation:isolate;
   border-radius: 999px;
 }
 .home-prompt-edge,
