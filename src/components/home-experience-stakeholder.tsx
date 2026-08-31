@@ -22,6 +22,16 @@ function contextualSuggestions(destination: string, startDate: string, endDate: 
   const lower = destination.toLowerCase();
   const length = tripLength(startDate, endDate);
   const suggestions: string[] = [];
+  const hasStructuredContext = Boolean(destination.trim() || startDate || endDate || flexibleDates);
+
+  if (!hasStructuredContext) {
+    return [
+      "5 days in Tokyo with great food",
+      "Somewhere warm for a long weekend",
+      travelers >= 4 ? "Easy family trip with minimal transit" : "A relaxed city break with no red-eyes",
+      "Beach trip with a great hotel",
+    ];
+  }
 
   if (flexibleDates) suggestions.push("Find the best-value week", "Avoid the busiest travel days");
   else if (startDate && endDate) suggestions.push(length <= 4 ? "Keep transfers minimal" : "Keep the first day light");
@@ -54,7 +64,8 @@ function assistantReply(text: string) {
   if (/best-value|busiest|dates/.test(lower)) return "I’ll use your date flexibility to look for a materially better combination of fare and timing.";
   if (/first day|arrival day|land before dinner/.test(lower)) return "I’ll protect the arrival day and favor timing that makes the first evening easier.";
   if (/traffic|transfer/.test(lower)) return "I’ll factor the airport-to-city transfer into the recommendation instead of optimizing the flight in isolation.";
-  return "Added. I’ll use that when I rank the flight options for this trip.";
+  if (/tokyo|seoul|singapore|bangkok|los angeles|warm|beach|hotel|trip|days?|nights?|weekend|family|city break/.test(lower)) return "That’s enough to start. I can build the trip from this prompt and resolve the missing pieces as we go.";
+  return "Added. I’ll use that when I rank the options for this trip.";
 }
 
 function DestinationField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -87,7 +98,7 @@ export function HomeExperienceStakeholder() {
   const [thinking, setThinking] = useState(false);
   const replyTimer = useRef<number | null>(null);
   const [chat, setChat] = useState<ChatMessage[]>([
-    { id:"welcome", role:"assistant", text:"Tell me what matters about the flight. I’ll use it to rank the options, not turn this into another questionnaire." }
+    { id:"welcome", role:"assistant", text:"Describe the trip you want, or tell me what matters. I can plan from the prompt alone, or use anything you add on the left." }
   ]);
 
   useEffect(() => () => {
@@ -95,16 +106,17 @@ export function HomeExperienceStakeholder() {
   }, []);
 
   const exactDatesReady = Boolean(startDate && endDate && endDate >= startDate);
-  const ready = Boolean(destination.trim() && (flexibleDates || exactDatesReady) && travelers > 0);
-  const userPreferences = chat.filter((message)=>message.role === "user").map((message)=>message.text);
+  const userPrompts = chat.filter((message)=>message.role === "user").map((message)=>message.text);
   const visibleChat = thinking ? chat.slice(-3) : chat.slice(-4);
   const suggestions = useMemo(
     () => contextualSuggestions(destination, startDate, endDate, flexibleDates, travelers),
     [destination, startDate, endDate, flexibleDates, travelers],
   );
   const suggestionKey = `${destination}|${startDate}|${endDate}|${flexibleDates}|${travelers}`;
+  const directPrompt = [userPrompts.join(". "), chatDraft.trim()].filter(Boolean).join(". ");
+  const canPlanFromPrompt = Boolean(directPrompt.trim());
 
-  function addPreference(value: string) {
+  function sendMessage(value: string) {
     const text = value.trim();
     if (!text || thinking) return;
     const user: ChatMessage = { id:`user-${Date.now()}`, role:"user", text };
@@ -120,15 +132,28 @@ export function HomeExperienceStakeholder() {
   }
 
   function startTrip() {
-    if (!ready) return;
+    const dateLine = flexibleDates
+      ? "Dates: flexible — exact dates not decided yet"
+      : exactDatesReady
+        ? `Dates: ${startDate} to ${endDate}`
+        : startDate
+          ? `Dates: starting around ${startDate}; return date open`
+          : "Dates: open";
     const prompt = [
-      `Destination: ${destination.trim()}`,
-      flexibleDates ? "Dates: flexible — exact dates not decided yet" : `Dates: ${startDate} to ${endDate}`,
+      destination.trim() ? `Destination: ${destination.trim()}` : "Destination: open to suggestions",
+      dateLine,
       `Travelers: ${travelers}`,
-      userPreferences.length ? `Context: ${userPreferences.join("; ")}` : null,
+      userPrompts.length ? `Context: ${userPrompts.join("; ")}` : null,
     ].filter(Boolean).join("\n");
     const id = store.createTripFromPrompt(prompt);
-    store.patchTrip(id,{ travelers, name:`${destination.trim()} · trip` });
+    store.patchTrip(id,{ travelers, ...(destination.trim() ? { name:`${destination.trim()} · trip` } : {}) });
+    router.push(`/trips/${id}/thinking`);
+  }
+
+  function startTripFromPrompt() {
+    const prompt = directPrompt.trim();
+    if (!prompt || thinking) return;
+    const id = store.createTripFromPrompt(prompt);
     router.push(`/trips/${id}/thinking`);
   }
 
@@ -140,7 +165,7 @@ export function HomeExperienceStakeholder() {
       <section>
         <p className="text-[10.5px] font-semibold uppercase tracking-[.14em] text-faint">Plan the trip</p>
         <h1 className="mt-3 max-w-[11ch] font-display text-[clamp(44px,6vw,72px)] font-bold leading-[.93] tracking-[-.05em]">Search less. Decide better.</h1>
-        <p className="mt-5 max-w-[53ch] text-[15px] leading-relaxed text-muted">Start with the familiar travel basics. RoaminRabbit will use the conversation beside it to make the flight recommendation actually fit the trip.</p>
+        <p className="mt-5 max-w-[53ch] text-[15px] leading-relaxed text-muted">Start with whatever you know. Fill in the basics here, or describe the whole trip in the prompt — neither path is required before the other.</p>
 
         <div className="mt-8 rounded-[28px] border border-hair bg-[rgba(249,247,241,.82)] p-4 shadow-[0_24px_70px_-48px_rgba(27,26,23,.48)] backdrop-blur-xl sm:p-5">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -156,14 +181,14 @@ export function HomeExperienceStakeholder() {
             </div>
           </div>
 
-          <button disabled={!ready} onClick={startTrip} className="mt-5 flex w-full items-center justify-between rounded-full bg-ink px-5 py-4 text-left text-[12px] font-semibold text-paper transition disabled:opacity-30"><span>Find the flight I’d actually take</span><span>→</span></button>
-          <p className="mt-3 text-center text-[9.5px] text-faint">No account required · nothing is booked without approval</p>
+          <button onClick={startTrip} className="mt-5 flex w-full items-center justify-between rounded-full bg-ink px-5 py-4 text-left text-[12px] font-semibold text-paper transition hover:bg-ink/90"><span>Find the flight I’d actually take</span><span>→</span></button>
+          <p className="mt-3 text-center text-[9.5px] text-faint">Tell us what you know · we’ll figure out the rest · nothing is booked without approval</p>
         </div>
       </section>
 
       <section className="flex h-[580px] flex-col overflow-hidden rounded-[30px] border border-hair bg-[rgba(255,255,255,.82)] shadow-[0_30px_90px_-52px_rgba(27,26,23,.48)] backdrop-blur-xl sm:h-[600px] lg:h-[620px]">
         <header className="shrink-0 border-b border-hair-2 px-5 py-4 sm:px-6">
-          <div className="flex items-center gap-3"><Orb size={34}/><div><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-faint">Flight preferences</p><h2 className="mt-0.5 font-display text-[20px] font-semibold tracking-[-.03em]">Tell RoaminRabbit what matters.</h2></div></div>
+          <div className="flex items-center gap-3"><Orb size={34}/><div><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-faint">Trip prompt</p><h2 className="mt-0.5 font-display text-[20px] font-semibold tracking-[-.03em]">Tell RoaminRabbit what you want.</h2></div></div>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
@@ -174,13 +199,15 @@ export function HomeExperienceStakeholder() {
 
           <div className="mt-5 shrink-0">
             <p className="mb-2 text-[8.5px] font-semibold uppercase tracking-[.11em] text-faint">Try one</p>
-            <div key={suggestionKey} className="flex flex-wrap gap-2">{suggestions.map((suggestion,index)=><button key={suggestion} type="button" disabled={thinking} onClick={()=>addPreference(suggestion)} style={{animationDelay:`${index*45}ms`}} className="roam-suggestion-chip rounded-full border border-hair bg-white px-3 py-2 text-[9.5px] font-semibold text-muted transition hover:border-ink/25 hover:bg-surface-2 hover:text-ink disabled:opacity-45">{suggestion}</button>)}</div>
+            <div key={suggestionKey} className="flex flex-wrap gap-2">{suggestions.map((suggestion,index)=><button key={suggestion} type="button" disabled={thinking} onClick={()=>sendMessage(suggestion)} style={{animationDelay:`${index*45}ms`}} className="roam-suggestion-chip rounded-full border border-hair bg-white px-3 py-2 text-[9.5px] font-semibold text-muted transition hover:border-ink/25 hover:bg-surface-2 hover:text-ink disabled:opacity-45">{suggestion}</button>)}</div>
           </div>
 
           <div className="mt-4 flex shrink-0 items-center gap-2 rounded-full border border-hair bg-white p-1.5 pl-2 shadow-sm transition focus-within:border-accent focus-within:shadow-[0_10px_30px_-24px_rgba(27,26,23,.55)]">
-            <input value={chatDraft} onChange={(event)=>setChatDraft(event.target.value)} onKeyDown={(event)=>event.key==="Enter"&&addPreference(chatDraft)} placeholder="e.g. no red-eyes, aisle seat, land before dinner…" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[11px] outline-none placeholder:text-faint"/>
-            <button type="button" onClick={()=>addPreference(chatDraft)} disabled={!chatDraft.trim()||thinking} className="grid h-10 w-10 place-items-center rounded-full bg-ink text-paper transition disabled:opacity-30" aria-label="Add flight preference">→</button>
+            <input value={chatDraft} onChange={(event)=>setChatDraft(event.target.value)} onKeyDown={(event)=>event.key==="Enter"&&sendMessage(chatDraft)} placeholder="e.g. 5 days in Tokyo, great food, no red-eyes…" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[11px] outline-none placeholder:text-faint"/>
+            <button type="button" onClick={()=>sendMessage(chatDraft)} disabled={!chatDraft.trim()||thinking} className="grid h-10 w-10 place-items-center rounded-full border border-hair bg-surface-2 text-[17px] font-semibold text-muted transition hover:border-ink/25 hover:bg-white hover:text-ink disabled:opacity-30" aria-label="Send message">↑</button>
           </div>
+
+          <button type="button" onClick={startTripFromPrompt} disabled={!canPlanFromPrompt||thinking} className="mt-3 flex w-full shrink-0 items-center justify-between rounded-full border border-[rgba(27,26,23,.14)] bg-white px-4 py-3 text-left text-[10.5px] font-semibold text-ink-soft transition hover:border-ink/25 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"><span>Plan this trip</span><span>→</span></button>
         </div>
       </section>
     </div>
