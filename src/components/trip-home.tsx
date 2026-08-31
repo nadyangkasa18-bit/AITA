@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Photo } from "@/components/photo";
 import { WorkingFolderV2 } from "@/components/working-folder-v2";
 import { TripStatusIcon, tripStatusItems } from "@/components/trip-status";
@@ -137,9 +137,8 @@ export function TripHome({ tripId }: { tripId: string }) {
   const status = tripStatusItems(trip);
   const setCoworkPersisted = (next:CoworkState) => { persistCowork(trip.id,next); setCowork(next); };
   const stops = cowork.destinationStops.length ? cowork.destinationStops : destination === "Destination open" ? [] : [destination];
-
-  const savedFlightLabels = useMemo(() => (trip.savedFlightIds ?? []).map((id) => flights.find((item) => item.id === id)?.airline ?? (trip.trackedFlight?.id === id ? trip.trackedFlight.airline : id)), [trip.savedFlightIds, trip.trackedFlight, flights]);
-  const savedStayLabels = useMemo(() => (trip.savedStayIds ?? []).map((id) => stays.find((item) => item.id === id)?.name ?? id), [trip.savedStayIds, stays]);
+  const savedFlightLabels = (trip.savedFlightIds ?? []).map((id) => flights.find((item) => item.id === id)?.airline ?? (trip.trackedFlight?.id === id ? trip.trackedFlight.airline : id));
+  const savedStayLabels = (trip.savedStayIds ?? []).map((id) => stays.find((item) => item.id === id)?.name ?? id);
 
   const headline = bothBooked ? "Your core trip is booked." : coreChosen ? "Your core trip is ready to manage." : "Your trip is taking shape.";
   const body = bothBooked ? "Flights and stay are secured. Manage them here without reopening the original decision flow." : coreChosen ? "Your saved decisions stay attached to this trip. Re-search, track prices or change a product without rebuilding the brief." : "Finish the flight and stay decisions, then this becomes the home for the trip.";
