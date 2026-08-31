@@ -90,7 +90,10 @@ textarea:focus-visible {
    input inside it. This avoids nested rectangular focus states. */
 [data-focus-owner="container"] input:focus-visible,
 [data-focus-owner="container"] textarea:focus-visible,
-[data-focus-owner="container"] select:focus-visible {
+[data-focus-owner="container"] select:focus-visible,
+.composite-field-owner input:focus-visible,
+.composite-field-owner textarea:focus-visible,
+.composite-field-owner select:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
