@@ -55,6 +55,7 @@ export function HomeExperienceStakeholder() {
 
   const ready = Boolean(destination.trim() && startDate && endDate && endDate >= startDate && travelers > 0);
   const userPreferences = chat.filter((message)=>message.role === "user").map((message)=>message.text);
+  const visibleChat = chat.slice(-4);
 
   function addPreference(value: string) {
     const text = value.trim();
@@ -107,20 +108,20 @@ export function HomeExperienceStakeholder() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[28px] border border-hair bg-[rgba(255,255,255,.82)] shadow-[0_30px_90px_-52px_rgba(27,26,23,.48)] backdrop-blur-xl">
-        <header className="border-b border-hair-2 px-5 py-4 sm:px-6">
+      <section className="flex h-[580px] flex-col overflow-hidden rounded-[28px] border border-hair bg-[rgba(255,255,255,.82)] shadow-[0_30px_90px_-52px_rgba(27,26,23,.48)] backdrop-blur-xl sm:h-[600px] lg:h-[620px]">
+        <header className="shrink-0 border-b border-hair-2 px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3"><Orb size={34}/><div><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-faint">Flight preferences</p><h2 className="mt-0.5 font-display text-[20px] font-semibold tracking-[-.03em]">Tell RoaminRabbit what matters.</h2></div></div>
         </header>
 
-        <div className="flex min-h-[440px] flex-col p-5 sm:p-6">
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">{chat.map((message)=><div key={message.id} className={`flex ${message.role==="user"?"justify-end":"justify-start"}`}><div className={`max-w-[82%] rounded-[18px] px-4 py-3 ${message.role==="user"?"bg-ink text-paper":"border border-hair bg-[#faf8f3] text-ink"}`}><p className="text-[10.5px] leading-relaxed">{message.text}</p></div></div>)}</div>
+        <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
+          <div className="min-h-0 flex-1 space-y-3 overflow-hidden pr-1">{visibleChat.map((message)=><div key={message.id} className={`flex ${message.role==="user"?"justify-end":"justify-start"}`}><div className={`max-w-[82%] rounded-[18px] px-4 py-3 ${message.role==="user"?"bg-ink text-paper":"border border-hair bg-[#faf8f3] text-ink"}`}><p className="text-[10.5px] leading-relaxed">{message.text}</p></div></div>)}</div>
 
-          <div className="mt-5">
+          <div className="mt-5 shrink-0">
             <p className="mb-2 text-[8.5px] font-semibold uppercase tracking-[.11em] text-faint">Try one</p>
             <div className="flex flex-wrap gap-2">{FLIGHT_SUGGESTIONS.map((suggestion)=><button key={suggestion} type="button" onClick={()=>addPreference(suggestion)} className="rounded-full border border-hair bg-white px-3 py-2 text-[9.5px] font-semibold text-muted transition hover:border-ink/25 hover:bg-surface-2 hover:text-ink">{suggestion}</button>)}</div>
           </div>
 
-          <div className="mt-4 flex items-center gap-2 rounded-[17px] border border-hair bg-white p-1.5 shadow-sm focus-within:border-accent">
+          <div className="mt-4 flex shrink-0 items-center gap-2 rounded-[17px] border border-hair bg-white p-1.5 shadow-sm focus-within:border-accent">
             <input value={chatDraft} onChange={(event)=>setChatDraft(event.target.value)} onKeyDown={(event)=>event.key==="Enter"&&addPreference(chatDraft)} placeholder="e.g. no red-eyes, aisle seat, land before dinner…" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[11px] outline-none placeholder:text-faint"/>
             <button type="button" onClick={()=>addPreference(chatDraft)} disabled={!chatDraft.trim()} className="grid h-10 w-10 place-items-center rounded-[12px] bg-ink text-paper disabled:opacity-30" aria-label="Add flight preference">→</button>
           </div>
