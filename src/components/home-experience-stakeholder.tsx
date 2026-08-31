@@ -78,7 +78,7 @@ function DestinationField({ value, onChange }: { value: string; onChange: (value
   }, []);
   return <div ref={root} className="relative z-30">
     <span className="mb-2 block pl-1 text-[10px] font-semibold uppercase tracking-[.11em] text-faint">Where</span>
-    <div className="flex h-[60px] items-center gap-2 rounded-full border border-[rgba(27,26,23,.14)] bg-white/82 px-5 shadow-sm backdrop-blur-md transition focus-within:border-accent focus-within:bg-white">
+    <div data-focus-owner="container" className="flex h-[60px] items-center gap-2 rounded-full border border-[rgba(27,26,23,.14)] bg-white/82 px-5 shadow-sm backdrop-blur-md transition focus-within:border-accent focus-within:bg-white">
       <input value={value} onChange={(event)=>{onChange(event.target.value);setOpen(true);}} onFocus={()=>setOpen(true)} placeholder="Tokyo, Japan" className="min-w-0 flex-1 bg-transparent font-display text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-faint"/>
       <button type="button" onClick={()=>setOpen((current)=>!current)} className="grid h-8 w-8 place-items-center rounded-full text-muted" aria-label="Show destinations">⌄</button>
     </div>
@@ -202,7 +202,7 @@ export function HomeExperienceStakeholder() {
             <div key={suggestionKey} className="flex flex-wrap gap-2">{suggestions.map((suggestion,index)=><button key={suggestion} type="button" disabled={thinking} onClick={()=>sendMessage(suggestion)} style={{animationDelay:`${index*45}ms`}} className="roam-suggestion-chip rounded-full border border-hair bg-white px-3 py-2 text-[9.5px] font-semibold text-muted transition hover:border-ink/25 hover:bg-surface-2 hover:text-ink disabled:opacity-45">{suggestion}</button>)}</div>
           </div>
 
-          <div className="mt-4 flex shrink-0 items-center gap-2 rounded-full border border-hair bg-white p-1.5 pl-2 shadow-sm transition focus-within:border-accent focus-within:shadow-[0_10px_30px_-24px_rgba(27,26,23,.55)]">
+          <div data-focus-owner="container" className="mt-4 flex shrink-0 items-center gap-2 rounded-full border border-hair bg-white p-1.5 pl-2 shadow-sm transition focus-within:border-accent focus-within:shadow-[0_10px_30px_-24px_rgba(27,26,23,.55)]">
             <input value={chatDraft} onChange={(event)=>setChatDraft(event.target.value)} onKeyDown={(event)=>event.key==="Enter"&&sendMessage(chatDraft)} placeholder="e.g. 5 days in Tokyo, great food, no red-eyes…" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[11px] outline-none placeholder:text-faint"/>
             <button type="button" onClick={()=>sendMessage(chatDraft)} disabled={!chatDraft.trim()||thinking} className="grid h-10 w-10 place-items-center rounded-full border border-hair bg-surface-2 text-[17px] font-semibold text-muted transition hover:border-ink/25 hover:bg-white hover:text-ink disabled:opacity-30" aria-label="Send message">↑</button>
           </div>
