@@ -21,14 +21,14 @@ export function tripStatusItems(trip: Trip): TripStatusItem[] {
       label: "Flight",
       shortLabel: "Flight",
       tone: componentTone(trip.componentStates.flight),
-      detail: trip.componentStates.flight === "confirmed" ? "Booked" : trip.componentStates.flight === "tracked" ? "Tracking" : trip.componentStates.flight === "saved" ? "Selected" : "Not chosen",
+      detail: trip.componentStates.flight === "confirmed" ? "Booked" : trip.componentStates.flight === "tracked" ? "Tracking" : trip.componentStates.flight === "saved" ? "Saved" : "Not chosen",
     },
     {
       key: "stay",
       label: "Stay",
       shortLabel: "Stay",
       tone: componentTone(trip.componentStates.stay),
-      detail: trip.componentStates.stay === "confirmed" ? "Booked" : trip.componentStates.stay === "tracked" ? "Watching" : trip.componentStates.stay === "saved" ? "Selected" : "Not chosen",
+      detail: trip.componentStates.stay === "confirmed" ? "Booked" : trip.componentStates.stay === "tracked" ? "Watching" : trip.componentStates.stay === "saved" ? "Saved" : "Not chosen",
     },
     {
       key: "itinerary",
@@ -62,7 +62,7 @@ export function tripStatusItems(trip: Trip): TripStatusItem[] {
 }
 
 function Icon({ type }: { type: TripStatusKey }) {
-  const common = "h-[16px] w-[16px]";
+  const common = "h-[17px] w-[17px]";
   if (type === "flight") return <svg viewBox="0 0 24 24" className={common} aria-hidden><path d="M3 13.2l7.1-1.7 4.2-7.3c.4-.7 1.2-1 1.9-.7.8.3 1.2 1.2.9 2l-2.7 6 5.6 2c.9.3 1.4 1.2 1.1 2.1-.2.8-1 1.3-1.8 1.2l-6.2-.9-3 4.6-1.8-.5 1.2-4.7-4.9-.8L3 13.2z" fill="currentColor"/></svg>;
   if (type === "stay") return <svg viewBox="0 0 24 24" className={common} aria-hidden><path d="M5 20V9l7-5 7 5v11h-5v-6h-4v6H5z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>;
   if (type === "itinerary") return <svg viewBox="0 0 24 24" className={common} aria-hidden><rect x="4" y="5" width="16" height="15" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.7"/><path d="M8 3.5v4M16 3.5v4M8 11h8M8 15h5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>;
@@ -72,12 +72,14 @@ function Icon({ type }: { type: TripStatusKey }) {
 }
 
 export function TripStatusDot({ tone }: { tone: TripStatusTone }) {
-  return <span className={`absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-white text-[8px] font-bold ${tone === "done" ? "bg-[#5f8d68] text-white" : tone === "active" ? "bg-accent text-white" : "bg-[#d9d5ca] text-white"}`}>{tone === "done" ? "✓" : tone === "active" ? "•" : ""}</span>;
+  if (tone === "pending") return <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#c8c4b8] ring-2 ring-white"/>;
+  return <span className={`absolute -right-1 -top-1 grid h-3.5 w-3.5 place-items-center rounded-full ring-2 ring-white ${tone === "done" ? "bg-[#5f8d68] text-white" : "bg-accent text-white"}`}>{tone === "done" ? <span className="text-[8px] font-bold leading-none">✓</span> : <span className="h-1.5 w-1.5 rounded-full bg-white"/>}</span>;
 }
 
 export function TripStatusIcon({ item, showLabel = false }: { item: TripStatusItem; showLabel?: boolean }) {
+  const iconTone = item.tone === "done" ? "text-[#4b7355]" : item.tone === "active" ? "text-accent" : "text-faint";
   return <div className={`flex items-center ${showLabel ? "gap-2.5" : "justify-center"}`} title={`${item.label}: ${item.detail}`}>
-    <span className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border ${item.tone === "done" ? "border-[#c7dacb] bg-[#edf4ee] text-[#3d6547]" : item.tone === "active" ? "border-accent-line bg-accent-tint text-accent" : "border-hair bg-white text-faint"}`}><Icon type={item.key}/><TripStatusDot tone={item.tone}/></span>
+    <span className={`relative grid shrink-0 place-items-center ${showLabel ? "h-9 w-9 rounded-full bg-surface-2" : "h-8 w-8"} ${iconTone}`}><Icon type={item.key}/><TripStatusDot tone={item.tone}/></span>
     {showLabel && <span className="min-w-0"><b className="block text-[10.5px] font-semibold text-ink">{item.label}</b><span className="block text-[9px] text-faint">{item.detail}</span></span>}
   </div>;
 }
