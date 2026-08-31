@@ -2,7 +2,7 @@ import type { BriefLevel, ProfileState, Trip } from "@/lib/types";
 
 export type WorkspaceStage = "brief" | "reasoning" | "flights" | "hotel" | "review";
 export type FolderView = "plan" | "map" | "brain";
-export type DecisionStatus = "Not started" | "Reviewing" | "Tracked" | "Selected" | "Booked" | "Complete";
+export type DecisionStatus = "Not started" | "Reviewing" | "Needs review" | "Tracked" | "Selected" | "Booked" | "Complete";
 export type FixedEvent = { id: string; title: string; place: string; when: string; note?: string; source: "user" | "calendar-sample" | "ai-import" };
 export type TripBrainEntry = { id: string; statement: string; category: string; scope: "this-trip" | "similar" | "all"; source: "trip" | "import" | "decision" };
 export type CoworkState = {
@@ -35,14 +35,32 @@ export const SAMPLE_CALENDAR_EVENTS: FixedEvent[] = [
 export const GUIDED_QUESTIONS = ["Would you pay more for a direct flight?", "Is the hotel neighborhood more important than room size?", "Should we keep the first day light?"];
 
 export function promptField(prompt: string, label: string) { const prefix = `${label}:`; return prompt.split("\n").find((line) => line.startsWith(prefix))?.slice(prefix.length).trim() ?? ""; }
-export function tripDestination(trip: Trip) { const raw = promptField(trip.originalPrompt, "Destination"); if (raw && raw !== "Help me choose") return raw; return trip.destinationProposals.find((p) => p.id === trip.selectedProposalId)?.destination ?? (raw || "Destination open"); }
+export function replacePromptField(prompt: string, label: string, value: string) {
+  const prefix = `${label}:`;
+  const lines = prompt.split("\n").filter(Boolean);
+  const index = lines.findIndex((line) => line.startsWith(prefix));
+  const next = `${prefix} ${value}`;
+  if (index >= 0) lines[index] = next;
+  else lines.unshift(next);
+  return lines.join("\n");
+}
+export function tripDestination(trip: Trip) { const raw = promptField(trip.originalPrompt, "Destination"); if (raw && raw !== "Help me choose" && raw !== "open to suggestions") return raw; return trip.destinationProposals.find((p) => p.id === trip.selectedProposalId)?.destination ?? (raw || "Destination open"); }
 export function tripDates(trip: Trip) { return promptField(trip.originalPrompt, "Dates") || "Dates flexible"; }
+
+function statusFromComponent(state: Trip["componentStates"]["flight"]): DecisionStatus {
+  if (state === "confirmed") return "Booked";
+  if (state === "tracked") return "Tracked";
+  if (state === "needs-review") return "Needs review";
+  if (state === "saved") return "Selected";
+  return "Not started";
+}
+
 export function defaultCoworkState(trip: Trip): CoworkState {
   const destination = tripDestination(trip);
   return {
     stage: "brief", folderView: "plan", contextPrompt: promptField(trip.originalPrompt, "Context"), fixedEvents: [], savedPlaces: [], destinationStops: destination === "Destination open" ? [] : [destination],
-    selectedFlightId: trip.trackedFlight?.id ?? null, flightStatus: trip.componentStates.flight === "confirmed" ? "Booked" : trip.componentStates.flight === "tracked" ? "Tracked" : trip.componentStates.flight === "saved" ? "Selected" : "Not started",
-    selectedStayId: null, stayStatus: trip.componentStates.stay === "confirmed" ? "Booked" : trip.componentStates.stay === "tracked" ? "Tracked" : trip.componentStates.stay === "saved" ? "Selected" : "Not started",
+    selectedFlightId: trip.selectedFlightId ?? trip.trackedFlight?.id ?? null, flightStatus: statusFromComponent(trip.componentStates.flight),
+    selectedStayId: trip.selectedStayId ?? null, stayStatus: statusFromComponent(trip.componentStates.stay),
     brain: trip.learnings.map((statement, index) => ({ id: `learning-${index}`, statement, category: "Trip learning", scope: "this-trip" as const, source: "decision" as const })), flexibleDay: 2,
     imported: false, calendarPreviewed: false, groupBookingForEveryone: true, invitedSample: false, questionIndex: 0, dismissedQuestions: [], reasoningComplete: false, correctedAssumption: null,
   };
