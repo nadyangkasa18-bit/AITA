@@ -1,15 +1,11 @@
-import { TripPlaceholder } from "@/components/trip-placeholder";
+"use client";
+
+import { useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 export default function PlanPage() {
-  return (
-    <TripPlaceholder
-      title="Plan"
-      body="Your trip as a light rhythm rather than a rigid schedule — arrival, a few anchored moments, and protected downtime you asked to keep. It builds on the version you assemble in the Booking Workspace."
-      bullets={[
-        "A day-by-day feel, not an hour-by-hour agenda",
-        "Anchored around the signature moments from your chosen direction",
-        "Downtime kept deliberately empty, because you dislike packed itineraries",
-      ]}
-    />
-  );
+  const { tripId } = useParams<{ tripId: string }>();
+  const router = useRouter();
+  useEffect(() => { router.replace(`/trips/${tripId}/itinerary`); }, [router, tripId]);
+  return <div className="mx-auto h-[55vh] max-w-[960px] rounded-[24px] shimmer" aria-label="Opening itinerary" />;
 }
