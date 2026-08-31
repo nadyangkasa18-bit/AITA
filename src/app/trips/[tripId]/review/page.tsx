@@ -1,15 +1,11 @@
-import { TripPlaceholder } from "@/components/trip-placeholder";
+"use client";
+
+import { useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 export default function ReviewPage() {
-  return (
-    <TripPlaceholder
-      title="Review"
-      body="The last calm look before anything is confirmed — the whole version in one place, every “must” accounted for, the total spelled out, and nothing hidden. No money moves without your explicit approval here."
-      bullets={[
-        "Every requirement checked off before you commit",
-        "The full, honest total — no surprise fees",
-        "Explicit approval required; the demo never charges anything",
-      ]}
-    />
-  );
+  const { tripId } = useParams<{ tripId: string }>();
+  const router = useRouter();
+  useEffect(() => { router.replace(`/trips/${tripId}/home`); }, [router, tripId]);
+  return <div className="mx-auto h-[55vh] max-w-[960px] rounded-[24px] shimmer" aria-label="Opening trip overview" />;
 }
