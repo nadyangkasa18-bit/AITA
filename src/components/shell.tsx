@@ -46,14 +46,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [itineraryOpen, setItineraryOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const onboarding = pathname === "/calibrate";
+  const mobilePrototype = pathname.startsWith("/mobile-prototype");
   const tripId = pathname.match(/^\/trips\/([^/]+)/)?.[1];
   const trip = tripId ? store.trips[tripId] : undefined;
   const coworkPage = /\/workspace$/.test(pathname);
 
   return <div className="flex min-h-dvh flex-col">
-    {!onboarding && <GlobalNavigation onConnectAI={() => setConnectOpen(true)} onOpenItinerary={trip && !coworkPage ? () => setItineraryOpen(true) : undefined}/>} 
+    {!onboarding && !mobilePrototype && <GlobalNavigation onConnectAI={() => setConnectOpen(true)} onOpenItinerary={trip && !coworkPage ? () => setItineraryOpen(true) : undefined}/>} 
     <main className="flex-1">{children}</main>
-    {trip && !coworkPage && <ItineraryPeek trip={trip} open={itineraryOpen} onClose={() => setItineraryOpen(false)}/>} 
-    {!onboarding && <ConnectAIModal open={connectOpen} onClose={() => setConnectOpen(false)} tripId={tripId}/>} 
+    {trip && !coworkPage && !mobilePrototype && <ItineraryPeek trip={trip} open={itineraryOpen} onClose={() => setItineraryOpen(false)}/>} 
+    {!onboarding && !mobilePrototype && <ConnectAIModal open={connectOpen} onClose={() => setConnectOpen(false)} tripId={tripId}/>} 
   </div>;
 }
