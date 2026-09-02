@@ -16,7 +16,15 @@ export default function MobilePrototypePage() {
           aspect-ratio: 393 / 852;
         }
 
-        /* Compact booking state lives in the itinerary header, not in cards. */
+        /* Itinerary header: bookings live on the left, Context on the right. */
+        #mobile-prototype-iphone16
+          .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
+          > div:nth-child(2) {
+          position: relative;
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
         #mobile-prototype-iphone16
           .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
           > div:nth-child(2)
@@ -28,33 +36,31 @@ export default function MobilePrototypePage() {
           .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
           > div:nth-child(2)
           > div {
-          flex: 0 0 0;
-          width: 0;
-          max-width: 0;
-          overflow: hidden;
+          display: none;
         }
 
         #mobile-prototype-iphone16
           .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
           > div:nth-child(2)
-          > div
-          > p,
-        #mobile-prototype-iphone16
-          .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
-          > div:nth-child(2)
-          > div
-          > h1 {
-          display: none;
+          > button:last-child {
+          position: absolute;
+          right: 16px;
+          top: 50%;
+          z-index: 82;
+          margin: 0;
+          transform: translateY(-50%);
         }
 
         #mobile-prototype-iphone16
           section.mt-5:has(> div:nth-child(2) > button:nth-child(3)) {
           position: absolute;
           top: 66px;
-          left: 76px;
+          left: 18px;
           right: auto;
           z-index: 75;
+          width: 100px;
           margin: 0;
+          pointer-events: auto;
         }
 
         #mobile-prototype-iphone16
@@ -66,6 +72,8 @@ export default function MobilePrototypePage() {
         #mobile-prototype-iphone16
           section.mt-5:has(> div:nth-child(2) > button:nth-child(3))
           > div:nth-child(2) {
+          display: flex;
+          width: 100px;
           gap: 4px;
         }
 
@@ -155,7 +163,14 @@ export default function MobilePrototypePage() {
         @media (max-width: 370px) {
           #mobile-prototype-iphone16
             section.mt-5:has(> div:nth-child(2) > button:nth-child(3)) {
-            left: 68px;
+            left: 14px;
+          }
+
+          #mobile-prototype-iphone16
+            .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
+            > div:nth-child(2)
+            > button:last-child {
+            right: 12px;
           }
         }
       `}</style>
