@@ -28,32 +28,31 @@ export default function MobilePrototypePage() {
           .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
           > div:nth-child(2)
           > div {
-          flex: 0 0 116px;
-          max-width: 116px;
+          flex: 0 0 0;
+          width: 0;
+          max-width: 0;
+          overflow: hidden;
         }
 
         #mobile-prototype-iphone16
           .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
           > div:nth-child(2)
           > div
-          > p {
-          display: none;
-        }
-
+          > p,
         #mobile-prototype-iphone16
           .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
           > div:nth-child(2)
           > div
           > h1 {
-          font-size: 17px;
-          line-height: 1.1;
+          display: none;
         }
 
         #mobile-prototype-iphone16
           section.mt-5:has(> div:nth-child(2) > button:nth-child(3)) {
           position: absolute;
           top: 66px;
-          right: 108px;
+          left: 76px;
+          right: auto;
           z-index: 75;
           margin: 0;
         }
@@ -156,15 +155,7 @@ export default function MobilePrototypePage() {
         @media (max-width: 370px) {
           #mobile-prototype-iphone16
             section.mt-5:has(> div:nth-child(2) > button:nth-child(3)) {
-            right: 101px;
-          }
-
-          #mobile-prototype-iphone16
-            .flex.h-full.flex-col:has(section.mt-5 > div:nth-child(2) > button:nth-child(3))
-            > div:nth-child(2)
-            > div {
-            flex-basis: 104px;
-            max-width: 104px;
+            left: 68px;
           }
         }
       `}</style>
