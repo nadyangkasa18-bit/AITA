@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Stage = "lock" | "chat" | "checkout";
+type Stage = "lock" | "chat" | "browser";
 type ActivityId = "miraikan" | "joypolis" | "circus";
 type CarChoice = "rental" | "private";
 
@@ -13,7 +13,6 @@ type Activity = {
   description: string;
   travel: string;
   price: string;
-  image: string;
 };
 
 const activities: Activity[] = [
@@ -24,7 +23,6 @@ const activities: Activity[] = [
     description: "Indoor science museum · easiest swap for the family",
     travel: "24 min by taxi",
     price: "¥630 / adult",
-    image: "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=900&q=82",
   },
   {
     id: "joypolis",
@@ -33,7 +31,6 @@ const activities: Activity[] = [
     description: "Indoor rides and games · closest to Disneyland energy",
     travel: "22 min by taxi",
     price: "From ¥5,500",
-    image: "https://images.unsplash.com/photo-1531058020387-3be344556be6?auto=format&fit=crop&w=900&q=82",
   },
   {
     id: "circus",
@@ -42,7 +39,6 @@ const activities: Activity[] = [
     description: "Indoor live show · the biggest outing of the three",
     travel: "About 55 min by car",
     price: "From ¥6,800",
-    image: "https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=900&q=82",
   },
 ];
 
@@ -299,54 +295,101 @@ function TypingBubble() {
   );
 }
 
-function ChoiceCard({ activity, onChoose }: { activity: Activity; onChoose: () => void }) {
+function InteractiveListMessage({ title, body, buttonLabel, onOpen, time }: { title: string; body: string; buttonLabel: string; onOpen: () => void; time: string }) {
   return (
-    <div className="wa-message ml-0 w-[91%] overflow-hidden rounded-[9px] rounded-tl-[2px] bg-white shadow-[0_1px_1px_rgba(11,20,26,.13)]">
-      <div
-        className="h-[88px] bg-[#d7d7d7]"
-        style={{ backgroundImage: `linear-gradient(180deg,transparent,rgba(0,0,0,.18)),url(${activity.image})`, backgroundPosition: "center", backgroundSize: "cover" }}
-      />
-      <div className="px-3 pb-2.5 pt-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-semibold text-[#111b21]">{activity.name}</p>
-            <p className="mt-0.5 text-[12px] text-[#667781]">{activity.area} · {activity.travel}</p>
-          </div>
-          <span className="shrink-0 text-[12px] font-semibold text-[#111b21]">{activity.price}</span>
-        </div>
-        <p className="mt-1.5 text-[13px] leading-[1.35] text-[#54656f]">{activity.description}</p>
+    <div className="wa-message w-[88%] overflow-hidden rounded-[9px] rounded-tl-[2px] bg-white shadow-[0_1px_1px_rgba(11,20,26,.13)]">
+      <div className="px-3 pb-2 pt-3">
+        <p className="text-[14px] font-semibold text-[#111b21]">{title}</p>
+        <p className="mt-1 text-[13px] leading-[1.4] text-[#54656f]">{body}</p>
+        <p className="mt-1 text-right text-[10px] leading-none text-[#667781]">{time}</p>
       </div>
-      <button onClick={onChoose} className="h-11 w-full border-t border-[#e9edef] text-[13px] font-semibold text-[#008069] transition-colors hover:bg-[#f5f7f7] active:bg-[#eef1f2]">
-        Replace Disneyland
+      <button onClick={onOpen} className="flex h-11 w-full items-center justify-center gap-2 border-t border-[#e9edef] text-[13px] font-semibold text-[#008069] transition-colors hover:bg-[#f5f7f7] active:bg-[#eef1f2]">
+        <span className="grid h-[18px] w-[18px] place-items-center rounded-[3px] border border-current text-[11px]" aria-hidden="true">☰</span>
+        {buttonLabel}
       </button>
     </div>
   );
 }
 
-function CarOptions({ onChoose }: { onChoose: (choice: CarChoice) => void }) {
+function PickerSheet({ title, subtitle, onClose, children }: { title: string; subtitle: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="wa-message w-[91%] overflow-hidden rounded-[9px] rounded-tl-[2px] bg-white shadow-[0_1px_1px_rgba(11,20,26,.13)]">
+    <div className="absolute inset-0 z-[80] flex flex-col justify-end">
+      <button aria-label="Close options" onClick={onClose} className="absolute inset-0 bg-black/35 backdrop-blur-[1px]" />
+      <div className="wa-sheet relative z-10 max-h-[74%] overflow-hidden rounded-t-[20px] bg-white pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-16px_48px_rgba(11,20,26,.2)]">
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[#d7dadd]" />
+        <div className="flex items-start border-b border-[#e9edef] px-4 pb-3 pt-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[17px] font-semibold text-[#111b21]">{title}</h3>
+            <p className="mt-0.5 text-[12px] text-[#667781]">{subtitle}</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full text-[25px] font-light text-[#54656f]">×</button>
+        </div>
+        <div className="max-h-[52vh] overflow-y-auto">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityPicker({ onClose, onChoose }: { onClose: () => void; onChoose: (activity: Activity) => void }) {
+  return (
+    <PickerSheet title="Indoor alternatives" subtitle="Choose one replacement" onClose={onClose}>
+      {activities.map((activity, index) => (
+        <button key={activity.id} onClick={() => onChoose(activity)} className={`w-full px-4 py-3.5 text-left transition-colors hover:bg-[#f5f7f7] active:bg-[#eef1f2] ${index ? "border-t border-[#eef0f1]" : ""}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-[#111b21]">{activity.name}</p>
+              <p className="mt-0.5 text-[12px] text-[#667781]">{activity.area} · {activity.travel}</p>
+              <p className="mt-1 text-[12px] leading-[1.35] text-[#54656f]">{activity.description}</p>
+            </div>
+            <p className="shrink-0 text-[12px] font-semibold text-[#111b21]">{activity.price}</p>
+          </div>
+        </button>
+      ))}
+    </PickerSheet>
+  );
+}
+
+function TransportPicker({ onClose, onChoose }: { onClose: () => void; onChoose: (choice: CarChoice) => void }) {
+  return (
+    <PickerSheet title="Choose transport" subtitle="Two options that fit your trip" onClose={onClose}>
       {(["rental", "private"] as CarChoice[]).map((choice, index) => {
         const item = carOptions[choice];
         return (
-          <button key={choice} onClick={() => onChoose(choice)} className={`w-full px-3 py-3 text-left transition-colors hover:bg-[#f5f7f7] active:bg-[#eef1f2] ${index ? "border-t border-[#e9edef]" : ""}`}>
-            <div className="flex items-start gap-2.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#e8f3ef] text-[17px]" aria-hidden="true">🚙</span>
-              <div className="min-w-0 flex-1">
-                <div className="flex justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[.055em] text-[#667781]">{item.label}</p>
-                    <p className="mt-0.5 truncate text-[14px] font-semibold text-[#111b21]">{item.name}</p>
-                  </div>
-                  <p className="shrink-0 text-[13px] font-semibold text-[#111b21]">{item.price}</p>
-                </div>
+          <button key={choice} onClick={() => onChoose(choice)} className={`w-full px-4 py-4 text-left transition-colors hover:bg-[#f5f7f7] active:bg-[#eef1f2] ${index ? "border-t border-[#eef0f1]" : ""}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[.055em] text-[#667781]">{item.label}</p>
+                <p className="mt-0.5 text-[14px] font-semibold text-[#111b21]">{item.name}</p>
                 <p className="mt-1 text-[12px] text-[#667781]">{item.details}</p>
-                <p className="mt-2 text-[12px] font-semibold text-[#008069]">Review booking ›</p>
+                <p className="mt-1 text-[12px] text-[#54656f]">{item.timing}</p>
               </div>
+              <p className="shrink-0 text-[13px] font-semibold text-[#111b21]">{item.price}</p>
             </div>
           </button>
         );
       })}
+    </PickerSheet>
+  );
+}
+
+function PaymentLinkCard({ choice, paid, onOpen }: { choice: CarChoice; paid: boolean; onOpen: () => void }) {
+  const item = carOptions[choice];
+  return (
+    <div className="wa-message w-[88%] overflow-hidden rounded-[9px] rounded-tl-[2px] bg-white shadow-[0_1px_1px_rgba(11,20,26,.13)]">
+      <div className="px-3 pb-2 pt-3">
+        <p className="text-[14px] font-semibold text-[#111b21]">Complete your booking</p>
+        <p className="mt-1 text-[13px] leading-[1.4] text-[#54656f]">{item.name} · {item.price}</p>
+        <div className="mt-2.5 rounded-[7px] bg-[#f0f2f5] px-3 py-2.5">
+          <p className="text-[11px] uppercase tracking-[.045em] text-[#667781]">Secure payment</p>
+          <p className="mt-0.5 truncate text-[13px] font-medium text-[#111b21]">pay.roaminrabbit.com</p>
+        </div>
+        <p className="mt-1.5 text-right text-[10px] leading-none text-[#667781]">8:15</p>
+      </div>
+      <button disabled={paid} onClick={onOpen} className="flex h-11 w-full items-center justify-center gap-2 border-t border-[#e9edef] text-[13px] font-semibold text-[#008069] transition-colors enabled:hover:bg-[#f5f7f7] enabled:active:bg-[#eef1f2] disabled:text-[#8696a0]">
+        {paid ? "Payment complete" : "Complete booking"}
+        {!paid && <span aria-hidden="true">↗</span>}
+      </button>
+      {!paid && <p className="border-t border-[#f1f3f4] py-1.5 text-center text-[10px] text-[#8696a0]">Opens in your browser</p>}
     </div>
   );
 }
@@ -397,28 +440,32 @@ type ChatProps = {
   introStep: number;
   selectedActivity: Activity | null;
   activityStep: number;
+  pendingChoice: CarChoice | null;
+  handoffStep: number;
   confirmedChoice: CarChoice | null;
   bookingStep: number;
   onChooseActivity: (activity: Activity) => void;
-  onCheckout: (choice: CarChoice) => void;
+  onChooseTransport: (choice: CarChoice) => void;
+  onOpenCheckout: () => void;
 };
 
-function Chat({ introStep, selectedActivity, activityStep, confirmedChoice, bookingStep, onChooseActivity, onCheckout }: ChatProps) {
+function Chat({ introStep, selectedActivity, activityStep, pendingChoice, handoffStep, confirmedChoice, bookingStep, onChooseActivity, onChooseTransport, onOpenCheckout }: ChatProps) {
   const [itineraryOpen, setItineraryOpen] = useState(false);
+  const [picker, setPicker] = useState<"activities" | "transport" | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const selectedCar = confirmedChoice ? carOptions[confirmedChoice] : null;
-  const typing = introStep === 0 || introStep === 2 || activityStep === 1 || activityStep === 3 || bookingStep === 1 || bookingStep === 3;
+  const selectedCar = pendingChoice ? carOptions[pendingChoice] : null;
+  const typing = introStep === 0 || introStep === 2 || activityStep === 1 || activityStep === 3 || handoffStep === 1 || bookingStep === 1 || bookingStep === 3;
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [introStep, selectedActivity, activityStep, bookingStep, confirmedChoice, itineraryOpen]);
+  }, [introStep, selectedActivity, activityStep, pendingChoice, handoffStep, bookingStep, confirmedChoice, itineraryOpen]);
 
   return (
     <PhoneShell>
-      <div className="flex h-full flex-col bg-[#efeae2]" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div className="relative flex h-full flex-col bg-[#efeae2]" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
         <WhatsAppHeader typing={typing} />
         <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="pointer-events-none absolute inset-0 opacity-[.22]" style={{ backgroundImage: "radial-gradient(circle at 20% 20%,#89958d 0 1px,transparent 1.25px),linear-gradient(45deg,transparent 48%,#a7b0aa 49%,#a7b0aa 51%,transparent 52%)", backgroundSize: "34px 34px,72px 72px" }} />
@@ -440,9 +487,13 @@ function Chat({ introStep, selectedActivity, activityStep, confirmedChoice, book
               </Bubble>
             )}
             {introStep >= 4 && !selectedActivity && (
-              <div className="space-y-2.5 pt-0.5">
-                {activities.map((activity) => <ChoiceCard key={activity.id} activity={activity} onChoose={() => onChooseActivity(activity)} />)}
-              </div>
+              <InteractiveListMessage
+                title="Indoor alternatives"
+                body="Compare the three options without leaving WhatsApp."
+                buttonLabel="View 3 options"
+                time="8:13"
+                onOpen={() => setPicker("activities")}
+              />
             )}
 
             {selectedActivity && <Bubble side="out" time="8:13">Replace Disneyland with {selectedActivity.name}</Bubble>}
@@ -457,7 +508,27 @@ function Chat({ introStep, selectedActivity, activityStep, confirmedChoice, book
                   <p>Tachikawa is about <strong>55 minutes by car</strong>. With 2 kids and your luggage requirement, I’d sort transport now.</p>
                   <p className="mt-2">I found your saved Alphard rental and a private-car option:</p>
                 </Bubble>
-                {!confirmedChoice && <CarOptions onChoose={onCheckout} />}
+                {!pendingChoice && !confirmedChoice && (
+                  <InteractiveListMessage
+                    title="Transport options"
+                    body="Both options fit 2 adults, 2 kids, and 4 large bags."
+                    buttonLabel="Choose transport"
+                    time="8:14"
+                    onOpen={() => setPicker("transport")}
+                  />
+                )}
+              </>
+            )}
+
+            {pendingChoice && selectedCar && (
+              <Bubble side="out" time="8:15">Use {selectedCar.label.toLowerCase()}: {selectedCar.name}</Bubble>
+            )}
+            {pendingChoice && handoffStep >= 2 && (
+              <>
+                <Bubble time="8:15">
+                  <p>I’ve held the <strong>{selectedCar?.name}</strong>. Everything else is handled here; only payment needs a secure browser.</p>
+                </Bubble>
+                <PaymentLinkCard choice={pendingChoice} paid={Boolean(confirmedChoice)} onOpen={onOpenCheckout} />
               </>
             )}
 
@@ -473,67 +544,118 @@ function Chat({ introStep, selectedActivity, activityStep, confirmedChoice, book
           </div>
         </div>
         <Composer />
+        {picker === "activities" && (
+          <ActivityPicker
+            onClose={() => setPicker(null)}
+            onChoose={(activity) => {
+              setPicker(null);
+              onChooseActivity(activity);
+            }}
+          />
+        )}
+        {picker === "transport" && (
+          <TransportPicker
+            onClose={() => setPicker(null)}
+            onChoose={(choice) => {
+              setPicker(null);
+              onChooseTransport(choice);
+            }}
+          />
+        )}
       </div>
       <style>{`
         @keyframes waTyping { 0%, 60%, 100% { opacity: .35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
         @keyframes waMessage { from { opacity: 0; transform: translateY(5px) scale(.99); } to { opacity: 1; transform: none; } }
+        @keyframes waSheet { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
         .wa-typing-dot { animation: waTyping 1.05s ease-in-out infinite; }
         .wa-message { animation: waMessage .2s ease-out both; }
-        @media (prefers-reduced-motion: reduce) { .wa-typing-dot, .wa-message { animation: none; } }
+        .wa-sheet { animation: waSheet .2s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .wa-typing-dot, .wa-message, .wa-sheet { animation: none; } }
       `}</style>
     </PhoneShell>
   );
 }
 
-function Checkout({ choice, onBack, onConfirm }: { choice: CarChoice; onBack: () => void; onConfirm: () => void }) {
+function BrowserCheckout({ choice, onBack, onConfirm }: { choice: CarChoice; onBack: () => void; onConfirm: () => void }) {
   const item = carOptions[choice];
+  const [paying, setPaying] = useState(false);
+
+  const handlePayment = () => {
+    setPaying(true);
+    window.setTimeout(onConfirm, 800);
+  };
+
   return (
     <PhoneShell>
-      <div className="flex h-full flex-col bg-[#f0f2f5]" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div className="flex h-full flex-col bg-[#f4f4f4]" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
         <StatusBar />
-        <div className="flex h-[61px] shrink-0 items-center border-b border-[#dfe3e5] bg-white px-2.5">
-          <button onClick={onBack} aria-label="Back to chat" className="grid h-10 w-9 place-items-center text-[#008069]"><ChevronLeftIcon /></button>
-          <div className="flex flex-1 items-center gap-2.5">
-            <RoaminRabbitAvatar size={37} />
+        <div className="shrink-0 border-b border-[#d7d7d9] bg-[#f7f7f8] px-3 pb-2.5 pt-1.5">
+          <div className="flex items-center gap-2">
+            <button onClick={onBack} aria-label="Return to WhatsApp" className="flex h-9 items-center gap-0.5 pr-1 text-[13px] font-medium text-[#007aff]">
+              <ChevronLeftIcon /> WhatsApp
+            </button>
+            <div className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-[#e9e9eb] px-3 text-[12px] text-[#3c3c43]">
+              <LockIcon /> <span className="truncate">pay.roaminrabbit.com</span>
+            </div>
+            <button aria-label="Browser options" className="grid h-9 w-8 place-items-center text-[20px] text-[#007aff]">•••</button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-5">
+          <div className="flex items-center gap-3 border-b border-[#eceff1] pb-4">
+            <RoaminRabbitAvatar size={42} />
             <div>
-              <p className="text-[15px] font-semibold text-[#111b21]">Complete booking</p>
-              <p className="text-[11px] text-[#667781]">RoaminRabbit secure checkout</p>
+              <p className="text-[15px] font-semibold text-[#172235]">RoaminRabbit</p>
+              <p className="text-[12px] text-[#667085]">Secure checkout</p>
             </div>
           </div>
-          <span className="w-8" />
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4">
-          <div className="rounded-[12px] bg-white p-4 shadow-[0_1px_2px_rgba(11,20,26,.08)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[.07em] text-[#667781]">For today’s updated plan</p>
-            <h2 className="mt-1 text-[18px] font-semibold text-[#111b21]">Grand Circus Show</h2>
-            <p className="mt-1 text-[13px] text-[#667781]">11:00 · Tachikawa · dinner remains 18:30 in Ginza</p>
+          <div className="py-5">
+            <p className="text-[12px] font-semibold uppercase tracking-[.07em] text-[#667085]">Complete booking</p>
+            <h1 className="mt-1.5 text-[24px] font-semibold tracking-[-.025em] text-[#172235]">Grand Circus Show</h1>
+            <p className="mt-1 text-[13px] text-[#667085]">Today, 11:00 · Tachikawa</p>
           </div>
-          <div className="mt-3 rounded-[12px] bg-white p-4 shadow-[0_1px_2px_rgba(11,20,26,.08)]">
+          <div className="rounded-[14px] border border-[#e3e7eb] bg-white p-4 shadow-[0_8px_30px_-24px_rgba(16,24,40,.3)]">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[.07em] text-[#667781]">{item.label}</p>
-                <h3 className="mt-1 text-[16px] font-semibold text-[#111b21]">{item.name}</h3>
-                <p className="mt-1 text-[13px] text-[#667781]">{item.details}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[.07em] text-[#667085]">{item.label}</p>
+                <h2 className="mt-1 text-[16px] font-semibold text-[#172235]">{item.name}</h2>
+                <p className="mt-1 text-[13px] text-[#667085]">{item.details}</p>
               </div>
-              <p className="shrink-0 text-[16px] font-semibold text-[#111b21]">{item.price}</p>
+              <p className="shrink-0 text-[16px] font-semibold text-[#172235]">{item.price}</p>
             </div>
-            <div className="mt-4 rounded-[9px] bg-[#f0f2f5] p-3 text-[13px] text-[#54656f]">{item.timing}</div>
+            <div className="mt-4 rounded-[9px] bg-[#f4f6f8] p-3 text-[13px] text-[#475467]">{item.timing}</div>
           </div>
-          <div className="mt-3 rounded-[12px] bg-white p-4 shadow-[0_1px_2px_rgba(11,20,26,.08)]">
-            <p className="text-[14px] font-semibold text-[#111b21]">Trip context checked</p>
-            <div className="mt-3 grid gap-2.5 text-[13px] text-[#54656f]">
-              {["2 adults + 2 kids", "4 large suitcases", "Yakiniku reservation stays at 18:30", "No other itinerary items changed"].map((text) => (
-                <div key={text} className="flex items-center gap-2.5">
-                  <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#d9fdd3] text-[10px] font-bold text-[#008069]">✓</span>
-                  {text}
-                </div>
-              ))}
-            </div>
+          <div className="mt-4 rounded-[14px] border border-[#e3e7eb] p-4">
+            <div className="flex items-center justify-between text-[13px] text-[#475467]"><span>Transport</span><span>{item.price}</span></div>
+            <div className="mt-2 flex items-center justify-between text-[13px] text-[#475467]"><span>Booking fee</span><span>¥0</span></div>
+            <div className="mt-3 flex items-center justify-between border-t border-[#e3e7eb] pt-3 text-[15px] font-semibold text-[#172235]"><span>Total</span><span>{item.price}</span></div>
           </div>
-          <p className="mt-4 px-1 text-[12px] leading-[1.45] text-[#667781]">Prototype only. A live booking would pause before any material price or availability change and ask for approval.</p>
+          <div className="mt-4 rounded-[12px] bg-[#f4f6f8] p-3.5">
+            <p className="text-[13px] font-semibold text-[#172235]">You’ll finish here in the browser</p>
+            <p className="mt-1 text-[12px] leading-[1.45] text-[#667085]">After payment, your confirmation and updated itinerary will be sent in WhatsApp. There’s no app to open.</p>
+          </div>
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-[#667085]">
+            <LockIcon /> Encrypted payment
+          </div>
         </div>
-        <div className="shrink-0 border-t border-[#dfe3e5] bg-white p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
-          <button onClick={onConfirm} className="h-12 w-full rounded-full bg-[#008069] text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-[#017561] active:bg-[#006b58]">Confirm {item.price}</button>
+        <div className="shrink-0 border-t border-[#dfe3e5] bg-white p-4">
+          <button disabled={paying} onClick={handlePayment} className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-[#203351] text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-[#172842] active:bg-[#132238] disabled:opacity-75">
+            {paying ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" /> Processing payment…
+              </>
+            ) : (
+              <>Pay {item.price}</>
+            )}
+          </button>
+          <div className="mt-3 flex items-center justify-around text-[#007aff]">
+            {[
+              ["‹", "Back"],
+              ["↗", "Share"],
+              ["□", "Tabs"],
+            ].map(([icon, label]) => (
+              <button key={label} aria-label={label} className="grid h-7 min-w-10 place-items-center text-[17px]">{icon}</button>
+            ))}
+          </div>
         </div>
       </div>
     </PhoneShell>
@@ -545,7 +667,8 @@ export function WhatsAppInvestorPrototype() {
   const [introStep, setIntroStep] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [activityStep, setActivityStep] = useState(0);
-  const [checkoutChoice, setCheckoutChoice] = useState<CarChoice>("rental");
+  const [pendingChoice, setPendingChoice] = useState<CarChoice | null>(null);
+  const [handoffStep, setHandoffStep] = useState(0);
   const [confirmedChoice, setConfirmedChoice] = useState<CarChoice | null>(null);
   const [bookingStep, setBookingStep] = useState(0);
 
@@ -573,6 +696,12 @@ export function WhatsAppInvestorPrototype() {
   }, [stage, selectedActivity, activityStep]);
 
   useEffect(() => {
+    if (stage !== "chat" || !pendingChoice || confirmedChoice || handoffStep !== 1) return;
+    const timer = window.setTimeout(() => setHandoffStep(2), 850);
+    return () => window.clearTimeout(timer);
+  }, [stage, pendingChoice, confirmedChoice, handoffStep]);
+
+  useEffect(() => {
     if (stage !== "chat" || !confirmedChoice || bookingStep === 0 || bookingStep >= 4) return;
     const delays: Record<number, number> = { 1: 950, 2: 320, 3: 780 };
     const timer = window.setTimeout(() => setBookingStep((step) => Math.min(step + 1, 4)), delays[bookingStep]);
@@ -581,13 +710,13 @@ export function WhatsAppInvestorPrototype() {
 
   if (stage === "lock") return <LockScreen onOpen={() => setStage("chat")} />;
 
-  if (stage === "checkout") {
+  if (stage === "browser" && pendingChoice) {
     return (
-      <Checkout
-        choice={checkoutChoice}
+      <BrowserCheckout
+        choice={pendingChoice}
         onBack={() => setStage("chat")}
         onConfirm={() => {
-          setConfirmedChoice(checkoutChoice);
+          setConfirmedChoice(pendingChoice);
           setBookingStep(1);
           setStage("chat");
         }}
@@ -600,16 +729,19 @@ export function WhatsAppInvestorPrototype() {
       introStep={introStep}
       selectedActivity={selectedActivity}
       activityStep={activityStep}
+      pendingChoice={pendingChoice}
+      handoffStep={handoffStep}
       confirmedChoice={confirmedChoice}
       bookingStep={bookingStep}
       onChooseActivity={(activity) => {
         setSelectedActivity(activity);
         setActivityStep(1);
       }}
-      onCheckout={(choice) => {
-        setCheckoutChoice(choice);
-        setStage("checkout");
+      onChooseTransport={(choice) => {
+        setPendingChoice(choice);
+        setHandoffStep(1);
       }}
+      onOpenCheckout={() => setStage("browser")}
     />
   );
 }
