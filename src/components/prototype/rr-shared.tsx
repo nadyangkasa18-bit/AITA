@@ -164,9 +164,12 @@ export function BottomNav({ active, onNavigate }: { active: "trip" | "copilot" |
     { id: "expenses", label: "Expenses", icon: "expenses", target: "expenses" },
   ];
   return (
-    <nav className="flex h-[75px] shrink-0 items-start justify-around border-t border-black/[.08] bg-[#f4f2ec]/95 px-5 pt-2 backdrop-blur-xl">
+    <nav
+      className="flex min-h-[92px] shrink-0 items-start justify-around border-t border-black/[.08] bg-[#f4f2ec]/95 px-5 pt-2 backdrop-blur-xl"
+      style={{ paddingBottom: "max(18px, env(safe-area-inset-bottom))" }}
+    >
       {items.map((item) => (
-        <button key={item.id} type="button" onClick={() => onNavigate(item.target)} className={`rr-tap flex min-w-[76px] flex-col items-center gap-1 text-[10px] font-semibold ${active === item.id ? "text-[#0e0e0d]" : "text-[#837f74]"}`}>
+        <button key={item.id} type="button" onClick={() => onNavigate(item.target)} className={`rr-tap flex min-w-[76px] flex-col items-center gap-1 text-[11px] font-semibold ${active === item.id ? "text-[#0e0e0d]" : "text-[#837f74]"}`}>
           <span className={`grid h-8 w-12 place-items-center rounded-full ${active === item.id ? "bg-[#e3e0ff] text-[#5147de]" : ""}`}><Icon name={item.icon} size={17} /></span>
           {item.label}
         </button>
@@ -176,16 +179,16 @@ export function BottomNav({ active, onNavigate }: { active: "trip" | "copilot" |
 }
 
 export function PrimaryButton({ children, onClick, tone = "dark", disabled = false }: { children: ReactNode; onClick: () => void; tone?: "dark" | "light" | "accent"; disabled?: boolean }) {
-  const palette = tone === "light" ? "border border-black/[.1] bg-white text-[#0e0e0d]" : tone === "accent" ? "bg-[#6257ff] text-white shadow-[0_14px_28px_-16px_rgba(98,87,255,.8)]" : "bg-[#0e0e0d] text-white shadow-[0_14px_30px_-17px_rgba(14,14,13,.8)]";
-  return <button type="button" onClick={onClick} disabled={disabled} className={`rr-tap flex h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-[13px] font-semibold disabled:opacity-50 ${palette}`}>{children}</button>;
+  const palette = tone === "light" ? "border border-black/[.1] bg-white text-[#0e0e0d]" : "bg-[#0e0e0d] text-white shadow-[0_14px_30px_-17px_rgba(14,14,13,.8)]";
+  return <button type="button" onClick={onClick} disabled={disabled} className={`rr-tap flex h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-semibold disabled:opacity-50 ${palette}`}>{children}</button>;
 }
 
 export function SectionTitle({ eyebrow, title, detail }: { eyebrow: string; title: string; detail?: string }) {
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#6257ff]">{eyebrow}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[.16em] text-[#6257ff]">{eyebrow}</p>
       <h2 className="font-display mt-1.5 text-[29px] font-semibold leading-[.98] tracking-[-.052em] text-[#0e0e0d]">{title}</h2>
-      {detail && <p className="mt-2 max-w-[330px] text-[12px] leading-[1.55] text-[#5e5b52]">{detail}</p>}
+      {detail && <p className="mt-2 max-w-[330px] text-[14px] leading-[1.55] text-[#5e5b52]">{detail}</p>}
     </div>
   );
 }
@@ -206,21 +209,21 @@ export function AssistantBubble({ children }: { children: ReactNode }) {
   return (
     <div className="rr-message flex items-end gap-2.5">
       <BrandMark size={30} />
-      <div className="max-w-[292px] rounded-[20px] rounded-bl-[6px] border border-black/[.08] bg-white px-4 py-3 text-[12px] leading-[1.55] text-[#3c3a33] shadow-[0_10px_30px_-24px_rgba(14,14,13,.6)]">{children}</div>
+      <div className="max-w-[292px] rounded-[20px] rounded-bl-[6px] border border-black/[.08] bg-white px-4 py-3 text-[14px] leading-[1.55] text-[#3c3a33] shadow-[0_10px_30px_-24px_rgba(14,14,13,.6)]">{children}</div>
     </div>
   );
 }
 
 export function UserBubble({ children }: { children: ReactNode }) {
-  return <div className="rr-message ml-auto max-w-[286px] rounded-[20px] rounded-br-[6px] bg-[#0e0e0d] px-4 py-3 text-[12px] leading-[1.5] text-white">{children}</div>;
+  return <div className="rr-message ml-auto max-w-[286px] rounded-[20px] rounded-br-[6px] bg-[#0e0e0d] px-4 py-3 text-[14px] leading-[1.5] text-white">{children}</div>;
 }
 
 export function ChatComposer({ value, onChange, onSend, placeholder = "Ask RoaminRabbit…", disabled = false }: { value: string; onChange: (value: string) => void; onSend: () => void; placeholder?: string; disabled?: boolean }) {
   return (
     <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 pb-4 pt-3 backdrop-blur-xl">
       <div className="flex items-center gap-2 rounded-full border border-black/[.1] bg-white p-1.5 pl-4 shadow-[0_12px_28px_-24px_rgba(14,14,13,.7)]">
-        <input value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && value.trim()) onSend(); }} placeholder={placeholder} disabled={disabled} className="min-w-0 flex-1 bg-transparent text-[12px] text-[#0e0e0d] outline-none placeholder:text-[#918d83]" />
-        <button type="button" onClick={onSend} disabled={disabled || !value.trim()} aria-label="Send message" className="rr-tap grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#6257ff] text-white disabled:bg-[#d2cec4]"><Icon name="send" size={15} /></button>
+        <input value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && value.trim()) onSend(); }} placeholder={placeholder} disabled={disabled} className="min-w-0 flex-1 bg-transparent text-[14px] text-[#0e0e0d] outline-none placeholder:text-[#918d83]" />
+        <button type="button" onClick={onSend} disabled={disabled || !value.trim()} aria-label="Send message" className="rr-tap grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0e0e0d] text-white disabled:bg-[#d2cec4]"><Icon name="send" size={15} /></button>
       </div>
     </div>
   );
