@@ -1,300 +1,508 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
-type Screen = "lock" | "assistant" | "itinerary" | "bookings" | "car" | "profile";
-type ActivityId = "miraikan" | "joypolis" | "circus";
-type CarChoice = "rental" | "private";
-type Activity = {
-  id: ActivityId;
-  name: string;
-  area: string;
-  kicker: string;
-  rating: string;
-  reviews: string;
-  travel: string;
-  price: string;
-  detail: string;
-  image: string;
-  carHelpful?: boolean;
+type Screen =
+  | "home"
+  | "ideas"
+  | "itinerary"
+  | "context"
+  | "copilot"
+  | "updating"
+  | "after"
+  | "expense"
+  | "adjust"
+  | "balances"
+  | "final";
+
+type IconName =
+  | "back"
+  | "calendar"
+  | "check"
+  | "chevron"
+  | "cloud"
+  | "expenses"
+  | "heart"
+  | "home"
+  | "magic"
+  | "people"
+  | "plus"
+  | "rain"
+  | "send"
+  | "sparkles"
+  | "sun";
+
+const images = {
+  tokyo:
+    "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1000&q=86",
+  teamlab:
+    "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=900&q=84",
+  ramen:
+    "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=84",
+  cafe:
+    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=84",
+  disney:
+    "https://images.unsplash.com/photo-1575089976121-8ed7b2a54265?auto=format&fit=crop&w=900&q=84",
 };
-type ChatMessage = { id: string; role: "assistant" | "user"; text: string };
 
-const activities: Activity[] = [
-  {
-    id: "miraikan",
-    name: "Miraikan",
-    area: "Odaiba",
-    kicker: "Indoor science museum",
-    rating: "4.6",
-    reviews: "2.8k reviews",
-    travel: "24 min by taxi",
-    price: "¥630 / adult",
-    detail: "Hands-on science, robotics and space exhibits. It gives the kids a full indoor anchor without changing the rest of the day.",
-    image: "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=900&q=82",
-  },
-  {
-    id: "joypolis",
-    name: "Tokyo Joypolis",
-    area: "Odaiba",
-    kicker: "Indoor rides + games",
-    rating: "4.4",
-    reviews: "6.1k reviews",
-    travel: "22 min by taxi",
-    price: "From ¥5,500",
-    detail: "A weather-proof amusement option with rides and games, so it preserves more of the energy of the Disneyland plan.",
-    image: "https://images.unsplash.com/photo-1531058020387-3be344556be6?auto=format&fit=crop&w=900&q=82",
-  },
-  {
-    id: "circus",
-    name: "Grand Circus Show",
-    area: "Tachikawa",
-    kicker: "Indoor live show",
-    rating: "4.7",
-    reviews: "1.4k reviews",
-    travel: "~55 min by car",
-    price: "From ¥6,800",
-    detail: "A bigger indoor event outside central Tokyo. It works well for today, but private transport makes the route much easier with two kids.",
-    image: "https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=900&q=82",
-    carHelpful: true,
-  },
+const people = [
+  { name: "Nadya", initials: "N", color: "#253a5e" },
+  { name: "Sarah", initials: "S", color: "#d97762" },
+  { name: "Jess", initials: "J", color: "#7672a8" },
+  { name: "Maya", initials: "M", color: "#4f8b78" },
 ];
 
-const itineraryImages = {
-  breakfast: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=720&q=82",
-  disney: "https://images.unsplash.com/photo-1575089976121-8ed7b2a54265?auto=format&fit=crop&w=720&q=82",
-  dinner: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=720&q=82",
+const backMap: Partial<Record<Screen, Screen>> = {
+  ideas: "home",
+  itinerary: "ideas",
+  context: "itinerary",
+  copilot: "context",
+  after: "copilot",
+  expense: "after",
+  adjust: "expense",
+  balances: "adjust",
+  final: "balances",
 };
 
-const carOptions = {
-  rental: {
-    eyebrow: "Saved rental",
-    name: "Toyota Alphard",
-    meta: "7 seats · 4 large bags · automatic",
-    detail: "Pickup at MUJI Hotel Ginza · return tonight",
-    price: "¥18,900",
-    priceNote: "today · taxes included",
-    cta: "Book saved rental",
-  },
-  private: {
-    eyebrow: "Private car",
-    name: "Alphard + driver",
-    meta: "Up to 6 guests · luggage included",
-    detail: "Hotel pickup · Tachikawa wait time · hotel return",
-    price: "¥27,400",
-    priceNote: "estimated total",
-    cta: "Book private car",
-  },
-} satisfies Record<CarChoice, { eyebrow: string; name: string; meta: string; detail: string; price: string; priceNote: string; cta: string }>;
+function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
+  const props = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.9,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
 
-function Icon({ name, size = 20 }: { name: string; size?: number }) {
-  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
-  if (name === "back") return <svg {...common}><path d="M15 18l-6-6 6-6" /></svg>;
-  if (name === "rain") return <svg {...common}><path d="M7 16a4 4 0 0 1 .7-8A5.5 5.5 0 0 1 18 10.5 3.5 3.5 0 0 1 17.5 17H8" /><path d="M8 21l1.2-2M12 21l1.2-2M16 21l1.2-2" /></svg>;
-  if (name === "plane") return <svg {...common}><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z" /></svg>;
-  if (name === "hotel") return <svg {...common}><path d="M4 20V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14M16 10h2a2 2 0 0 1 2 2v8M8 8h4M8 12h4M8 16h4M2 20h20" /></svg>;
-  if (name === "car") return <svg {...common}><path d="M5 17h14l-1-6-2-3H8l-2 3-1 6zM3 14h18M7 17v2M17 17v2" /><circle cx="8" cy="14" r="1" /><circle cx="16" cy="14" r="1" /></svg>;
-  if (name === "context") return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M8 9h8M8 12h5M8 15h7" /></svg>;
-  if (name === "check") return <svg {...common}><path d="M5 12l4 4L19 6" /></svg>;
-  if (name === "send") return <svg {...common}><path d="M12 19V5M7 10l5-5 5 5" /></svg>;
-  if (name === "chat") return <svg {...common}><path d="M20 15a3 3 0 0 1-3 3H9l-5 3v-5a3 3 0 0 1-1-2V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z" /><path d="M8 10h.01M12 10h.01M16 10h.01" /></svg>;
-  if (name === "chevron") return <svg {...common}><path d="M9 6l6 6-6 6" /></svg>;
-  if (name === "star") return <svg {...common}><path d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9L12 3z" /></svg>;
-  return <svg {...common}><circle cx="12" cy="12" r="9" /></svg>;
+  if (name === "back") return <svg {...props}><path d="m15 18-6-6 6-6" /></svg>;
+  if (name === "calendar") return <svg {...props}><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 10h18" /></svg>;
+  if (name === "check") return <svg {...props}><path d="m5 12 4 4L19 6" /></svg>;
+  if (name === "chevron") return <svg {...props}><path d="m9 6 6 6-6 6" /></svg>;
+  if (name === "cloud") return <svg {...props}><path d="M6.5 18h11a4 4 0 0 0 .4-8 6 6 0 0 0-11.4-1.5A4.8 4.8 0 0 0 6.5 18Z" /></svg>;
+  if (name === "expenses") return <svg {...props}><path d="M7 3h10a2 2 0 0 1 2 2v16l-3-2-4 2-4-2-3 2V5a2 2 0 0 1 2-2Z" /><path d="M9 8h6M9 12h6M9 16h3" /></svg>;
+  if (name === "heart") return <svg {...props}><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z" /></svg>;
+  if (name === "home") return <svg {...props}><path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10M9 20v-6h6v6" /></svg>;
+  if (name === "magic") return <svg {...props}><path d="m15 4 5 5L8 21l-5-5L15 4Z" /><path d="m6 13 5 5M6 3v4M4 5h4M19 14v5M16.5 16.5h5" /></svg>;
+  if (name === "people") return <svg {...props}><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M16 5.5a3 3 0 0 1 0 5.8M17 14a4.5 4.5 0 0 1 3.5 4.4V20" /></svg>;
+  if (name === "plus") return <svg {...props}><path d="M12 5v14M5 12h14" /></svg>;
+  if (name === "rain") return <svg {...props}><path d="M6.5 15.5h11a4 4 0 0 0 .4-8 6 6 0 0 0-11.4-1.5 4.8 4.8 0 0 0 0 9.5Z" /><path d="m8 19-1 2M13 19l-1 2M18 19l-1 2" /></svg>;
+  if (name === "send") return <svg {...props}><path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4 20-7Z" /></svg>;
+  if (name === "sparkles") return <svg {...props}><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3ZM5 15l.8 2.2L8 18l-2.2.8L5 21l-.8-2.2L2 18l2.2-.8L5 15ZM19 13l.7 1.8 1.8.7-1.8.7L19 18l-.7-1.8-1.8-.7 1.8-.7L19 13Z" /></svg>;
+  return <svg {...props}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>;
 }
 
-function PhoneFrame({ children, lock = false }: { children: React.ReactNode; lock?: boolean }) {
-  return <div className="mx-auto w-full max-w-[458px] px-2 py-3 sm:px-0 sm:py-6">
-    <div className="relative mx-auto h-[min(890px,calc(100dvh-24px))] min-h-[680px] w-full overflow-hidden rounded-[54px] bg-[#111] p-[10px] shadow-[0_38px_90px_-38px_rgba(0,0,0,.55)]">
-      <div className={`relative h-full overflow-hidden rounded-[45px] ${lock ? "bg-[#efb3ac]" : "bg-[#f8f6f0]"}`}>
-        {!lock && <div className="pointer-events-none absolute left-1/2 top-[10px] z-[100] h-[29px] w-[104px] -translate-x-1/2 rounded-full bg-black" />}
+function StatusBar() {
+  return (
+    <div className="relative z-50 flex h-[48px] shrink-0 items-end justify-between px-7 pb-2.5 text-[14px] font-semibold text-[#17213a]">
+      <span>9:41</span>
+      <div className="flex items-center gap-2">
+        <span className="flex items-end gap-[2px]">{[5, 8, 11, 14].map((height) => <i key={height} className="block w-[3px] rounded-full bg-current" style={{ height }} />)}</span>
+        <span className="text-[16px]">⌁</span>
+        <span className="h-[14px] w-7 rounded-[4px] border border-current p-[2px]"><span className="block h-full w-[82%] rounded-[2px] bg-current" /></span>
+      </div>
+    </div>
+  );
+}
+
+function PhoneFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rr-stage flex min-h-dvh items-center justify-center bg-[#e8e7e3] p-0 sm:p-5">
+      <div className="rr-phone relative w-full overflow-hidden bg-[#f7f6f2] sm:border-[9px] sm:border-[#151515] sm:shadow-[0_36px_90px_-32px_rgba(23,33,58,.5)]">
+        <div className="pointer-events-none absolute left-1/2 top-[11px] z-[100] hidden h-[27px] w-[96px] -translate-x-1/2 rounded-full bg-black sm:block" />
         {children}
       </div>
     </div>
-  </div>;
+  );
 }
 
-function StatusBar({ light = false }: { light?: boolean }) {
-  return <div className={`relative z-30 flex h-[50px] shrink-0 items-end justify-between px-7 pb-2.5 text-[16px] font-semibold ${light ? "text-white" : "text-ink"}`} style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif" }}>
-    <span>8:12</span><div className="flex items-center gap-2"><span className="flex items-end gap-[2px]">{[5, 8, 11, 14].map(h => <i key={h} className="block w-[3px] rounded-full bg-current" style={{ height: h }} />)}</span><span className="text-[17px]">⌁</span><span className="h-4 w-7 rounded-[5px] border border-current p-[2px]"><span className="block h-full w-[82%] rounded-[2px] bg-current" /></span></div>
-  </div>;
+function AvatarStack({ small = false }: { small?: boolean }) {
+  const dimension = small ? "h-7 w-7 text-[9px]" : "h-9 w-9 text-[11px]";
+  return (
+    <div className="flex items-center pl-2">
+      {people.map((person) => (
+        <span
+          key={person.name}
+          className={`-ml-2 grid ${dimension} place-items-center rounded-full border-2 border-white font-semibold text-white shadow-sm`}
+          style={{ backgroundColor: person.color }}
+          title={person.name}
+        >
+          {person.initials}
+        </span>
+      ))}
+    </div>
+  );
 }
 
-function LockScreen({ onOpen }: { onOpen: () => void }) {
-  return <PhoneFrame lock><div className="relative flex h-full flex-col overflow-hidden text-white" style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif" }}>
-    <div className="absolute inset-0 bg-[linear-gradient(145deg,#f2c6bb_0%,#ef9c9e_37%,#f2cf75_100%)]" />
-    <div className="absolute -right-[34%] top-[15%] h-[76%] w-[88%] rotate-[8deg] rounded-[52%_48%_50%_50%/34%_38%_62%_66%] bg-[linear-gradient(150deg,#7d7690_0%,#4f748e_50%,#047797_100%)] shadow-[inset_12px_0_20px_rgba(29,63,91,.25)]" />
-    <div className="absolute -bottom-[24%] -left-[18%] h-[68%] w-[78%] -rotate-[28deg] rounded-[58%_42%_56%_44%/52%_46%_54%_48%] bg-[#f2d6cf]/80" />
-    <StatusBar light />
-    <div className="relative z-10 mt-12 text-center"><p className="text-[23px] font-semibold tracking-[-.025em]">Wed 2 Sep</p><p className="mt-2 text-[92px] font-extralight leading-[.88] tracking-[-.075em] text-white/80 [text-shadow:0_1px_0_rgba(255,255,255,.45)]">8:12</p></div>
-    <div className="relative z-10 mt-auto px-5 pb-[112px]">
-      <div className="rounded-[26px] bg-[#1a1b1f]/72 p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] backdrop-blur-2xl">
-        <div className="flex items-center justify-between"><span className="text-[12px] font-medium uppercase tracking-[.04em] text-white/52">Time sensitive</span><span className="text-[13px] text-white/52">now</span></div>
-        <div className="mt-2 flex items-center gap-3"><div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-white/15 text-[24px]">🏰</div><div className="min-w-0 flex-1"><p className="text-[19px] font-semibold tracking-[-.02em]">Tokyo Disneyland</p><p className="mt-1 flex items-center gap-1.5 text-[15px] font-medium text-[#8ec2ff]"><Icon name="rain" size={17} /> Rain expected at 11:00</p><p className="mt-1 text-[14px] text-white/62">We found a few alternatives</p></div></div>
-        <button onClick={onOpen} className="mt-4 h-11 w-full rounded-full bg-white/14 text-[14px] font-semibold text-[#b9d7ff] transition active:scale-[.985]">Review options</button>
+function AppHeader({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack?: () => void }) {
+  return (
+    <>
+      <StatusBar />
+      <header className="flex h-[64px] shrink-0 items-center gap-3 border-b border-[#e9e6df] bg-[#fbfaf7]/95 px-4 backdrop-blur-xl">
+        {onBack ? (
+          <button onClick={onBack} aria-label="Go back" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#e6e2d8] bg-white text-[#253a5e] active:scale-95">
+            <Icon name="back" size={19} />
+          </button>
+        ) : (
+          <Image src="/roaminrabbit-logo.png" alt="RoaminRabbit" width={40} height={40} className="h-10 w-10 rounded-full border border-[#e7e4dc] bg-white object-contain p-1" priority />
+        )}
+        <div className="min-w-0 flex-1">
+          {subtitle && <p className="truncate text-[9px] font-bold uppercase tracking-[.12em] text-[#9a968d]">{subtitle}</p>}
+          <h1 className="truncate text-[18px] font-semibold tracking-[-.025em] text-[#17213a]">{title}</h1>
+        </div>
+        <AvatarStack small />
+      </header>
+    </>
+  );
+}
+
+function BottomNav({ active, onNavigate }: { active: "trip" | "copilot" | "expenses"; onNavigate: (screen: Screen) => void }) {
+  const item = (id: typeof active, label: string, icon: IconName, target: Screen) => (
+    <button onClick={() => onNavigate(target)} className={`flex min-w-[72px] flex-col items-center gap-1 text-[10px] font-semibold ${active === id ? "text-[#253a5e]" : "text-[#aaa59c]"}`}>
+      <span className={`grid h-8 w-12 place-items-center rounded-full ${active === id ? "bg-[#e9edf5]" : ""}`}><Icon name={icon} size={17} /></span>
+      {label}
+    </button>
+  );
+
+  return (
+    <nav className="flex h-[74px] shrink-0 items-start justify-around border-t border-[#e9e6df] bg-[#fbfaf7]/95 px-5 pt-2 backdrop-blur-xl">
+      {item("trip", "Trip", "home", "home")}
+      {item("copilot", "Co-pilot", "sparkles", "copilot")}
+      {item("expenses", "Expenses", "expenses", "expense")}
+    </nav>
+  );
+}
+
+function PrimaryButton({ children, onClick, light = false, disabled = false }: { children: React.ReactNode; onClick: () => void; light?: boolean; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-[13px] font-semibold transition active:scale-[.985] disabled:opacity-50 ${light ? "bg-white text-[#253a5e]" : "bg-[#253a5e] text-white shadow-[0_10px_26px_-14px_rgba(37,58,94,.8)]"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TypingBubble({ label = "RoaminRabbit is thinking" }: { label?: string }) {
+  return (
+    <div className="rr-enter flex items-center gap-2.5">
+      <Image src="/roaminrabbit-logo.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full border border-[#e8e4dc] bg-white object-contain p-1" />
+      <div className="rounded-[18px] rounded-bl-[6px] border border-[#e7e3da] bg-white px-4 py-3 shadow-sm">
+        <span className="sr-only">{label}</span>
+        <div className="flex h-3 items-center gap-1.5">{[0, 1, 2].map((index) => <i key={index} className="rr-typing h-1.5 w-1.5 rounded-full bg-[#7f8ba2]" style={{ animationDelay: `${index * 140}ms` }} />)}</div>
       </div>
     </div>
-    <div className="absolute bottom-8 left-10 right-10 z-10 flex justify-between"><span className="grid h-12 w-12 place-items-center rounded-full bg-black/24 text-[23px] backdrop-blur-xl">⌁</span><span className="grid h-12 w-12 place-items-center rounded-full bg-black/24 text-[21px] backdrop-blur-xl">◉</span></div>
-    <div className="absolute bottom-2.5 left-1/2 z-20 h-1.5 w-32 -translate-x-1/2 rounded-full bg-white/92" />
-  </div></PhoneFrame>;
+  );
 }
 
-function AppHeader({ title, onBack, onContext }: { title: string; onBack?: () => void; onContext: () => void }) {
-  return <><StatusBar /><div className="flex h-[62px] shrink-0 items-center gap-3 border-b border-hair-2 bg-[#f8f6f0]/95 px-4 backdrop-blur-xl"><button onClick={onBack} disabled={!onBack} className={`grid h-11 w-11 place-items-center rounded-full border border-hair bg-white text-ink ${onBack ? "" : "pointer-events-none opacity-0"}`}><Icon name="back" size={20} /></button><div className="min-w-0 flex-1"><p className="truncate text-[11px] font-semibold uppercase tracking-[.11em] text-faint">Tokyo · Apr 28–30</p><h1 className="truncate font-display text-[20px] font-medium tracking-[-.025em]">{title}</h1></div><button onClick={onContext} className="flex h-11 items-center gap-1.5 rounded-full border border-hair bg-white px-3.5 text-[12px] font-semibold text-muted"><Icon name="context" size={16} /> Context</button></div></>;
+function TripHome({ onOpen, onNavigate }: { onOpen: () => void; onNavigate: (screen: Screen) => void }) {
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="RoaminRabbit" subtitle="Your trips" />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-5">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#a09b92]">Next adventure</p>
+            <h2 className="mt-1 text-[29px] font-semibold tracking-[-.045em] text-[#17213a]">Where to next?</h2>
+          </div>
+          <button className="grid h-10 w-10 place-items-center rounded-full bg-[#253a5e] text-white"><Icon name="plus" size={18} /></button>
+        </div>
+
+        <button onClick={onOpen} className="mt-5 w-full overflow-hidden rounded-[26px] bg-[#17213a] text-left text-white shadow-[0_24px_50px_-28px_rgba(23,33,58,.8)] active:scale-[.992]">
+          <div className="relative h-[224px] bg-cover bg-center" style={{ backgroundImage: `linear-gradient(180deg,rgba(10,17,32,.02),rgba(10,17,32,.78)),url(${images.tokyo})` }}>
+            <span className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-[#253a5e]">Shared trip</span>
+            <div className="absolute bottom-4 left-4 right-4">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[12px] font-medium text-white/68">2–8 September · Tokyo</p>
+                  <h3 className="mt-1 text-[25px] font-semibold tracking-[-.035em]">Tokyo with the girls</h3>
+                </div>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 backdrop-blur"><Icon name="chevron" /></span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3"><AvatarStack /><span className="text-[12px] text-white/70">4 planning together</span></div>
+            <span className="rounded-full bg-[#cbe9df] px-2.5 py-1 text-[10px] font-bold text-[#285847]">12 ideas</span>
+          </div>
+        </button>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-[20px] border border-[#e7e3da] bg-white p-4"><span className="grid h-9 w-9 place-items-center rounded-[12px] bg-[#f5ebe4] text-[#c56f58]"><Icon name="heart" size={17} /></span><p className="mt-3 text-[21px] font-semibold tracking-[-.03em] text-[#17213a]">12</p><p className="text-[11px] text-[#817d75]">shared ideas</p></div>
+          <div className="rounded-[20px] border border-[#e7e3da] bg-white p-4"><span className="grid h-9 w-9 place-items-center rounded-[12px] bg-[#e9edf5] text-[#253a5e]"><Icon name="calendar" size={17} /></span><p className="mt-3 text-[21px] font-semibold tracking-[-.03em] text-[#17213a]">6 days</p><p className="text-[11px] text-[#817d75]">one shared plan</p></div>
+        </div>
+      </div>
+      <BottomNav active="trip" onNavigate={onNavigate} />
+    </div>
+  );
 }
 
-function TypingBubble() {
-  return <div className="chat-enter flex justify-start"><div className="rounded-[20px] rounded-bl-[7px] border border-hair bg-white px-4 py-3 shadow-[var(--shadow-card)]"><div className="flex h-4 items-center gap-1.5">{[0, 1, 2].map(i => <span key={i} className="typing-dot h-2 w-2 rounded-full bg-faint" style={{ animationDelay: `${i * 140}ms` }} />)}</div></div></div>;
+function IdeaCard({ image, title, category, contributor, votes, selected, onVote }: { image: string; title: string; category: string; contributor: number; votes: number; selected: boolean; onVote: () => void }) {
+  return (
+    <article className="overflow-hidden rounded-[21px] border border-[#e7e3da] bg-white shadow-[0_12px_30px_-24px_rgba(23,33,58,.55)]">
+      <div className="relative h-[126px] bg-cover bg-center" style={{ backgroundImage: `linear-gradient(180deg,transparent,rgba(12,18,30,.28)),url(${image})` }}>
+        <span className="absolute left-3 top-3 rounded-full bg-white/92 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.08em] text-[#625e57]">{category}</span>
+        <span className="absolute bottom-3 left-3 grid h-7 w-7 place-items-center rounded-full border-2 border-white text-[9px] font-bold text-white" style={{ backgroundColor: people[contributor].color }}>{people[contributor].initials}</span>
+      </div>
+      <div className="flex items-center gap-2 p-3.5">
+        <div className="min-w-0 flex-1"><h3 className="truncate text-[14px] font-semibold text-[#17213a]">{title}</h3><p className="mt-0.5 text-[10px] text-[#8a867e]">Saved by {people[contributor].name}</p></div>
+        <button onClick={onVote} className={`flex h-9 items-center gap-1 rounded-full px-3 text-[11px] font-semibold transition ${selected ? "bg-[#253a5e] text-white" : "bg-[#f2f0eb] text-[#625e57]"}`}><Icon name="heart" size={13} /> {selected ? votes + 1 : votes}</button>
+      </div>
+    </article>
+  );
 }
 
-function ChatBubble({ message }: { message: ChatMessage }) {
-  return <div className={`chat-enter flex ${message.role === "user" ? "justify-end" : "justify-start"}`}><div className={`max-w-[84%] rounded-[20px] px-4 py-3 text-[14px] leading-relaxed ${message.role === "user" ? "rounded-br-[7px] bg-ink text-paper" : "rounded-bl-[7px] border border-hair bg-white text-ink-soft"}`}>{message.text}</div></div>;
+function IdeasScreen({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+  const [voted, setVoted] = useState(false);
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="Tokyo with the girls" subtitle="Ideas board" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4">
+        <div className="rounded-[19px] bg-[#eaf1ed] p-4">
+          <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#4f8b78]"><Icon name="plus" size={16} /></span><div><p className="text-[12px] font-semibold text-[#315b4e]">Maya just saved teamLab Planets</p><p className="mt-0.5 text-[10px] text-[#648277]">Everyone can add, vote and decide together.</p></div></div>
+        </div>
+
+        <div className="mt-5 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#a09b92]">Group shortlist</p><h2 className="mt-1 text-[23px] font-semibold tracking-[-.035em] text-[#17213a]">What should make the trip?</h2></div><AvatarStack small /></div>
+        <div className="mt-4 grid gap-3">
+          <IdeaCard image={images.teamlab} title="teamLab Planets" category="Art + design" contributor={3} votes={3} selected={voted} onVote={() => setVoted((value) => !value)} />
+          <IdeaCard image={images.ramen} title="Ramen Kagari" category="Local food" contributor={1} votes={2} selected={false} onVote={() => undefined} />
+          <IdeaCard image={images.cafe} title="Koffee Mameya" category="Slow morning" contributor={2} votes={2} selected={false} onVote={() => undefined} />
+        </div>
+      </div>
+      <div className="shrink-0 border-t border-[#e9e6df] bg-[#fbfaf7] px-4 pb-4 pt-3"><PrimaryButton onClick={onNext}>Turn the shortlist into a plan <Icon name="chevron" size={16} /></PrimaryButton></div>
+    </div>
+  );
 }
 
-function ActivityCard({ activity, onOpen, onReplace, selected }: { activity: Activity; onOpen: () => void; onReplace: () => void; selected: boolean }) {
-  return <article className={`w-[276px] shrink-0 snap-center overflow-hidden rounded-[22px] border bg-white shadow-[var(--shadow-card)] transition-all duration-300 ${selected ? "border-ink ring-1 ring-ink/10" : "border-hair"}`}><button onClick={onOpen} className="block w-full text-left"><div className="relative h-[118px] bg-paper-2" style={{ backgroundImage: `linear-gradient(180deg,transparent,rgba(0,0,0,.32)),url(${activity.image})`, backgroundSize: "cover", backgroundPosition: "center" }}>{selected && <span className="absolute right-3 top-3 rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-semibold text-ink">Chosen ✓</span>}</div><div className="p-4"><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-faint">{activity.kicker}</p><div className="mt-1 flex items-start justify-between gap-3"><div><h3 className="text-[17px] font-semibold tracking-[-.015em]">{activity.name}</h3><p className="mt-1 text-[12px] text-muted">{activity.area} · {activity.travel}</p></div><span className="flex items-center gap-1 text-[11px] font-semibold"><Icon name="star" size={12} />{activity.rating}</span></div><p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-muted">{activity.detail}</p><span className="mt-3 inline-flex text-[11px] font-semibold text-accent">Reviews & details →</span></div></button><div className="border-t border-hair-2 p-3"><button onClick={onReplace} className={`h-10 w-full rounded-full px-3 text-[12px] font-semibold ${selected ? "bg-[#e7f1e8] text-[#35543c]" : "bg-ink text-paper"}`}>{selected ? "Replacing Disneyland" : "Replace Disneyland"}</button></div></article>;
+function EventCard({ time, title, subtitle, image, rain, updated, peopleText }: { time: string; title: string; subtitle: string; image: string; rain?: boolean; updated?: boolean; peopleText?: string }) {
+  return (
+    <div className="grid grid-cols-[42px_1fr] gap-2.5">
+      <p className="pt-4 text-[10px] font-semibold text-[#99948b]">{time}</p>
+      <article className={`overflow-hidden rounded-[18px] border bg-white ${rain ? "border-[#d8b883]" : updated ? "border-[#a8c8bb]" : "border-[#e7e3da]"}`}>
+        <div className="grid min-h-[104px] grid-cols-[1fr_94px]">
+          <div className="p-3.5"><div className="flex items-center gap-1.5"><p className="text-[9px] font-bold uppercase tracking-[.09em] text-[#a09b92]">{updated ? "Updated plan" : "Activity"}</p>{updated && <span className="grid h-4 w-4 place-items-center rounded-full bg-[#dcece5] text-[#3d705f]"><Icon name="check" size={9} /></span>}</div><h3 className="mt-1.5 text-[15px] font-semibold leading-tight text-[#17213a]">{title}</h3><p className="mt-1 text-[10px] leading-relaxed text-[#7e7a72]">{subtitle}</p>{peopleText && <p className="mt-2 text-[9px] font-semibold text-[#596a86]">{peopleText}</p>}</div>
+          <div className="relative bg-cover bg-center" style={{ backgroundImage: `url(${image})` }}>{rain && <span className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/94 text-[#537594] shadow"><Icon name="rain" size={16} /></span>}</div>
+        </div>
+      </article>
+    </div>
+  );
 }
 
-function ActivityDetail({ activity, onClose, onReplace }: { activity: Activity; onClose: () => void; onReplace: () => void }) {
-  return <div className="absolute inset-0 z-[80] flex items-end bg-black/30" onClick={onClose}><section onClick={e => e.stopPropagation()} className="mobile-sheet-in flex max-h-[91%] w-full flex-col overflow-hidden rounded-t-[30px] bg-[#f8f6f0]"><div className="relative h-[230px] shrink-0" style={{ backgroundImage: `linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.52)),url(${activity.image})`, backgroundSize: "cover", backgroundPosition: "center" }}><button onClick={onClose} className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/92 text-xl">×</button><div className="absolute bottom-5 left-5 right-5 text-white"><p className="text-[10px] font-semibold uppercase tracking-[.1em] text-white/65">{activity.kicker}</p><h2 className="mt-1 text-[27px] font-semibold tracking-[-.025em]">{activity.name}</h2><p className="mt-1 text-[13px] text-white/80">{activity.area} · {activity.travel}</p></div></div><div className="min-h-0 flex-1 overflow-y-auto p-5"><div className="flex items-center gap-2 text-[13px]"><span className="flex items-center gap-1 font-semibold"><Icon name="star" size={14} />{activity.rating}</span><span className="text-faint">{activity.reviews}</span><span className="ml-auto rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-muted">Indoor</span></div><p className="mt-4 text-[14px] leading-relaxed text-muted">{activity.detail}</p><div className="mt-5 grid grid-cols-3 gap-2">{[["Hours", "10:00–18:00"], ["Travel", activity.travel], ["Tickets", activity.price]].map(([a, b]) => <div key={a} className="rounded-[15px] bg-white p-3"><p className="text-[10px] uppercase tracking-[.08em] text-faint">{a}</p><p className="mt-1 text-[12px] font-semibold leading-snug">{b}</p></div>)}</div><p className="mt-5 text-[11px] font-semibold uppercase tracking-[.1em] text-faint">Recent reviews</p><div className="mt-2 grid gap-2"><div className="rounded-[15px] border border-hair bg-white p-4 text-[13px] leading-relaxed text-muted">“Great rainy-day option. The kids stayed engaged the whole time.”</div><div className="rounded-[15px] border border-hair bg-white p-4 text-[13px] leading-relaxed text-muted">“Easy to navigate, and there was enough here for a full afternoon.”</div></div></div><div className="shrink-0 border-t border-hair-2 bg-[#f8f6f0] p-4"><button onClick={onReplace} className="h-12 w-full rounded-full bg-ink text-[14px] font-semibold text-paper">Replace Disneyland with {activity.name}</button></div></section></div>;
+function DayTabs({ active = "thu" }: { active?: "thu" | "fri" }) {
+  return <div className="grid grid-cols-3 gap-2">{[["WED", "2"], ["THU", "3"], ["FRI", "4"]].map(([day, date]) => { const isActive = (active === "thu" && day === "THU") || (active === "fri" && day === "FRI"); return <div key={day} className={`rounded-[13px] border px-3 py-2 text-center ${isActive ? "border-[#253a5e] bg-[#253a5e] text-white" : "border-[#e7e3da] bg-white text-[#817d75]"}`}><p className="text-[8px] font-bold tracking-[.1em] opacity-70">{day}</p><p className="mt-0.5 text-[16px] font-semibold leading-none">{date}</p></div>; })}</div>;
 }
 
-function TripContextSheet({ onClose, onProfile }: { onClose: () => void; onProfile: () => void }) {
-  const [draft, setDraft] = useState("");
-  const [added, setAdded] = useState<string[]>([]);
-  const add = () => { const text = draft.trim(); if (!text) return; setAdded(v => [...v, text]); setDraft(""); };
-  const groups = [["Trip basics", "Tokyo, Japan · Apr 28–30 · 2 adults + 2 kids"], ["Flights", "Prefer Haneda · avoid red-eyes · checked bag for each traveler"], ["Stay", "Within 500m of a station · family room · around ¥35,000/night"], ["Car", "7-seat minivan · room for 4 large suitcases · automatic"], ["Trip rhythm", "One anchor activity per day · keep late afternoons flexible"]];
-  return <div className="absolute inset-0 z-[90] flex items-end bg-black/26" onClick={onClose}><section onClick={e => e.stopPropagation()} className="mobile-sheet-in flex h-[86%] w-full flex-col overflow-hidden rounded-t-[30px] bg-[#f8f6f0]"><div className="shrink-0 px-5 pt-3"><div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-hair" /><div className="flex items-start justify-between gap-3"><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-faint">Trip context</p><h2 className="mt-1 text-[26px] font-semibold tracking-[-.03em]">What I’m planning around</h2><p className="mt-2 text-[13px] leading-relaxed text-muted">These are facts and requirements for this Tokyo trip.</p></div><button onClick={onClose} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-hair bg-white text-xl">×</button></div></div><div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-4"><button onClick={onProfile} className="mb-4 flex w-full items-center justify-between rounded-[18px] border border-hair bg-white p-4 text-left shadow-[var(--shadow-card)]"><div><p className="text-[13px] font-semibold">Traveler profile</p><p className="mt-1 text-[12px] leading-relaxed text-muted">See the preferences that can carry across trips.</p></div><span className="text-[12px] font-semibold text-accent">Open →</span></button><div className="grid gap-2.5">{groups.map(([label, text]) => <button key={label} className="flex items-center gap-3 rounded-[17px] border border-hair bg-white p-4 text-left"><div className="min-w-0 flex-1"><p className="text-[11px] font-semibold uppercase tracking-[.08em] text-faint">{label}</p><p className="mt-1.5 text-[13px] font-medium leading-relaxed text-ink-soft">{text}</p></div><Icon name="chevron" size={16} /></button>)}{added.map(item => <div key={item} className="rounded-[16px] border border-accent-line bg-accent-tint p-4 text-[13px] font-medium text-ink-soft">Added · {item}</div>)}</div></div><div className="shrink-0 border-t border-hair-2 bg-[#f8f6f0] p-4"><div className="composite-field-owner flex items-center gap-2 rounded-full border border-hair bg-white p-1.5 focus-within:border-accent"><input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && add()} placeholder="Add context for this trip…" className="min-w-0 flex-1 bg-transparent px-3 py-3 text-[14px] outline-none placeholder:text-faint" /><button onClick={add} disabled={!draft.trim()} className="grid h-11 w-11 place-items-center rounded-full bg-ink text-paper disabled:opacity-30"><Icon name="send" size={17} /></button></div></div></section></div>;
+function ItineraryBefore({ onBack, onContext, onCopilot }: { onBack: () => void; onContext: () => void; onCopilot: () => void }) {
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="One shared plan" subtitle="Tokyo · 2–8 Sep" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4">
+        <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#a09b92]">Thursday</p><h2 className="mt-1 text-[24px] font-semibold tracking-[-.04em] text-[#17213a]">Tokyo itinerary</h2></div><button onClick={onContext} className="rounded-full border border-[#ddd8ce] bg-white px-3 py-2 text-[10px] font-semibold text-[#596a86]">Trip context</button></div>
+        <div className="mt-4"><DayTabs /></div>
+        <div className="mt-4 rounded-[18px] border border-[#cbd9e4] bg-[#eef4f8] p-3.5">
+          <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px] bg-white text-[#537594]"><Icon name="rain" size={18} /></span><div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[.08em] text-[#72889a]">Plan needs attention</p><p className="mt-1 text-[13px] font-semibold text-[#334e67]">Rain is expected during Disneyland</p><p className="mt-0.5 text-[10px] leading-relaxed text-[#668096]">Thursday, 11:00–17:00 · 80% chance</p></div></div>
+          <button onClick={onCopilot} className="mt-3 h-10 w-full rounded-full bg-white text-[11px] font-semibold text-[#3e607c] shadow-sm">Ask RoaminRabbit what to do</button>
+        </div>
+        <div className="mt-4 space-y-3">
+          <EventCard time="09:30" title="Slow breakfast in Ginza" subtitle="Koffee Mameya · saved by Jess" image={images.cafe} peopleText="Approved by all 4" />
+          <EventCard time="11:00" title="Tokyo Disneyland" subtitle="Maihama · tickets saved" image={images.disney} rain peopleText="Chosen together" />
+          <EventCard time="19:00" title="Ramen Kagari" subtitle="Ginza · table for four" image={images.ramen} peopleText="3 votes" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function CarChatOptions({ onChoose }: { onChoose: (choice: CarChoice) => void }) {
-  return <div className="chat-enter mt-3 grid gap-2 pl-1"><p className="text-[10.5px] font-semibold uppercase tracking-[.09em] text-faint">Transport options</p>{(["rental", "private"] as CarChoice[]).map(choice => { const option = carOptions[choice]; return <button key={choice} onClick={() => onChoose(choice)} className="rounded-[18px] border border-hair bg-white p-3.5 text-left shadow-[var(--shadow-card)]"><div className="flex items-start gap-3"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${choice === "rental" ? "bg-amber-tint text-amber" : "bg-surface-2 text-ink-soft"}`}><Icon name="car" size={17} /></span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-faint">{option.eyebrow}</p><h3 className="mt-1 text-[14px] font-semibold text-ink">{option.name}</h3></div><span className="text-[12px] font-semibold text-ink">{option.price}</span></div><p className="mt-1 text-[11.5px] leading-relaxed text-muted">{option.meta}</p><p className="mt-2 text-[11px] font-semibold text-accent">Review & book →</p></div></div></button>; })}</div>;
+function ContextScreen({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+  return (
+    <div className="flex h-full flex-col bg-[#f1f3f7]">
+      <AppHeader title="Your trip co-pilot" subtitle="Personalized context" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-7">
+        <div className="text-center"><div className="mx-auto grid h-16 w-16 place-items-center rounded-[22px] bg-white shadow-[0_14px_30px_-20px_rgba(23,33,58,.5)]"><Image src="/roaminrabbit-logo.png" alt="RoaminRabbit" width={48} height={48} className="h-12 w-12 object-contain" /></div><h2 className="mt-4 text-[25px] font-semibold tracking-[-.04em] text-[#17213a]">It knows this trip,<br />not just Tokyo.</h2><p className="mx-auto mt-2 max-w-[290px] text-[12px] leading-relaxed text-[#737986]">RoaminRabbit combines what your group saved, decided and shared—with the preferences you choose to connect.</p></div>
+        <div className="mt-7 flex items-center justify-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-[15px] bg-[#d97757] text-[11px] font-bold text-white">AI</span><span className="h-px w-10 bg-[#bfc6d2]" /><span className="grid h-12 w-12 place-items-center rounded-[15px] bg-white"><Image src="/roaminrabbit-logo.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" /></span><span className="h-px w-10 bg-[#bfc6d2]" /><span className="grid h-12 w-12 place-items-center rounded-[15px] bg-[#253a5e] text-white"><Icon name="people" size={20} /></span></div>
+        <div className="mt-7 rounded-[23px] border border-white bg-white/75 p-4 shadow-[0_16px_40px_-30px_rgba(23,33,58,.55)] backdrop-blur">
+          <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.11em] text-[#9a968d]">Connected preference source</p><p className="mt-1 text-[14px] font-semibold text-[#17213a]">Claude</p></div><span className="rounded-full bg-[#dcece5] px-2.5 py-1 text-[9px] font-bold text-[#3c705e]">Connected</span></div>
+          <div className="mt-4 flex flex-wrap gap-2">{["Loves local food", "Art & design", "Slow mornings"].map((label) => <span key={label} className="rounded-full border border-[#e5e0d7] bg-white px-3 py-2 text-[10px] font-semibold text-[#596a86]">{label}</span>)}</div>
+          <div className="mt-4 border-t border-[#e9e6df] pt-3 text-[10px] leading-relaxed text-[#89857d]">Only the preferences you choose are used for this trip.</div>
+        </div>
+      </div>
+      <div className="shrink-0 px-4 pb-4"><PrimaryButton onClick={onNext}>Let’s fix the rainy day <Icon name="sparkles" size={16} /></PrimaryButton></div>
+    </div>
+  );
 }
 
-function AssistantScreen({ onBack, onContext, replacement, onReplace, onCar }: { onBack: () => void; onContext: () => void; replacement: Activity | null; onReplace: (a: Activity) => void; onCar: (choice: CarChoice) => void }) {
-  const [detail, setDetail] = useState<Activity | null>(null);
-  const [draft, setDraft] = useState("");
-  const [initialThinking, setInitialThinking] = useState(false);
-  const [followupThinking, setFollowupThinking] = useState(false);
-  const [optionsReady, setOptionsReady] = useState(Boolean(replacement));
-  const [transportReady, setTransportReady] = useState(false);
-  const [followups, setFollowups] = useState<ChatMessage[]>([]);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const timers = useRef<number[]>([]);
-
+function CopilotScreen({ onBack, onAccept }: { onBack: () => void; onAccept: () => void }) {
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (optionsReady || replacement) return;
-    setInitialThinking(true);
-    const timer = window.setTimeout(() => { setInitialThinking(false); setOptionsReady(true); }, 850);
-    timers.current.push(timer);
-    return () => timers.current.forEach(t => window.clearTimeout(t));
-  }, [optionsReady, replacement]);
+    setReady(false);
+    const timer = window.setTimeout(() => setReady(true), 1250);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [followups, initialThinking, followupThinking, optionsReady, transportReady]);
-
-  const send = (text?: string) => {
-    const value = (text ?? draft).trim();
-    if (!value || followupThinking) return;
-    setFollowups(v => [...v, { id: `u-${Date.now()}`, role: "user", text: value }]);
-    setDraft("");
-    setFollowupThinking(true);
-    const id = window.setTimeout(() => {
-      setFollowups(v => [...v, { id: `a-${Date.now()}`, role: "assistant", text: /near|close/i.test(value) ? "I’ll keep any new option close to the current route." : /kid|child/i.test(value) ? "I’ll keep both kids’ comfort and energy level in the trade-off." : "Got it. I’ll use that without changing the rest of the trip." }]);
-      setFollowupThinking(false);
-    }, 760);
-    timers.current.push(id);
-  };
-
-  const replace = (activity: Activity) => {
-    if (followupThinking) return;
-    onReplace(activity);
-    setDetail(null);
-    setTransportReady(false);
-    setFollowups([{ id: `u-r-${Date.now()}`, role: "user", text: `Replace with ${activity.name}` }]);
-    setFollowupThinking(true);
-    const first = window.setTimeout(() => {
-      setFollowups(v => [...v, { id: `a-r-${Date.now()}`, role: "assistant", text: `Done — I replaced Disneyland with ${activity.name}. The rest of today stays unchanged.` }]);
-      if (!activity.carHelpful) { setFollowupThinking(false); return; }
-      const second = window.setTimeout(() => {
-        setFollowups(v => [...v, { id: `a-c-${Date.now()}`, role: "assistant", text: "Tachikawa is much easier by car with two kids. I found two ways to handle it without rebuilding the rest of the day." }]);
-        setFollowupThinking(false);
-        setTransportReady(true);
-      }, 520);
-      timers.current.push(second);
-    }, 720);
-    timers.current.push(first);
-  };
-
-  return <div className="flex h-full flex-col"><AppHeader title="Today’s change" onBack={onBack} onContext={onContext} /><div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-4 pb-5 pt-4"><div className="chat-enter rounded-[19px] border border-[#c9d9e8] bg-[#edf4fa] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-white text-[#47647f]"><Icon name="rain" size={18} /></span><div><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-[#61788e]">Affected event</p><h2 className="mt-1 text-[18px] font-semibold tracking-[-.015em]">Tokyo Disneyland</h2><p className="mt-1 text-[12px] text-[#61788e]">Today · 11:00 · rain expected from 11:00</p></div></div>{replacement && <div className="mt-3 rounded-[13px] bg-white/75 px-3 py-2.5 text-[12px] font-semibold text-[#47647f]">Replacing with {replacement.name}</div>}</div>
-    <div className="mt-4 space-y-3"><ChatBubble message={{ id: "intro", role: "assistant", text: "Rain is projected to start around 11 AM, which overlaps with Disneyland." }} />{initialThinking && <TypingBubble />}</div>
-    {optionsReady && <div className="chat-enter mt-5"><div className="mb-2 flex items-center justify-between"><p className="text-[11px] font-semibold uppercase tracking-[.09em] text-faint">Indoor alternatives</p><span className="text-[11px] text-faint">Swipe →</span></div><div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{activities.map(a => <ActivityCard key={a.id} activity={a} selected={replacement?.id === a.id} onOpen={() => setDetail(a)} onReplace={() => replace(a)} />)}</div></div>}
-    {(followups.length > 0 || followupThinking) && <div className="mt-3 space-y-3">{followups.map(message => <ChatBubble key={message.id} message={message} />)}{followupThinking && <TypingBubble />}</div>}
-    {transportReady && replacement?.carHelpful && <CarChatOptions onChoose={onCar} />}
-  </div><div className="shrink-0 border-t border-hair-2 bg-[#f8f6f0] px-4 pb-4 pt-3"><div className="mb-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{["Keep it nearby", "More for kids", "Under ¥10,000"].map(t => <button key={t} onClick={() => send(t)} className="shrink-0 rounded-full border border-hair bg-white px-3.5 py-2 text-[12px] font-semibold text-muted">{t}</button>)}</div><div className="composite-field-owner flex items-center gap-2 rounded-full border border-hair bg-white p-1.5 focus-within:border-accent"><input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Ask for a different option…" className="min-w-0 flex-1 bg-transparent px-3 py-3 text-[14px] outline-none placeholder:text-faint" /><button onClick={() => send()} disabled={!draft.trim() || followupThinking} className="grid h-11 w-11 place-items-center rounded-full border border-hair bg-surface-2 text-muted disabled:opacity-30"><Icon name="send" size={17} /></button></div></div>{detail && <ActivityDetail activity={detail} onClose={() => setDetail(null)} onReplace={() => replace(detail)} />}</div>;
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="RoaminRabbit co-pilot" subtitle="Tokyo with the girls" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4">
+        <div className="rounded-[19px] border border-[#cbd9e4] bg-[#eef4f8] p-3.5"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-[12px] bg-white text-[#537594]"><Icon name="rain" size={17} /></span><div><p className="text-[9px] font-bold uppercase tracking-[.1em] text-[#72889a]">What changed</p><p className="mt-1 text-[13px] font-semibold text-[#334e67]">Disneyland tomorrow · rain from 11 AM</p></div></div></div>
+        <div className="mt-5 flex justify-end"><div className="max-w-[82%] rounded-[19px] rounded-br-[6px] bg-[#253a5e] px-4 py-3 text-[12px] leading-relaxed text-white">Disneyland tomorrow and now it’s raining? What should we do?</div></div>
+        <div className="mt-4">{!ready ? <TypingBubble /> : <div className="rr-enter flex items-start gap-2.5"><Image src="/roaminrabbit-logo.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full border border-[#e8e4dc] bg-white object-contain p-1" /><div className="max-w-[86%] rounded-[19px] rounded-bl-[6px] border border-[#e7e3da] bg-white p-4 text-[#28334a] shadow-sm"><p className="text-[12px] leading-[1.55]">Okay, maybe not. <strong>Friday looks dry and sunny.</strong> How about <strong>teamLab + ramen tomorrow</strong>, and Disneyland Friday?</p><div className="mt-3 flex flex-wrap gap-1.5"><span className="rounded-full bg-[#eef1f6] px-2.5 py-1 text-[9px] font-semibold text-[#596a86]">Keeps your saved picks</span><span className="rounded-full bg-[#eef1f6] px-2.5 py-1 text-[9px] font-semibold text-[#596a86]">No booking conflict</span></div></div></div>}</div>
+        {ready && <div className="rr-enter mt-5 rounded-[22px] border border-[#e7e3da] bg-[#fbfaf7] p-4"><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center"><div><span className="mx-auto grid h-9 w-9 place-items-center rounded-full bg-[#edf4f8] text-[#537594]"><Icon name="rain" size={16} /></span><p className="mt-2 text-[9px] font-bold text-[#99948b]">THURSDAY</p><p className="mt-1 text-[11px] font-semibold text-[#17213a]">teamLab + ramen</p></div><Icon name="chevron" size={17} /><div><span className="mx-auto grid h-9 w-9 place-items-center rounded-full bg-[#fff1ce] text-[#c28c31]"><Icon name="sun" size={16} /></span><p className="mt-2 text-[9px] font-bold text-[#99948b]">FRIDAY</p><p className="mt-1 text-[11px] font-semibold text-[#17213a]">Disneyland</p></div></div></div>}
+      </div>
+      {ready && <div className="rr-enter shrink-0 border-t border-[#e9e6df] bg-[#fbfaf7] px-4 pb-4 pt-3"><PrimaryButton onClick={onAccept}>Yes please — update my trip <Icon name="magic" size={16} /></PrimaryButton></div>}
+    </div>
+  );
 }
 
-function BookingShortcut({ icon, label, state, onClick }: { icon: string; label: string; state: "booked" | "saved" | "pending"; onClick: () => void }) {
-  const booked = state === "booked";
-  const saved = state === "saved";
-  return <button onClick={onClick} className="min-w-0 flex-1 rounded-[14px] border border-hair bg-white p-2.5 text-left"><div className="flex items-center justify-between"><span className="grid h-8 w-8 place-items-center rounded-[10px] bg-surface-2"><Icon name={icon} size={16} /></span><span className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full ${booked ? "bg-[#e3eee4] text-[#35543c]" : saved ? "bg-amber-tint text-amber" : "bg-surface-2 text-faint"}`}>{booked ? <Icon name="check" size={11} /> : saved ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : <span className="h-1.5 w-1.5 rounded-full border border-current" />}</span></div><p className="mt-2 text-[11.5px] font-semibold">{label}</p></button>;
+function UpdatingScreen({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const timer = window.setTimeout(onDone, 1550);
+    return () => window.clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center bg-[#253a5e] px-8 text-center text-white">
+      <div className="relative"><span className="rr-pulse absolute inset-0 rounded-full bg-white/20" /><span className="relative grid h-20 w-20 place-items-center rounded-full bg-white"><Image src="/roaminrabbit-logo.png" alt="" width={56} height={56} className="h-14 w-14 object-contain" /></span></div>
+      <h2 className="mt-6 text-[24px] font-semibold tracking-[-.035em]">Updating your shared trip</h2>
+      <p className="mt-2 text-[12px] leading-relaxed text-white/65">Moving two activities and checking the group’s saved bookings…</p>
+      <div className="mt-7 w-full max-w-[260px] space-y-2 text-left">{["Thursday · teamLab + ramen", "Friday · Tokyo Disneyland"].map((label, index) => <div key={label} className="rr-check-in flex items-center gap-2.5 rounded-full bg-white/10 px-4 py-3 text-[10px] font-medium" style={{ animationDelay: `${index * 320}ms` }}><span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[#253a5e]"><Icon name="check" size={11} /></span>{label}</div>)}</div>
+    </div>
+  );
 }
 
-function ItineraryEvent({ time, title, subtitle, image, warning, onSuggestions, replaced = false }: { time: string; title: string; subtitle: string; image: string; warning?: boolean; onSuggestions?: () => void; replaced?: boolean }) {
-  return <div className="grid grid-cols-[48px_1fr] gap-3"><p className="pt-4 font-mono text-[12px] text-muted">{time}</p><article className={`overflow-hidden rounded-[18px] border bg-white shadow-[var(--shadow-card)] ${warning ? "border-[#d4b98f]" : "border-hair"}`}><div className="grid min-h-[126px] grid-cols-[1fr_116px]"><div className="p-4"><p className="text-[9.5px] font-semibold uppercase tracking-[.08em] text-faint">{replaced ? "Updated activity" : "Activity"}</p><h3 className="mt-2 text-[17px] font-medium leading-tight tracking-[-.012em]">{title}</h3><p className="mt-1.5 text-[12px] leading-relaxed text-muted">{subtitle}</p></div><div className="relative bg-paper-2" style={{ backgroundImage: `url(${image})`, backgroundSize: "cover", backgroundPosition: "center" }}>{warning && <span className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/92 text-amber shadow"><Icon name="rain" size={17} /></span>}</div></div>{warning && <div className="border-t border-[#ddc7a5] bg-amber-tint px-4 py-3"><div className="flex items-center justify-between gap-3"><div><p className="text-[12px] font-semibold text-[#795922]">Rain expected from 11 AM</p><p className="mt-0.5 text-[11px] text-[#866b3a]">This overlaps with most of the Disneyland day.</p></div><button onClick={onSuggestions} className="shrink-0 rounded-full bg-white px-3 py-2 text-[11px] font-semibold text-amber">See suggestions</button></div></div>}</article></div>;
+function ItineraryAfter({ onBack, onExpense }: { onBack: () => void; onExpense: () => void }) {
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="Trip updated" subtitle="Everyone sees the change" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4">
+        <div className="rounded-[18px] border border-[#b8d1c6] bg-[#e9f3ee] p-3.5"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#3d705f]"><Icon name="check" size={17} /></span><div><p className="text-[13px] font-semibold text-[#315b4e]">Your group plan is updated</p><p className="mt-0.5 text-[10px] text-[#648277]">No saved booking was lost.</p></div></div></div>
+        <div className="mt-5"><div className="mb-2 flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.12em] text-[#a09b92]">Thursday · Rain</p><h2 className="mt-1 text-[20px] font-semibold tracking-[-.035em] text-[#17213a]">Indoor day</h2></div><span className="rounded-full bg-[#edf4f8] px-2.5 py-1 text-[9px] font-bold text-[#537594]">Updated</span></div><EventCard time="11:00" title="teamLab Planets" subtitle="Toyosu · 2 hrs" image={images.teamlab} updated peopleText="From the group shortlist" /><div className="mt-3"><EventCard time="18:30" title="Ramen Kagari" subtitle="Ginza · table for four" image={images.ramen} updated /></div></div>
+        <div className="my-5 h-px bg-[#e7e3da]" />
+        <div><div className="mb-2 flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.12em] text-[#a09b92]">Friday · Sunny</p><h2 className="mt-1 text-[20px] font-semibold tracking-[-.035em] text-[#17213a]">Disneyland day</h2></div><span className="grid h-8 w-8 place-items-center rounded-full bg-[#fff1ce] text-[#c28c31]"><Icon name="sun" size={16} /></span></div><EventCard time="09:00" title="Tokyo Disneyland" subtitle="Maihama · tickets saved" image={images.disney} updated peopleText="Moved from Thursday" /></div>
+      </div>
+      <div className="shrink-0 border-t border-[#e9e6df] bg-[#fbfaf7] px-4 pb-4 pt-3"><PrimaryButton onClick={onExpense}>Next: split last night’s dinner <Icon name="chevron" size={16} /></PrimaryButton></div>
+    </div>
+  );
 }
 
-function ItineraryScreen({ onContext, onAssistant, onCar, onBookings, replacement }: { onContext: () => void; onAssistant: () => void; onCar: () => void; onBookings: () => void; replacement: Activity | null }) {
-  return <div className="flex h-full flex-col"><AppHeader title="Tokyo itinerary" onContext={onContext} /><div className="min-h-0 flex-1 overflow-y-auto px-4 pb-28 pt-5"><div><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-faint">Itinerary · 3 days</p><h2 className="mt-1 text-[29px] font-medium tracking-[-.03em]">Relaxing Tokyo trip</h2><p className="mt-1 text-[13px] text-muted">Apr 28 – Apr 30 · Japan</p></div><section className="mt-5"><div className="mb-2 flex items-center justify-between"><p className="text-[11px] font-semibold uppercase tracking-[.09em] text-faint">Bookings</p><button onClick={onBookings} className="text-[11px] font-semibold text-accent">View all</button></div><div className="flex gap-2"><BookingShortcut icon="plane" label="Flight" state="booked" onClick={onBookings} /><BookingShortcut icon="hotel" label="Hotel" state="booked" onClick={onBookings} /><BookingShortcut icon="car" label="Car" state="saved" onClick={onCar} /></div></section><div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{[["MON", "28", "0"], ["TUE", "29", "6"], ["WED", "30", "Today"]].map(([day, date, n], i) => <button key={date} className={`min-w-[66px] rounded-[13px] border px-2 py-2 text-center ${i === 2 ? "border-ink bg-ink text-paper" : "border-hair bg-white"}`}><span className="block text-[9px] font-semibold opacity-60">{day}</span><span className="mt-0.5 block text-[18px] font-medium leading-none">{date}</span><span className="mt-1 block text-[9px] opacity-65">{n}</span></button>)}</div><div className="mt-5 space-y-4"><ItineraryEvent time="09:00" title="Breakfast in Ginza" subtitle="Café breakfast · 8 min walk" image={itineraryImages.breakfast} /><ItineraryEvent time="11:00" title={replacement?.name ?? "Tokyo Disneyland"} subtitle={replacement ? `${replacement.area} · ${replacement.travel}` : "Maihama · tickets booked"} image={replacement?.image ?? itineraryImages.disney} warning={!replacement} onSuggestions={onAssistant} replaced={Boolean(replacement)} /><ItineraryEvent time="18:30" title="Yakiniku dinner" subtitle="Ginza · reservation confirmed" image={itineraryImages.dinner} /></div></div><button onClick={onAssistant} className="absolute bottom-6 right-6 z-40 flex h-14 items-center gap-2 rounded-full bg-ink px-5 text-[13px] font-semibold text-paper shadow-[var(--shadow-float)]"><Icon name="chat" size={20} /> Ask</button></div>;
+function ExpenseScreen({ onBack, onAdjust }: { onBack: () => void; onAdjust: () => void }) {
+  const items = [["Ramen", "¥8,400", "All 4"], ["Gyoza", "¥2,400", "All 4"], ["Pizza", "¥3,600", "3 people"], ["Drinks", "¥4,200", "3 people"]];
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="Dinner at Ramen Kagari" subtitle="Expense split" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4">
+        <section className="rounded-[24px] bg-[#253a5e] p-5 text-white shadow-[0_20px_40px_-26px_rgba(37,58,94,.8)]"><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.12em] text-white/55">Dinner total</p><p className="mt-2 text-[32px] font-semibold tracking-[-.045em]">¥18,600</p></div><span className="grid h-11 w-11 place-items-center rounded-[14px] bg-white/12"><Icon name="expenses" size={20} /></span></div><div className="mt-5 flex items-center justify-between border-t border-white/12 pt-4"><div><p className="text-[9px] uppercase tracking-[.1em] text-white/45">Paid by</p><p className="mt-1 text-[12px] font-semibold">Sarah</p></div><AvatarStack small /></div></section>
+        <section className="mt-4 rounded-[22px] border border-[#e7e3da] bg-white p-4"><div className="flex items-center justify-between"><h2 className="text-[14px] font-semibold text-[#17213a]">Bill items</h2><span className="text-[10px] text-[#99948b]">4 travelers</span></div><div className="mt-3 divide-y divide-[#eeeae2]">{items.map(([label, amount, who]) => <div key={label} className="flex items-center gap-3 py-3"><span className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#f2f0eb] text-[11px]">{label === "Drinks" ? "🍹" : label === "Pizza" ? "🍕" : "🍜"}</span><div className="min-w-0 flex-1"><p className="text-[12px] font-semibold text-[#28334a]">{label}</p><p className="mt-0.5 text-[9px] text-[#99948b]">{who}</p></div><p className="text-[12px] font-semibold text-[#28334a]">{amount}</p></div>)}</div></section>
+        <section className="mt-4 rounded-[20px] border border-[#e7e3da] bg-[#fbfaf7] p-4"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#9a968d]">First pass</p><p className="mt-1 text-[13px] font-semibold text-[#17213a]">Equal split</p></div><p className="text-[19px] font-semibold text-[#17213a]">¥4,650 <span className="text-[9px] font-medium text-[#99948b]">each</span></p></div><p className="mt-3 text-[10px] leading-relaxed text-[#817d75]">RoaminRabbit can adjust this based on what each person actually had.</p></section>
+      </div>
+      <div className="shrink-0 border-t border-[#e9e6df] bg-[#fbfaf7] px-4 pb-4 pt-3"><PrimaryButton onClick={onAdjust}>Tell RoaminRabbit what I had <Icon name="sparkles" size={16} /></PrimaryButton></div>
+    </div>
+  );
 }
 
-function CarScreen({ onBack, onContext, initialChoice, onDone }: { onBack: () => void; onContext: () => void; initialChoice: CarChoice; onDone: () => void }) {
-  const [choice, setChoice] = useState<CarChoice>(initialChoice);
-  const [booked, setBooked] = useState(false);
-  const option = carOptions[choice];
-  return <div className="flex h-full flex-col"><AppHeader title="Car booking" onBack={onBack} onContext={onContext} /><div className="min-h-0 flex-1 overflow-y-auto px-4 pb-7 pt-5"><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-faint">For Grand Circus Show</p><h2 className="mt-1 text-[27px] font-medium tracking-[-.03em]">Make the Tachikawa trip easy</h2><p className="mt-2 text-[13px] leading-relaxed text-muted">The route is set around the activity you just chose. Pick how you want to get there, then review the booking details before confirming.</p>
-    <div className="mt-5 grid grid-cols-2 gap-2 rounded-[16px] bg-paper-2 p-1.5">{(["rental", "private"] as CarChoice[]).map(item => <button key={item} onClick={() => { setChoice(item); setBooked(false); }} className={`rounded-[12px] px-3 py-2.5 text-[12px] font-semibold ${choice === item ? "bg-white text-ink shadow-sm" : "text-muted"}`}>{item === "rental" ? "Saved rental" : "Private car"}</button>)}</div>
-    <section className="mt-4 overflow-hidden rounded-[22px] border border-hair bg-white shadow-[var(--shadow-card)]"><div className="p-5"><div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${choice === "rental" ? "bg-amber-tint text-amber" : "bg-surface-2 text-ink-soft"}`}><Icon name="car" size={19} /></span><div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[.09em] text-faint">{option.eyebrow}</p><h3 className="mt-1 text-[20px] font-semibold tracking-[-.02em]">{option.name}</h3><p className="mt-1 text-[12px] text-muted">{option.meta}</p></div><div className="text-right"><p className="text-[16px] font-semibold">{option.price}</p><p className="mt-1 text-[10px] text-faint">{option.priceNote}</p></div></div><div className="mt-4 rounded-[15px] bg-surface-2 p-3.5 text-[12px] leading-relaxed text-muted">{option.detail}</div></div>
-      <div className="grid grid-cols-2 border-t border-hair-2">{[["Pickup", choice === "rental" ? "10:00 · Ginza" : "10:15 · Hotel lobby"], ["Return", choice === "rental" ? "21:00 · Ginza" : "After dinner"]].map(([label, value]) => <div key={label} className="p-4 first:border-r first:border-hair-2"><p className="text-[9.5px] font-semibold uppercase tracking-[.08em] text-faint">{label}</p><p className="mt-1 text-[12px] font-semibold text-ink-soft">{value}</p></div>)}</div>
-    </section>
-    <section className="mt-4 rounded-[20px] border border-hair bg-white p-4"><p className="text-[11px] font-semibold uppercase tracking-[.09em] text-faint">Trip fit</p><div className="mt-3 grid gap-2.5 text-[12px] text-ink-soft">{["2 adults + 2 kids", "4 large suitcases fit", choice === "rental" ? "Automatic transmission" : "Driver + waiting time included"].map(item => <div key={item} className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#e3eee4] text-[#35543c]"><Icon name="check" size={11} /></span>{item}</div>)}</div></section>
-    <section className="mt-4 rounded-[20px] border border-hair bg-white p-4"><div className="flex justify-between gap-3"><div><p className="text-[11px] font-semibold uppercase tracking-[.09em] text-faint">Price summary</p><p className="mt-2 text-[12px] text-muted">{choice === "rental" ? "Rental + taxes + basic coverage" : "Car + driver + toll estimate + waiting"}</p></div><p className="text-[19px] font-semibold tracking-[-.02em]">{option.price}</p></div><p className="mt-3 border-t border-hair-2 pt-3 text-[11px] leading-relaxed text-faint">Prototype booking only. Nothing is charged until the final confirmation.</p></section>
-    {booked ? <div className="mt-4 space-y-3"><div className="rounded-[19px] border border-[#c6d9c7] bg-[#edf5ee] p-5"><div className="flex items-center gap-2 text-[#35543c]"><span className="grid h-8 w-8 place-items-center rounded-full bg-white"><Icon name="check" size={16} /></span><p className="text-[14px] font-semibold">Transport booked for today</p></div><p className="mt-2 text-[12px] text-[#55705b]">Pickup details are now attached to the same Tokyo trip and itinerary.</p></div><button onClick={onDone} className="h-12 w-full rounded-full bg-ink text-[14px] font-semibold text-paper">Back to itinerary</button></div> : <button onClick={() => setBooked(true)} className="mt-4 h-12 w-full rounded-full bg-ink text-[14px] font-semibold text-paper">{option.cta}</button>}
-  </div></div>;
+function AdjustSplitScreen({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(false);
+    const timer = window.setTimeout(() => setReady(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="Make the split fair" subtitle="Ramen Kagari · ¥18,600" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-5">
+        <div className="flex justify-end"><div className="max-w-[82%] rounded-[19px] rounded-br-[6px] bg-[#253a5e] px-4 py-3 text-[12px] leading-relaxed text-white">I didn’t have pizza or drinks.</div></div>
+        <div className="mt-4">{!ready ? <TypingBubble label="Recalculating the split" /> : <div className="rr-enter flex items-start gap-2.5"><Image src="/roaminrabbit-logo.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full border border-[#e8e4dc] bg-white object-contain p-1" /><div className="max-w-[86%] rounded-[19px] rounded-bl-[6px] border border-[#e7e3da] bg-white p-4 text-[#28334a] shadow-sm"><p className="text-[12px] leading-relaxed">Got it. I’ll leave those out of your split and update everyone automatically.</p></div></div>}</div>
+        {ready && <div className="rr-enter mt-5 space-y-3"><section className="rounded-[23px] border border-[#b8d1c6] bg-[#eef6f2] p-4"><div className="flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.11em] text-[#648277]">Your updated share</p><p className="mt-1 text-[25px] font-semibold tracking-[-.04em] text-[#315b4e]">¥2,700</p></div><span className="grid h-11 w-11 place-items-center rounded-full bg-white text-[#3d705f]"><Icon name="check" size={20} /></span></div><p className="mt-3 text-[10px] text-[#648277]">¥1,950 less than the equal split</p></section><section className="rounded-[21px] border border-[#e7e3da] bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#9a968d]">Included for Nadya</p><div className="mt-3 space-y-2">{[["Ramen", "¥2,100", true], ["Gyoza", "¥600", true], ["Pizza", "Excluded", false], ["Drinks", "Excluded", false]].map(([label, value, included]) => <div key={String(label)} className="flex items-center gap-2 text-[11px]"><span className={`grid h-5 w-5 place-items-center rounded-full ${included ? "bg-[#dcece5] text-[#3d705f]" : "bg-[#f2f0eb] text-[#aaa59c]"}`}>{included ? <Icon name="check" size={10} /> : "–"}</span><span className="flex-1 font-medium text-[#4d5668]">{label}</span><span className={included ? "font-semibold text-[#28334a]" : "text-[#99948b]"}>{value}</span></div>)}</div></section></div>}
+      </div>
+      {ready && <div className="rr-enter shrink-0 border-t border-[#e9e6df] bg-[#fbfaf7] px-4 pb-4 pt-3"><PrimaryButton onClick={onNext}>Update everyone’s balances <Icon name="chevron" size={16} /></PrimaryButton></div>}
+    </div>
+  );
 }
 
-function BookingsScreen({ onBack, onContext, onCar }: { onBack: () => void; onContext: () => void; onCar: () => void }) {
-  return <div className="flex h-full flex-col"><AppHeader title="Trip bookings" onBack={onBack} onContext={onContext} /><div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-5"><h2 className="text-[27px] font-medium tracking-[-.03em]">Everything attached to this trip</h2><p className="mt-2 text-[13px] leading-relaxed text-muted">Booked assets stay separate from itinerary events, but share the same trip context.</p><div className="mt-5 space-y-3">{[["plane", "Flight", "Japan Airlines · CGK → HND"], ["hotel", "Hotel", "MUJI Hotel Ginza · Apr 28–30"]].map(([icon, title, meta]) => <div key={title} className="rounded-[20px] border border-hair bg-white p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 place-items-center rounded-[11px] bg-surface-2"><Icon name={icon} size={17} /></span><div className="flex-1"><div className="flex justify-between gap-2"><h3 className="text-[14px] font-semibold">{title}</h3><span className="grid h-5 w-5 place-items-center rounded-full bg-[#e4eee4] text-[#35543c]"><Icon name="check" size={12} /></span></div><p className="mt-1 text-[12px] text-muted">{meta}</p></div></div></div>)}<button onClick={onCar} className="w-full rounded-[20px] border border-[#d7c39f] bg-white p-4 text-left"><div className="flex items-start gap-3"><span className="grid h-9 w-9 place-items-center rounded-[11px] bg-amber-tint text-amber"><Icon name="car" size={17} /></span><div className="flex-1"><div className="flex justify-between gap-2"><h3 className="text-[14px] font-semibold">Car</h3><span className="grid h-5 w-5 place-items-center rounded-full bg-amber-tint text-amber"><span className="h-1.5 w-1.5 rounded-full bg-current" /></span></div><p className="mt-1 text-[12px] text-muted">2 transport options ready to review</p><p className="mt-2 text-[11px] font-semibold text-accent">Continue →</p></div></div></button></div></div></div>;
+function BalancesScreen({ onBack, onFinish }: { onBack: () => void; onFinish: () => void }) {
+  const [settled, setSettled] = useState(false);
+  const balances = [["Nadya", "owes", "¥2,700", 0], ["Jess", "owes", "¥5,300", 2], ["Maya", "owes", "¥5,300", 3]] as const;
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="Group balances" subtitle="Tokyo with the girls" onBack={onBack} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-5">
+        <section className="rounded-[24px] border border-[#b8d1c6] bg-[#e9f3ee] p-5"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#648277]">Sarah is owed</p><p className="mt-2 text-[31px] font-semibold tracking-[-.045em] text-[#315b4e]">¥13,300</p></div><span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white font-bold text-white" style={{ backgroundColor: people[1].color }}>S</span></div><p className="mt-4 border-t border-[#cce0d7] pt-3 text-[10px] leading-relaxed text-[#648277]">Dinner is split by what each person actually consumed.</p></section>
+        <div className="mt-5 flex items-center justify-between"><h2 className="text-[15px] font-semibold text-[#17213a]">Who pays Sarah</h2><span className="text-[10px] text-[#99948b]">3 transfers</span></div>
+        <div className="mt-3 space-y-2.5">{balances.map(([name, status, amount, index]) => <div key={name} className="flex items-center gap-3 rounded-[18px] border border-[#e7e3da] bg-white p-3.5"><span className="grid h-10 w-10 place-items-center rounded-full border-2 border-white text-[11px] font-bold text-white shadow-sm" style={{ backgroundColor: people[index].color }}>{people[index].initials}</span><div className="min-w-0 flex-1"><p className="text-[12px] font-semibold text-[#28334a]">{name}</p><p className="mt-0.5 text-[9px] text-[#99948b]">{settled ? "settled up" : status}</p></div><p className={`text-[13px] font-semibold ${settled ? "text-[#4f8b78]" : "text-[#28334a]"}`}>{settled ? "Settled ✓" : amount}</p></div>)}</div>
+        <button onClick={() => setSettled(true)} disabled={settled} className={`mt-5 h-11 w-full rounded-full border text-[12px] font-semibold transition ${settled ? "border-[#b8d1c6] bg-[#e9f3ee] text-[#3d705f]" : "border-[#dcd7cc] bg-white text-[#596a86]"}`}>{settled ? "Everyone is settled" : "Mark all as settled"}</button>
+      </div>
+      <div className="shrink-0 border-t border-[#e9e6df] bg-[#fbfaf7] px-4 pb-4 pt-3"><PrimaryButton onClick={onFinish}>{settled ? "Finish trip story" : "Everything is clear"} <Icon name="chevron" size={16} /></PrimaryButton></div>
+    </div>
+  );
 }
 
-function ProfileScreen({ onBack }: { onBack: () => void }) {
-  return <div className="flex h-full flex-col"><StatusBar /><div className="flex h-[62px] shrink-0 items-center gap-3 border-b border-hair-2 px-4"><button onClick={onBack} className="grid h-11 w-11 place-items-center rounded-full border border-hair bg-white"><Icon name="back" /></button><div><p className="text-[10px] font-semibold uppercase tracking-[.1em] text-faint">Traveler profile</p><h1 className="text-[20px] font-medium">Preferences across trips</h1></div></div><div className="min-h-0 flex-1 overflow-y-auto p-4"><div className="rounded-[20px] border border-hair bg-white p-5"><p className="text-[13px] leading-relaxed text-muted">These are reusable preferences. They’re separate from the Tokyo-specific requirements you saw in Trip Context.</p></div><div className="mt-4 space-y-3">{[["Flights", "Prefer daytime flights · aisle seat · checked baggage"], ["Hotels", "Design-forward when location is still convenient"], ["Pace", "Usually one major activity per day"], ["Transport", "Prefer simple transfers over the absolute lowest price"]].map(([a, b]) => <div key={a} className="rounded-[18px] border border-hair bg-white p-4"><p className="text-[11px] font-semibold uppercase tracking-[.08em] text-faint">{a}</p><p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{b}</p></div>)}</div></div></div>;
+function FinalScreen({ onRestart }: { onRestart: () => void }) {
+  return (
+    <div className="relative flex h-full flex-col overflow-hidden bg-[#253a5e] px-7 text-white">
+      <StatusBar />
+      <div className="absolute -right-24 top-28 h-72 w-72 rounded-full bg-[#4f8b78]/22 blur-2xl" />
+      <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#d97762]/16 blur-2xl" />
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center text-center"><div className="grid h-24 w-24 place-items-center rounded-[30px] bg-white shadow-[0_24px_60px_-28px_rgba(0,0,0,.65)]"><Image src="/roaminrabbit-logo.png" alt="RoaminRabbit" width={80} height={80} className="h-20 w-20 object-contain" /></div><p className="mt-5 text-[11px] font-bold uppercase tracking-[.18em] text-white/48">RoaminRabbit</p><h1 className="mt-3 text-[31px] font-semibold leading-[1.06] tracking-[-.05em]">Your co-pilot for<br />the whole trip.</h1><p className="mx-auto mt-4 max-w-[290px] text-[12px] leading-relaxed text-white/62">One shared place to plan together, adapt when real life changes, and split expenses fairly as the trip happens.</p><div className="mt-7 grid w-full grid-cols-3 gap-2">{[["people", "Plan", "together"], ["sparkles", "Adapt", "together"], ["expenses", "Split", "together"]].map(([icon, lead, tail]) => <div key={lead} className="rounded-[18px] bg-white/8 px-2 py-4"><span className="mx-auto grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><Icon name={icon as IconName} size={15} /></span><p className="mt-2 text-[10px] font-semibold">{lead}</p><p className="mt-0.5 text-[8px] text-white/46">{tail}</p></div>)}</div></div>
+      <button onClick={onRestart} className="relative z-10 mb-7 h-12 w-full rounded-full bg-white text-[13px] font-semibold text-[#253a5e]">Replay prototype</button>
+    </div>
+  );
 }
 
 export function MobileTripCompanionPrototype() {
-  const [screen, setScreen] = useState<Screen>("lock");
-  const [contextOpen, setContextOpen] = useState(false);
-  const [replacement, setReplacement] = useState<Activity | null>(null);
-  const [carChoice, setCarChoice] = useState<CarChoice>("rental");
-  const [returnScreen, setReturnScreen] = useState<Screen>("itinerary");
-  const openContext = () => { setReturnScreen(screen); setContextOpen(true); };
-  const openProfile = () => { setContextOpen(false); setReturnScreen(screen); setScreen("profile"); };
-  const goBack = () => setScreen(returnScreen === "profile" ? "itinerary" : returnScreen);
-  const openCar = (choice: CarChoice = "rental") => { setCarChoice(choice); setReturnScreen(screen); setScreen("car"); };
-
-  if (screen === "lock") return <div className="min-h-dvh bg-[#ece9e2]"><LockScreen onOpen={() => setScreen("assistant")} /></div>;
+  const [screen, setScreen] = useState<Screen>("home");
+  const goBack = () => setScreen(backMap[screen] ?? "home");
+  const navigate = (target: Screen) => setScreen(target);
 
   let content: React.ReactNode;
-  if (screen === "assistant") content = <AssistantScreen onBack={() => setScreen("itinerary")} onContext={openContext} replacement={replacement} onReplace={setReplacement} onCar={openCar} />;
-  else if (screen === "car") content = <CarScreen onBack={() => setScreen(returnScreen === "assistant" ? "assistant" : "itinerary")} onContext={openContext} initialChoice={carChoice} onDone={() => setScreen("itinerary")} />;
-  else if (screen === "bookings") content = <BookingsScreen onBack={() => setScreen("itinerary")} onContext={openContext} onCar={() => openCar("rental")} />;
-  else if (screen === "profile") content = <ProfileScreen onBack={goBack} />;
-  else content = <ItineraryScreen onContext={openContext} onAssistant={() => setScreen("assistant")} onCar={() => openCar("rental")} onBookings={() => setScreen("bookings")} replacement={replacement} />;
+  if (screen === "home") content = <TripHome onOpen={() => setScreen("ideas")} onNavigate={navigate} />;
+  else if (screen === "ideas") content = <IdeasScreen onBack={goBack} onNext={() => setScreen("itinerary")} />;
+  else if (screen === "itinerary") content = <ItineraryBefore onBack={goBack} onContext={() => setScreen("context")} onCopilot={() => setScreen("context")} />;
+  else if (screen === "context") content = <ContextScreen onBack={goBack} onNext={() => setScreen("copilot")} />;
+  else if (screen === "copilot") content = <CopilotScreen onBack={goBack} onAccept={() => setScreen("updating")} />;
+  else if (screen === "updating") content = <UpdatingScreen onDone={() => setScreen("after")} />;
+  else if (screen === "after") content = <ItineraryAfter onBack={goBack} onExpense={() => setScreen("expense")} />;
+  else if (screen === "expense") content = <ExpenseScreen onBack={goBack} onAdjust={() => setScreen("adjust")} />;
+  else if (screen === "adjust") content = <AdjustSplitScreen onBack={goBack} onNext={() => setScreen("balances")} />;
+  else if (screen === "balances") content = <BalancesScreen onBack={goBack} onFinish={() => setScreen("final")} />;
+  else content = <FinalScreen onRestart={() => setScreen("home")} />;
 
-  return <div className="min-h-dvh bg-[#ece9e2]"><PhoneFrame>{content}{contextOpen && <TripContextSheet onClose={() => setContextOpen(false)} onProfile={openProfile} />}<style jsx global>{`
-    @keyframes mobileChatIn { from { opacity:0; transform:translateY(8px) scale(.988); } to { opacity:1; transform:translateY(0) scale(1); } }
-    @keyframes mobileTyping { 0%,60%,100% { opacity:.28; transform:translateY(0); } 30% { opacity:.9; transform:translateY(-2px); } }
-    .chat-enter { animation:mobileChatIn 320ms cubic-bezier(.22,1,.36,1) both; }
-    .typing-dot { animation:mobileTyping 900ms ease-in-out infinite; }
-    @media (prefers-reduced-motion: reduce) { .chat-enter,.typing-dot { animation:none!important; } }
-  `}</style></PhoneFrame></div>;
+  return (
+    <PhoneFrame>
+      {content}
+      <style jsx global>{`
+        :root { color-scheme: light; }
+        body { overscroll-behavior: none; }
+        button { -webkit-tap-highlight-color: transparent; cursor: pointer; }
+        .rr-phone {
+          height: 100dvh;
+          max-height: 852px;
+          max-width: 393px;
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        }
+        .rr-scroll { scrollbar-width: none; }
+        .rr-scroll::-webkit-scrollbar { display: none; }
+        @keyframes rrEnter { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes rrTyping { 0%, 60%, 100% { opacity: .25; transform: translateY(0); } 30% { opacity: .95; transform: translateY(-2px); } }
+        @keyframes rrPulse { 0%, 100% { transform: scale(1); opacity: .18; } 50% { transform: scale(1.42); opacity: 0; } }
+        @keyframes rrCheck { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .rr-enter { animation: rrEnter 360ms cubic-bezier(.22, 1, .36, 1) both; }
+        .rr-typing { animation: rrTyping 900ms ease-in-out infinite; }
+        .rr-pulse { animation: rrPulse 1.5s ease-out infinite; }
+        .rr-check-in { animation: rrCheck 480ms ease-out both; }
+        @media (max-width: 639px) {
+          .rr-stage { background: #f7f6f2; }
+          .rr-phone { max-width: none; max-height: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rr-enter, .rr-typing, .rr-pulse, .rr-check-in { animation: none !important; }
+        }
+      `}</style>
+    </PhoneFrame>
+  );
 }
