@@ -82,7 +82,7 @@ export function IdeasScreen({ added, onBack, onAdd, onNext, onNavigate }: { adde
         <div className="px-4 pt-5">
           <div className="flex items-end justify-between gap-4">
             <SectionTitle eyebrow={`${places.length} saved places`} title="The group shortlist" detail="Collect the maybes first. The trip can take shape from here." />
-            <button type="button" onClick={onAdd} className="rr-tap mb-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#6257ff] text-white shadow-[0_12px_24px_-14px_rgba(98,87,255,.8)]"><Icon name="plus" size={18} /></button>
+            <button type="button" onClick={onAdd} className="rr-tap mb-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#0e0e0d] text-white shadow-[0_12px_24px_-14px_rgba(14,14,13,.65)]"><Icon name="plus" size={18} /></button>
           </div>
           <button type="button" onClick={onAdd} className="rr-tap mt-5 flex h-12 w-full items-center gap-3 rounded-full border border-black/[.09] bg-white px-4 text-left text-[11px] text-[#837f74]"><Icon name="search" size={16} /><span className="flex-1">Paste a link or search a place</span><span className="text-[9px] font-bold uppercase tracking-[.12em] text-[#6257ff]">Add</span></button>
         </div>
@@ -137,7 +137,7 @@ export function AddPlaceScreen({ onBack, onAdded }: { onBack: () => void; onAdde
         {step === "found" && (
           <div className="rr-message mt-5 overflow-hidden rounded-[22px] border border-black/[.08] bg-white p-3 shadow-[0_18px_40px_-32px_rgba(14,14,13,.8)]">
             <div className="relative h-[184px] rounded-[16px] bg-cover bg-center" style={{ backgroundImage: `linear-gradient(180deg,transparent,rgba(14,14,13,.56)),url(${images.borderless})` }}><span className="absolute bottom-3 left-3 rounded-full bg-white/92 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[.1em] text-[#5147de]">Place found</span></div>
-            <div className="px-1 pb-1 pt-4"><h3 className="font-display text-[24px] font-semibold tracking-[-.045em] text-[#0e0e0d]">teamLab Borderless</h3><p className="mt-1 text-[10px] font-bold uppercase tracking-[.1em] text-[#837f74]">Art · Azabudai Hills</p><p className="mt-3 text-[11px] leading-[1.55] text-[#5e5b52]">An immersive digital-art museum that connects perfectly with the group’s art shortlist.</p><div className="mt-4"><PrimaryButton onClick={onAdded} tone="accent"><Icon name="plus" size={15} /> Add to shortlist</PrimaryButton></div></div>
+            <div className="px-1 pb-1 pt-4"><h3 className="font-display text-[24px] font-semibold tracking-[-.045em] text-[#0e0e0d]">teamLab Borderless</h3><p className="mt-1 text-[10px] font-bold uppercase tracking-[.1em] text-[#837f74]">Art · Azabudai Hills</p><p className="mt-3 text-[11px] leading-[1.55] text-[#5e5b52]">An immersive digital-art museum that connects perfectly with the group’s art shortlist.</p><div className="mt-4"><PrimaryButton onClick={onAdded}><Icon name="plus" size={15} /> Add to shortlist</PrimaryButton></div></div>
           </div>
         )}
       </div>
@@ -159,7 +159,7 @@ export function ItineraryScreen({ onBack, onAsk, onNavigate }: { onBack: () => v
         <SectionTitle eyebrow="Your itinerary" title="A full Tokyo day." />
         <div className="mt-5 rounded-[22px] border border-[#d9d3ff] bg-[#eeecff] p-4">
           <div className="flex gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[#5147de]"><Icon name="rain" size={19} /></span><div><p className="text-[12px] font-semibold text-[#292450]">Rain starts around noon</p><p className="mt-1 text-[10px] leading-[1.5] text-[#655f82]">Disneyland may feel rushed. Your indoor saves have good alternatives nearby.</p></div></div>
-          <button type="button" onClick={onAsk} className="rr-tap mt-3 flex w-full items-center justify-between rounded-full bg-[#6257ff] px-4 py-3 text-[11px] font-semibold text-white"><span className="flex items-center gap-2"><Icon name="sparkles" size={14} /> Ask co-pilot to replan</span><Icon name="chevron" size={14} /></button>
+          <button type="button" onClick={onAsk} className="rr-tap mt-3 flex w-full items-center justify-between rounded-full bg-[#0e0e0d] px-4 py-3 text-[12px] font-semibold text-white"><span className="flex items-center gap-2"><Icon name="sparkles" size={14} /> Ask co-pilot to replan</span><Icon name="chevron" size={14} /></button>
         </div>
         <div className="mt-5 space-y-3">
           {itineraryItems.map((item, index) => <div key={item.title} className="rr-list-in flex gap-3" style={{ animationDelay: `${index * 65}ms` }}><div className="w-[43px] pt-2 text-[10px] font-semibold text-[#837f74]">{item.time}</div><div className="flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border border-black/[.08] bg-white p-2.5"><div className="h-16 w-16 shrink-0 rounded-[13px] bg-cover bg-center" style={{ backgroundImage: `url(${item.image})` }} /><div className="min-w-0"><p className="truncate text-[13px] font-semibold text-[#0e0e0d]">{item.title}</p><p className="mt-1 text-[9px] font-bold uppercase tracking-[.08em] text-[#837f74]">{item.meta}</p></div></div></div>)}
@@ -179,7 +179,7 @@ export function ContextScreen({ onBack, onContinue }: { onBack: () => void; onCo
         <div className="mt-4 rounded-[22px] border border-black/[.08] bg-white p-4"><div className="flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.13em] text-[#837f74]">Connected context</p><p className="mt-1 text-[13px] font-semibold text-[#0e0e0d]">Claude preferences</p></div><span className="flex items-center gap-1.5 rounded-full bg-[#e7f1ed] px-2.5 py-1.5 text-[9px] font-bold text-[#356758]"><Icon name="check" size={11} /> Connected</span></div><div className="mt-4 flex flex-wrap gap-2">{["Loves local food", "Art & design", "Slow mornings"].map((chip) => <span key={chip} className="rounded-full border border-black/[.08] bg-[#f4f2ec] px-3 py-2 text-[10px] text-[#3c3a33]">{chip}</span>)}</div></div>
         <div className="mt-4 rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4"><p className="text-[11px] font-semibold text-[#0e0e0d]">What the co-pilot will balance</p><div className="mt-3 space-y-2 text-[10px] text-[#5e5b52]">{["Rain forecast and travel time", "Everyone’s saved places", "Your shared preferences"].map((item) => <p key={item} className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#eeecff] text-[#5147de]"><Icon name="check" size={11} /></span>{item}</p>)}</div></div>
       </div>
-      <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 py-4"><PrimaryButton onClick={onContinue} tone="accent">Continue to co-pilot <Icon name="sparkles" size={15} /></PrimaryButton></div>
+      <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 py-4"><PrimaryButton onClick={onContinue}>Continue to co-pilot <Icon name="sparkles" size={15} /></PrimaryButton></div>
     </div>
   );
 }
@@ -221,7 +221,7 @@ export function CopilotScreen({ onBack, onUpdate, onNavigate }: { onBack: () => 
           {manualThinking ? <TypingBubble /> : manualQuestion && <AssistantBubble>I can keep refining this. The current route still has enough breathing room for one more indoor stop.</AssistantBubble>}
         </div>
       </div>
-      {phase === "ready" && <div className="px-4 pb-3"><PrimaryButton onClick={onUpdate} tone="accent"><Icon name="sparkles" size={15} /> Yes, update the trip</PrimaryButton></div>}
+      {phase === "ready" && <div className="px-4 pb-3"><PrimaryButton onClick={onUpdate}><Icon name="sparkles" size={15} /> Yes, update the trip</PrimaryButton></div>}
       <ChatComposer value={prompt} onChange={setPrompt} onSend={send} disabled={manualThinking} placeholder="Ask about this plan…" />
       <BottomNav active="copilot" onNavigate={onNavigate} />
     </div>
@@ -240,7 +240,7 @@ export function UpdatingScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-export function ItineraryAfterScreen({ onBack, onExpenses, onNavigate }: { onBack: () => void; onExpenses: () => void; onNavigate: (screen: Screen) => void }) {
+export function ItineraryAfterScreen({ onBack, onNavigate }: { onBack: () => void; onNavigate: (screen: Screen) => void }) {
   const items = [
     { time: "10:30", title: "Koffee Mameya", meta: "A slower start", image: images.cafe, tone: "" },
     { time: "12:30", title: "teamLab Planets", meta: "Indoor · 16 min away", image: images.teamlab, tone: "New order" },
@@ -254,7 +254,6 @@ export function ItineraryAfterScreen({ onBack, onExpenses, onNavigate }: { onBac
         <div className="flex items-center gap-3 rounded-[18px] border border-[#cfe3dc] bg-[#e7f1ed] p-3.5 text-[#315f52]"><span className="grid h-9 w-9 place-items-center rounded-full bg-white"><Icon name="check" size={17} /></span><div><p className="text-[11px] font-semibold">The new plan is live</p><p className="mt-0.5 text-[9px] opacity-75">Everyone in the trip can see it now.</p></div></div>
         <div className="mt-5 flex items-end justify-between"><SectionTitle eyebrow="Rain-ready" title="More Tokyo, less rushing." /><span className="rounded-full bg-[#eeecff] px-2.5 py-1 text-[8px] font-bold uppercase text-[#5147de]">Saved</span></div>
         <div className="mt-5 space-y-3">{items.map((item, index) => <div key={item.title} className="rr-list-in flex gap-3" style={{ animationDelay: `${index * 70}ms` }}><div className="w-[43px] pt-2 text-[10px] font-semibold text-[#837f74]">{item.time}</div><div className="flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border border-black/[.08] bg-white p-2.5"><div className="h-[62px] w-[62px] shrink-0 rounded-[13px] bg-cover bg-center" style={{ backgroundImage: `url(${item.image})` }} /><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-[12px] font-semibold text-[#0e0e0d]">{item.title}</p>{item.tone && <span className="rounded-full bg-[#eeecff] px-2 py-0.5 text-[7px] font-bold uppercase text-[#5147de]">{item.tone}</span>}</div><p className="mt-1 text-[9px] text-[#837f74]">{item.meta}</p></div></div></div>)}</div>
-        <div className="mt-5"><PrimaryButton onClick={onExpenses}>Continue to trip expenses <Icon name="chevron" size={15} /></PrimaryButton></div>
       </div>
       <BottomNav active="trip" onNavigate={onNavigate} />
     </div>
