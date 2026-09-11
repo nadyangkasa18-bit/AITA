@@ -80,7 +80,7 @@ export function MobileTripCompanionPrototype() {
   else if (screen === "context") content = <ContextScreen onBack={goBack} onContinue={() => navigate("copilot")} />;
   else if (screen === "copilot") content = <CopilotScreen onBack={goBack} onUpdate={() => navigate("updating")} onNavigate={navigate} />;
   else if (screen === "updating") content = <UpdatingScreen onDone={finishUpdate} />;
-  else if (screen === "after") content = <ItineraryAfterScreen onBack={goBack} onExpenses={() => navigate("expenses")} onNavigate={navigate} />;
+  else if (screen === "after") content = <ItineraryAfterScreen onBack={goBack} onNavigate={navigate} />;
   else if (screen === "expenses") content = <ExpensesScreen onBack={goBack} onReceipt={() => navigate("receipt")} onNavigate={navigate} />;
   else if (screen === "receipt") content = <ReceiptScreen onBack={goBack} onHelp={() => navigate("split-chat")} />;
   else if (screen === "split-chat") content = <SplitChatScreen onBack={goBack} onUpdate={() => navigate("updated-expense")} />;
