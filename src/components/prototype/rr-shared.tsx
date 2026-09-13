@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 
 export type Screen =
   | "home"
+  | "collaborators"
+  | "invite-collaborators"
   | "ideas"
   | "add-place"
   | "itinerary"
