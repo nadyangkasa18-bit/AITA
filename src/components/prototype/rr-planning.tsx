@@ -35,7 +35,7 @@ const addedPlace = { name: "teamLab Borderless", category: "Art", area: "Azabuda
 export function TripHome({ onOpen, onNavigate }: { onOpen: () => void; onNavigate: (screen: Screen) => void }) {
   return (
     <div className="flex h-full flex-col">
-      <AppHeader title="RoaminRabbit" eyebrow="Your trips" />
+      <AppHeader title="RoaminRabbit" eyebrow="Your trips" trailing={false} />
       <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-7 pt-6">
         <div className="flex items-end justify-between gap-4">
           <SectionTitle eyebrow="Next adventure" title="Where to next?" />
@@ -54,17 +54,110 @@ export function TripHome({ onOpen, onNavigate }: { onOpen: () => void; onNavigat
             </div>
           </div>
           <div className="flex items-center justify-between gap-3 px-4 py-4">
-            <div className="flex items-center gap-3"><AvatarStack /><span className="text-[11px] text-[#5e5b52]">4 planning together</span></div>
-            <span className="rounded-full bg-[#eeecff] px-2.5 py-1 text-[9px] font-bold text-[#5147de]">12 ideas</span>
+            <div className="flex items-center gap-3"><Avatar person={people[0]} /><span className="text-[11px] text-[#5e5b52]">Invite the group to start planning</span></div>
+            <span className="rounded-full bg-[#eeecff] px-2.5 py-1 text-[9px] font-bold text-[#5147de]">New trip</span>
           </div>
         </button>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#f7e7e2] text-[#a95340]"><Icon name="heart" size={16} /></span><p className="font-display mt-4 text-[24px] font-semibold tracking-[-.045em] text-[#0e0e0d]">12</p><p className="text-[10px] text-[#837f74]">shared ideas</p></div>
+          <div className="rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#f7e7e2] text-[#a95340]"><Icon name="heart" size={16} /></span><p className="font-display mt-4 text-[24px] font-semibold tracking-[-.045em] text-[#0e0e0d]">12</p><p className="text-[10px] text-[#837f74]">saved ideas</p></div>
           <div className="rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#eeecff] text-[#5147de]"><Icon name="calendar" size={16} /></span><p className="font-display mt-4 text-[24px] font-semibold tracking-[-.045em] text-[#0e0e0d]">6 days</p><p className="text-[10px] text-[#837f74]">one shared plan</p></div>
         </div>
       </div>
       <BottomNav active="trip" onNavigate={onNavigate} />
+    </div>
+  );
+}
+
+const collaboratorContacts = [
+  { person: people[1], handle: "@sarahtravels", note: "Always finds the food spots" },
+  { person: people[2], handle: "@jessgoes", note: "Art, coffee and good design" },
+  { person: people[3], handle: "@mayamoves", note: "Keeps the plan moving" },
+] as const;
+
+export function CollaboratorsScreen({ invitedNames, onBack, onInvite, onContinue, onNavigate }: { invitedNames: string[]; onBack: () => void; onInvite: () => void; onContinue: () => void; onNavigate: (screen: Screen) => void }) {
+  const invited = invitedNames.length > 0;
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="Trip collaborators" eyebrow="Tokyo with the girls" onBack={onBack} trailing={invited} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-6">
+        {invited && (
+          <div className="rr-message mb-5 flex items-center gap-3 rounded-[18px] border border-[#cfe3dc] bg-[#e7f1ed] p-3.5 text-[#315f52]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white"><Icon name="check" size={17} /></span>
+            <div><p className="text-[13px] font-semibold">{invitedNames.length} {invitedNames.length === 1 ? "invite" : "invites"} sent</p><p className="mt-0.5 text-[11px] opacity-75">Your shared trip is ready for everyone.</p></div>
+          </div>
+        )}
+
+        <SectionTitle eyebrow={invited ? "Your travel crew" : "Start together"} title={invited ? "The group is taking shape." : "Plan this one together."} detail={invited ? "Everyone can add places, vote on ideas and follow the same itinerary." : "Invite friends so ideas, decisions and updates all live in one shared trip."} />
+
+        <div className="mt-6 overflow-hidden rounded-[22px] border border-black/[.08] bg-white">
+          <div className="flex items-center gap-3 border-b border-black/[.07] p-4">
+            <Avatar person={people[0]} />
+            <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold text-[#0e0e0d]">Nadya</p><p className="mt-0.5 text-[11px] text-[#837f74]">Trip organizer · You</p></div>
+            <span className="rounded-full bg-[#f4f2ec] px-2.5 py-1.5 text-[9px] font-bold text-[#5e5b52]">Owner</span>
+          </div>
+          {invited ? collaboratorContacts.filter(({ person }) => invitedNames.includes(person.name)).map(({ person }, index) => (
+            <div key={person.name} className="rr-list-in flex items-center gap-3 border-b border-black/[.07] p-4 last:border-0" style={{ animationDelay: `${index * 70}ms` }}>
+              <Avatar person={person} />
+              <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold text-[#0e0e0d]">{person.name}</p><p className="mt-0.5 text-[11px] text-[#837f74]">Can add places and edit plans</p></div>
+              <span className="rounded-full bg-[#eeecff] px-2.5 py-1.5 text-[9px] font-bold text-[#5147de]">Invited</span>
+            </div>
+          )) : (
+            <div className="p-4">
+              <div className="flex items-center gap-3 text-[#837f74]"><span className="grid h-9 w-9 place-items-center rounded-full border border-dashed border-black/20 bg-[#f8f7f2]"><Icon name="people" size={16} /></span><p className="text-[12px]">Your collaborators will appear here.</p></div>
+              <div className="mt-4"><PrimaryButton onClick={onInvite}><Icon name="plus" size={15} /> Add collaborators</PrimaryButton></div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4">
+          <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#eeecff] text-[#5147de]"><Icon name="people" size={16} /></span><div><p className="text-[13px] font-semibold text-[#0e0e0d]">One trip, built by the group</p><p className="mt-1 text-[11px] leading-[1.5] text-[#5e5b52]">Saved places, votes and itinerary changes stay in sync for everyone.</p></div></div>
+        </div>
+      </div>
+      {invited && <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 py-3 backdrop-blur"><PrimaryButton onClick={onContinue}>Continue to the shortlist <Icon name="chevron" size={16} /></PrimaryButton></div>}
+      <BottomNav active="trip" onNavigate={onNavigate} />
+    </div>
+  );
+}
+
+export function InviteCollaboratorsScreen({ onBack, onSend }: { onBack: () => void; onSend: (selected: string[]) => void }) {
+  const [selected, setSelected] = useState<string[]>(collaboratorContacts.map(({ person }) => person.name));
+  const [query, setQuery] = useState("");
+  const [copied, setCopied] = useState(false);
+  const visibleContacts = collaboratorContacts.filter(({ person, handle }) => `${person.name} ${handle}`.toLowerCase().includes(query.toLowerCase()));
+  const toggleContact = (name: string) => setSelected((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <AppHeader title="Add collaborators" eyebrow="Tokyo with the girls" onBack={onBack} trailing={false} />
+      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-5">
+        <SectionTitle eyebrow="Invite your people" title="Who’s coming to Tokyo?" detail="Choose friends below or share one private invite link." />
+
+        <label className="mt-5 flex h-12 items-center gap-3 rounded-full border border-black/[.09] bg-white px-4 text-[#837f74]">
+          <Icon name="search" size={16} />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search friends" className="min-w-0 flex-1 bg-transparent text-[14px] text-[#0e0e0d] outline-none placeholder:text-[#918d83]" />
+        </label>
+
+        <div className="mt-4 overflow-hidden rounded-[22px] border border-black/[.08] bg-white">
+          {visibleContacts.map(({ person, handle, note }, index) => {
+            const isSelected = selected.includes(person.name);
+            return (
+              <button key={person.name} type="button" onClick={() => toggleContact(person.name)} className="rr-tap rr-list-in flex w-full items-center gap-3 border-b border-black/[.07] p-4 text-left last:border-0" style={{ animationDelay: `${index * 60}ms` }}>
+                <Avatar person={person} />
+                <div className="min-w-0 flex-1"><div className="flex items-baseline gap-2"><p className="text-[14px] font-semibold text-[#0e0e0d]">{person.name}</p><p className="text-[10px] text-[#837f74]">{handle}</p></div><p className="mt-1 truncate text-[11px] text-[#5e5b52]">{note}</p></div>
+                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${isSelected ? "border-[#0e0e0d] bg-[#0e0e0d] text-white" : "border-black/15 bg-white text-transparent"}`}><Icon name="check" size={14} /></span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button type="button" onClick={() => setCopied(true)} className="rr-tap mt-4 flex w-full items-center gap-3 rounded-[18px] border border-black/[.08] bg-[#fbfaf6] p-4 text-left">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#eeecff] text-[#5147de]"><Icon name={copied ? "check" : "link"} size={17} /></span>
+          <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold text-[#0e0e0d]">{copied ? "Invite link copied" : "Invite with a link"}</span><span className="mt-0.5 block text-[11px] text-[#837f74]">Send it wherever your group chats.</span></span>
+          <Icon name="chevron" size={15} />
+        </button>
+      </div>
+      <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 py-4 backdrop-blur"><PrimaryButton onClick={() => onSend(selected)} disabled={selected.length === 0}>Send {selected.length} {selected.length === 1 ? "invite" : "invites"} <Icon name="send" size={15} /></PrimaryButton></div>
     </div>
   );
 }
