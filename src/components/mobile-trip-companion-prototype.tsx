@@ -3,9 +3,11 @@
 import { useCallback, useState } from "react";
 import {
   AddPlaceScreen,
+  CollaboratorsScreen,
   ContextScreen,
   CopilotScreen,
   IdeasScreen,
+  InviteCollaboratorsScreen,
   ItineraryAfterScreen,
   ItineraryScreen,
   TripHome,
@@ -22,6 +24,8 @@ import { PhoneFrame, type Screen } from "./prototype/rr-shared";
 
 const screenOrder: Screen[] = [
   "home",
+  "collaborators",
+  "invite-collaborators",
   "ideas",
   "add-place",
   "itinerary",
@@ -37,7 +41,9 @@ const screenOrder: Screen[] = [
 ];
 
 const backMap: Partial<Record<Screen, Screen>> = {
-  ideas: "home",
+  collaborators: "home",
+  "invite-collaborators": "collaborators",
+  ideas: "collaborators",
   "add-place": "ideas",
   itinerary: "ideas",
   context: "itinerary",
@@ -54,6 +60,7 @@ export function MobileTripCompanionPrototype() {
   const [screen, setScreen] = useState<Screen>("home");
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [addedPlace, setAddedPlace] = useState(false);
+  const [invitedCollaborators, setInvitedCollaborators] = useState<string[]>([]);
 
   const navigate = useCallback((next: Screen) => {
     const changeScreen = () => {
@@ -69,11 +76,14 @@ export function MobileTripCompanionPrototype() {
   const finishUpdate = useCallback(() => navigate("after"), [navigate]);
   const restart = () => {
     setAddedPlace(false);
+    setInvitedCollaborators([]);
     navigate("home");
   };
 
   let content;
-  if (screen === "home") content = <TripHome onOpen={() => navigate("ideas")} onNavigate={navigate} />;
+  if (screen === "home") content = <TripHome onOpen={() => navigate("collaborators")} onNavigate={navigate} />;
+  else if (screen === "collaborators") content = <CollaboratorsScreen invitedNames={invitedCollaborators} onBack={goBack} onInvite={() => navigate("invite-collaborators")} onContinue={() => navigate("ideas")} onNavigate={navigate} />;
+  else if (screen === "invite-collaborators") content = <InviteCollaboratorsScreen onBack={goBack} onSend={(selected) => { setInvitedCollaborators(selected); navigate("collaborators"); }} />;
   else if (screen === "ideas") content = <IdeasScreen added={addedPlace} onBack={goBack} onAdd={() => navigate("add-place")} onNext={() => navigate("itinerary")} onNavigate={navigate} />;
   else if (screen === "add-place") content = <AddPlaceScreen onBack={goBack} onAdded={() => { setAddedPlace(true); navigate("ideas"); }} />;
   else if (screen === "itinerary") content = <ItineraryScreen onBack={goBack} onAsk={() => navigate("context")} onNavigate={navigate} />;
