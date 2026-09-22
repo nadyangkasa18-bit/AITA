@@ -51,7 +51,7 @@ export function CopilotChat({ screen, open, onOpen, onClose }: { screen: Screen;
     if (!pending) return;
     const timer = window.setTimeout(() => {
       const q = pending.toLowerCase();
-      const answer = /rain|weather/.test(q) ? "Let’s keep tomorrow mostly indoors: coffee at Koffee Mameya, teamLab Planets, then Ramen Kagari. We can move Disneyland to Friday. Want to review that plan?" : /food|eat|dinner|restaurant/.test(q) ? "Ramen Kagari is on your group’s shortlist. We can build a food-focused day around Ginza and Tsukiji, with a slower morning. Which meal should we plan first?" : /split|bill|pizza|drink|expense/.test(q) ? "I can help work through the bill with you. Open the receipt and tap ‘Help split for me’ so we can review the items and who shared each one." : /plan|trip|tokyo|save/.test(q) ? "For your Tokyo trip, let’s start with everyone’s saved places, group nearby stops, and leave room for slow mornings. What’s one thing you don’t want to miss?" : "Tell me a little more about what you need. You can ask about plans, places, travel questions or expenses here, without leaving your trip. This demo uses sample replies; live AI isn’t connected yet.";
+      const answer = /closed|closure|griffith|replan|weather/.test(q) ? "Griffith Observatory is closed today. I’d move it to tomorrow, do Hollywood and the Academy Museum today, and keep the Dodgers game at 7:10 PM." : /food|eat|dinner|restaurant/.test(q) ? "The Cheesecake Factory at The Grove is on your group’s shortlist. I can fit it around the Academy Museum and tonight’s Dodgers game. Which meal should we plan first?" : /split|bill|pizza|drink|expense/.test(q) ? "I can help work through the bill with you. Open the receipt and tap ‘Help split for me’ so we can review the items and who shared each one." : /plan|trip|los angeles|la|dodgers|shohei|save/.test(q) ? "For Los Angeles, I’ll keep the Dodgers game fixed, group nearby stops, and leave enough travel time. What else is a must-do for your group?" : "Tell me a little more about what you need. You can ask about plans, places, travel questions or expenses here, without leaving your trip. This demo uses sample replies; live AI isn’t connected yet.";
       setMessages((items) => [...items, { role: "assistant", text: answer }]);
       setPending("");
     }, 1100);
@@ -89,8 +89,8 @@ export function CopilotChat({ screen, open, onOpen, onClose }: { screen: Screen;
       <header className="flex items-center gap-3 border-b border-black/10 p-4"><BrandMark /><div className="flex-1"><h2 className="text-lg font-semibold">Co-Pilot</h2><p className="text-xs text-[#5e5b52]">Your AI Co-Pilot · {before ? "Before your trip" : "During your trip"}</p></div><button onClick={onClose} aria-label="Close Co-Pilot and return to trip" className="h-11 rounded-full border border-black/10 px-4 text-sm">Close</button></header>
       <div ref={transcript} className="rr-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         <h3 className="font-display text-[28px] leading-tight">Ask anything.<br />Before, during, whenever.</h3>
-        <AssistantBubble><TypedText text="Hey Nadya, I’m your OTW Co-Pilot. Planning ahead or already out exploring? Ask me anything — I’m right here with your trip." /></AssistantBubble>
-        {messages.length === 0 && <div className="flex flex-wrap gap-2">{(before ? ["Help plan Tokyo", "Find food spots", "Help split a bill"] : ["Replan for rain", "Where should we eat?", "Help split a bill"]).map((item) => <button key={item} onClick={() => send(item)} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm">{item}</button>)}</div>}
+        <AssistantBubble><TypedText text="Hey Aiko, I’m your OTW Co-Pilot. Planning ahead or already out exploring? Ask me anything — I’m right here with your trip." /></AssistantBubble>
+        {messages.length === 0 && <div className="flex flex-wrap gap-2">{(before ? ["Plan Los Angeles", "Find food spots", "Help split a bill"] : ["Fix today’s plan", "Where should we eat?", "Help split a bill"]).map((item) => <button key={item} onClick={() => send(item)} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm">{item}</button>)}</div>}
         {messages.map((message, index) => message.role === "user" ? <UserBubble key={index}>{message.text}</UserBubble> : <AssistantBubble key={index}>{index === messages.length - 1 ? <TypedText text={message.text} /> : message.text}</AssistantBubble>)}
         {pending && <div role="status"><p className="mb-2 text-xs text-[#5e5b52]">Co-Pilot is thinking…</p><TypingBubble label="Co-Pilot is thinking" /></div>}
       </div>
@@ -122,23 +122,23 @@ export type IconName =
   | "sun";
 
 export const images = {
-  tokyo: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1000&q=86",
-  teamlab: "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=900&q=84",
-  borderless: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=900&q=84",
-  ramen: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=84",
+  tokyo: "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?auto=format&fit=crop&w=1000&q=86",
+  teamlab: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=900&q=84",
+  borderless: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?auto=format&fit=crop&w=900&q=84",
+  ramen: "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=900&q=84",
   cafe: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=84",
-  disney: "https://images.unsplash.com/photo-1575089976121-8ed7b2a54265?auto=format&fit=crop&w=900&q=84",
+  disney: "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=900&q=84",
   sky: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=900&q=84",
   books: "https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=900&q=84",
-  market: "https://images.unsplash.com/photo-1554797589-7241bb691973?auto=format&fit=crop&w=900&q=84",
-  alley: "https://images.unsplash.com/photo-1514912885225-5c9ec8507d68?auto=format&fit=crop&w=900&q=84",
+  market: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=84",
+  alley: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=900&q=84",
 } as const;
 
 export const people = [
-  { name: "Nadya", initials: "N", color: "#2c2b29" },
-  { name: "Sarah", initials: "S", color: "#b55d48" },
-  { name: "Jess", initials: "J", color: "#6257ff" },
-  { name: "Maya", initials: "M", color: "#47796b" },
+  { name: "Aiko", initials: "A", color: "#2c2b29" },
+  { name: "Haruka", initials: "H", color: "#b55d48" },
+  { name: "Yui", initials: "Y", color: "#6257ff" },
+  { name: "Mei", initials: "M", color: "#47796b" },
 ] as const;
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
