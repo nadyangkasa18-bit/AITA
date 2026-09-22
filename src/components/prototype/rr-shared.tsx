@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -216,7 +217,7 @@ export function AvatarStack({ small = false }: { small?: boolean }) {
 export function BrandMark({ size = 40, label = false }: { size?: number; label?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span role="img" aria-label="OTW" className="grid shrink-0 place-items-center rounded-full border border-black/[.08] bg-white font-bold tracking-[-.06em] text-[#0e0e0d]" style={{ width: size, height: size, fontSize: size * .28 }}>OTW</span>
+      <Image src="/otw-logo-cropped.png" alt="OTW" width={size} height={size} className="shrink-0 rounded-[24%]" style={{ width: size, height: size }} />
       {label && <span className="font-display text-[17px] font-semibold tracking-[-.035em] text-current">OTW</span>}
     </div>
   );

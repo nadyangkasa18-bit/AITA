@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 type Stage = "lock" | "chat" | "browser";
@@ -177,14 +178,14 @@ function StatusBar({ light = false }: { light?: boolean }) {
 
 function OtwAvatar({ size = 40 }: { size?: number }) {
   return (
-    <span
-      role="img"
-      aria-label="OTW"
-      className="grid shrink-0 place-items-center overflow-hidden rounded-full border border-black/10 bg-white font-bold tracking-[-.06em] text-[#0e0e0d]"
-      style={{ width: size, height: size, fontSize: size * .28 }}
-    >
-      OTW
-    </span>
+    <Image
+      src="/otw-logo-cropped.png"
+      alt="OTW"
+      width={size}
+      height={size}
+      className="shrink-0 rounded-[24%]"
+      style={{ width: size, height: size }}
+    />
   );
 }
 
