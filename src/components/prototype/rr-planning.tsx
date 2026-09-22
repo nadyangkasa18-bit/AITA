@@ -13,6 +13,7 @@ import {
   PrimaryButton,
   SectionTitle,
   TypingBubble,
+  TypedText,
   UserBubble,
   images,
   people,
@@ -264,10 +265,13 @@ export function ItineraryScreen({ onBack, onAsk, onNavigate }: { onBack: () => v
 }
 
 export function ContextScreen({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
+  const [thinking, setThinking] = useState(true);
+  useEffect(() => { const timer = window.setTimeout(() => setThinking(false), 1200); return () => window.clearTimeout(timer); }, []);
   return (
     <div className="flex h-full flex-col">
       <AppHeader title="Your trip context" eyebrow="Before we replan" onBack={onBack} trailing={false} />
       <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-7">
+        <div className="mb-5"><p className="mb-2 text-xs font-semibold text-[#6257ff]">Jojo · Your AI co-pilot</p>{thinking ? <TypingBubble label="Jojo is reviewing your preferences" /> : <AssistantBubble><TypedText text="I’ll use your love of local food, art and slow mornings to shape the plan. You can ask me anything before you go — just tap Ask Jojo below." /></AssistantBubble>}</div>
         <div className="rounded-[26px] bg-[#0e0e0d] p-5 text-white"><BrandMark size={44} label /><p className="font-display mt-8 text-[28px] font-semibold leading-[1.01] tracking-[-.05em]">A better plan starts with what matters to you.</p><p className="mt-3 text-[11px] leading-[1.6] text-white/62">RoaminRabbit uses only the context you choose to share for this trip.</p></div>
         <div className="mt-4 rounded-[22px] border border-black/[.08] bg-white p-4"><div className="flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.13em] text-[#837f74]">Connected context</p><p className="mt-1 text-[13px] font-semibold text-[#0e0e0d]">ChatGPT preferences</p></div><span className="flex items-center gap-1.5 rounded-full bg-[#e7f1ed] px-2.5 py-1.5 text-[9px] font-bold text-[#356758]"><Icon name="check" size={11} /> Connected</span></div><div className="mt-4 flex flex-wrap gap-2.5">{["Loves local food", "Art & design", "Slow mornings"].map((chip) => <span key={chip} className="rounded-full border border-black/[.08] bg-[#f4f2ec] px-4 py-2.5 text-[12px] text-[#3c3a33]">{chip}</span>)}</div></div>
         <div className="mt-4 rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4"><p className="text-[11px] font-semibold text-[#0e0e0d]">What the co-pilot will balance</p><div className="mt-3 space-y-2 text-[10px] text-[#5e5b52]">{["Rain forecast and travel time", "Everyone’s saved places", "Your shared preferences"].map((item) => <p key={item} className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#eeecff] text-[#5147de]"><Icon name="check" size={11} /></span>{item}</p>)}</div></div>
@@ -295,14 +299,14 @@ export function CopilotScreen({ onBack, onUpdate, onNavigate }: { onBack: () => 
 
   return (
     <div className="flex h-full flex-col bg-[#f4f2ec]">
-      <AppHeader title="Trip co-pilot" eyebrow="Tokyo · group plan" onBack={onBack} />
+      <AppHeader title="Jojo · AI co-pilot" eyebrow="Tokyo · group plan" onBack={onBack} />
       <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-5">
         <div className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full border border-black/[.08] bg-white px-3 py-2 text-[9px] font-semibold text-[#5e5b52]"><Icon name="rain" size={13} /> Weather changed · plan needs attention</div>
         <div className="space-y-3">
           <UserBubble>It’s going to rain tomorrow. Can you make the day work better for us?</UserBubble>
           {phase === "thinking" ? <TypingBubble /> : (
             <>
-              <AssistantBubble><p className="font-semibold text-[#0e0e0d]">I found a calmer rainy-day plan.</p><p className="mt-1.5">Move Disneyland to Friday, put teamLab Planets after coffee, and keep Ramen Kagari for dinner.</p><div className="mt-3 rounded-[13px] bg-[#eeecff] p-3 text-[10px] text-[#5147de]"><p className="font-bold">Why this works</p><p className="mt-1 leading-[1.45]">Mostly indoors, less backtracking, and it keeps three of the group’s top picks.</p></div></AssistantBubble>
+              <AssistantBubble><p className="font-semibold text-[#0e0e0d]">I found a calmer rainy-day plan.</p><p className="mt-1.5"><TypedText text="Move Disneyland to Friday, put teamLab Planets after coffee, and keep Ramen Kagari for dinner." /></p><div className="mt-3 rounded-[13px] bg-[#eeecff] p-3 text-[10px] text-[#5147de]"><p className="font-bold">Why this works</p><p className="mt-1 leading-[1.45]">Mostly indoors, less backtracking, and it keeps three of the group’s top picks.</p></div></AssistantBubble>
               <div className="rr-message pl-[40px]"><p className="mb-2 text-[9px] font-bold uppercase tracking-[.12em] text-[#837f74]">Places in this plan</p><div className="rr-scroll flex gap-2 overflow-x-auto pb-1">{[
                 { name: "teamLab", image: images.teamlab, detail: "12:30 · Toyosu" },
                 { name: "Kagari", image: images.ramen, detail: "19:00 · Ginza" },
