@@ -111,6 +111,7 @@ export type IconName =
   | "home"
   | "link"
   | "magic"
+  | "mic"
   | "people"
   | "plus"
   | "rain"
@@ -163,6 +164,7 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   if (name === "home") return <svg {...props}><path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10M9 20v-6h6v6" /></svg>;
   if (name === "link") return <svg {...props}><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1" /><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1" /></svg>;
   if (name === "magic") return <svg {...props}><path d="m15 4 5 5L8 21l-5-5L15 4Z" /><path d="m6 13 5 5M6 3v4M4 5h4M19 14v5M16.5 16.5h5" /></svg>;
+  if (name === "mic") return <svg {...props}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M6.5 11.5a5.5 5.5 0 0 0 11 0M12 17v4M9 21h6" /></svg>;
   if (name === "people") return <svg {...props}><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M16 5.5a3 3 0 0 1 0 5.8M17 14a4.5 4.5 0 0 1 3.5 4.4V20" /></svg>;
   if (name === "plus") return <svg {...props}><path d="M12 5v14M5 12h14" /></svg>;
   if (name === "rain") return <svg {...props}><path d="M6.5 15.5h11a4 4 0 0 0 .4-8 6 6 0 0 0-11.4-1.5 4.8 4.8 0 0 0 0 9.5Z" /><path d="m8 19-1 2M13 19l-1 2M18 19l-1 2" /></svg>;
@@ -303,10 +305,12 @@ export function UserBubble({ children }: { children: ReactNode }) {
 }
 
 export function ChatComposer({ value, onChange, onSend, placeholder = "Ask Co-Pilot…", disabled = false }: { value: string; onChange: (value: string) => void; onSend: () => void; placeholder?: string; disabled?: boolean }) {
+  const [listening, setListening] = useState(false);
   return (
     <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 pb-4 pt-3 backdrop-blur-xl">
       <div className="flex items-center gap-2 rounded-full border border-black/[.1] bg-white p-1.5 pl-4 shadow-[0_12px_28px_-24px_rgba(14,14,13,.7)]">
-        <input value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && value.trim()) onSend(); }} placeholder={placeholder} disabled={disabled} className="min-w-0 flex-1 bg-transparent text-[14px] text-[#0e0e0d] outline-none placeholder:text-[#918d83]" />
+        <input value={value} onChange={(event) => { setListening(false); onChange(event.target.value); }} onKeyDown={(event) => { if (event.key === "Enter" && value.trim()) onSend(); }} placeholder={listening ? "Listening…" : placeholder} disabled={disabled} className="min-w-0 flex-1 bg-transparent text-[14px] text-[#0e0e0d] outline-none placeholder:text-[#918d83]" />
+        <button type="button" onClick={() => setListening((active) => !active)} disabled={disabled} aria-label={listening ? "Stop voice input" : "Start voice input"} aria-pressed={listening} className={`rr-tap grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors ${listening ? "bg-[#eeecff] text-[#5147de]" : "text-[#716d64] hover:bg-black/[.05]"} disabled:opacity-40`}><Icon name="mic" size={17} /></button>
         <button type="button" onClick={onSend} disabled={disabled || !value.trim()} aria-label="Send message" className="rr-tap grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0e0e0d] text-white disabled:bg-[#d2cec4]"><Icon name="send" size={15} /></button>
       </div>
     </div>
