@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppHeader,
   AssistantBubble,
@@ -266,28 +266,35 @@ export function ItineraryScreen({ onBack, onAsk, onNavigate }: { onBack: () => v
 
 export function ContextScreen({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
   const [thinking, setThinking] = useState(true);
+  const [contextReady, setContextReady] = useState(false);
   useEffect(() => { const timer = window.setTimeout(() => setThinking(false), 1200); return () => window.clearTimeout(timer); }, []);
   return (
     <div className="flex h-full flex-col">
       <AppHeader title="Your trip context" eyebrow="Before we replan" onBack={onBack} trailing={false} />
       <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-7">
-        <div className="mb-5"><p className="mb-2 text-xs font-semibold text-[#6257ff]">OTW Co-Pilot · AI trip assistant</p>{thinking ? <TypingBubble label="Co-Pilot is reviewing your trip" /> : <AssistantBubble><TypedText text="I’ll keep the Dodgers game fixed while balancing your saved places, travel time and any live changes. You can ask me anything before or during the trip." /></AssistantBubble>}</div>
-        <div className="rounded-[26px] bg-[#0e0e0d] p-5 text-white"><BrandMark size={44} label /><p className="font-display mt-8 text-[28px] font-semibold leading-[1.01] tracking-[-.05em]">A better plan starts with what matters to you.</p><p className="mt-3 text-[11px] leading-[1.6] text-white/62">OTW uses only the context you choose to share for this trip.</p></div>
-        <div className="mt-4 rounded-[22px] border border-black/[.08] bg-white p-4"><div className="flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.13em] text-[#837f74]">Connected context</p><p className="mt-1 text-[13px] font-semibold text-[#0e0e0d]">ChatGPT preferences</p></div><span className="flex items-center gap-1.5 rounded-full bg-[#e7f1ed] px-2.5 py-1.5 text-[9px] font-bold text-[#356758]"><Icon name="check" size={11} /> Connected</span></div><div className="mt-4 flex flex-wrap gap-2.5">{["Loves local food", "Art & design", "Slow mornings"].map((chip) => <span key={chip} className="rounded-full border border-black/[.08] bg-[#f4f2ec] px-4 py-2.5 text-[12px] text-[#3c3a33]">{chip}</span>)}</div></div>
-        <div className="mt-4 rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4"><p className="text-[11px] font-semibold text-[#0e0e0d]">What the Co-Pilot will balance</p><div className="mt-3 space-y-2 text-[10px] text-[#5e5b52]">{["Closures and travel time", "The fixed Dodgers game", "Everyone’s saved places"].map((item) => <p key={item} className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#eeecff] text-[#5147de]"><Icon name="check" size={11} /></span>{item}</p>)}</div></div>
+        <div className="mb-5"><p className="mb-2 text-xs font-semibold text-[#6257ff]">OTW Co-Pilot · AI trip assistant</p>{thinking ? <TypingBubble label="Co-Pilot is reviewing your trip" /> : <AssistantBubble><TypedText text="I’ll keep the Dodgers game fixed while balancing your saved places, travel time and any live changes. You can ask me anything before or during the trip." onComplete={() => setContextReady(true)} /></AssistantBubble>}</div>
+        {contextReady && <div className="rr-message">
+          <div className="rounded-[26px] bg-[#0e0e0d] p-5 text-white"><BrandMark size={44} label /><p className="font-display mt-8 text-[28px] font-semibold leading-[1.01] tracking-[-.05em]">A better plan starts with what matters to you.</p><p className="mt-3 text-[11px] leading-[1.6] text-white/62">OTW uses only the context you choose to share for this trip.</p></div>
+          <div className="mt-4 rounded-[22px] border border-black/[.08] bg-white p-4"><div className="flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.13em] text-[#837f74]">Connected context</p><p className="mt-1 text-[13px] font-semibold text-[#0e0e0d]">ChatGPT preferences</p></div><span className="flex items-center gap-1.5 rounded-full bg-[#e7f1ed] px-2.5 py-1.5 text-[9px] font-bold text-[#356758]"><Icon name="check" size={11} /> Connected</span></div><div className="mt-4 flex flex-wrap gap-2.5">{["Loves local food", "Art & design", "Slow mornings"].map((chip) => <span key={chip} className="rounded-full border border-black/[.08] bg-[#f4f2ec] px-4 py-2.5 text-[12px] text-[#3c3a33]">{chip}</span>)}</div></div>
+          <div className="mt-4 rounded-[20px] border border-black/[.08] bg-[#fbfaf6] p-4"><p className="text-[11px] font-semibold text-[#0e0e0d]">What the Co-Pilot will balance</p><div className="mt-3 space-y-2 text-[10px] text-[#5e5b52]">{["Closures and travel time", "The fixed Dodgers game", "Everyone’s saved places"].map((item) => <p key={item} className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#eeecff] text-[#5147de]"><Icon name="check" size={11} /></span>{item}</p>)}</div></div>
+        </div>}
       </div>
-      <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 py-4"><PrimaryButton onClick={onContinue}>Continue to Co-Pilot <Icon name="sparkles" size={15} /></PrimaryButton></div>
+      {contextReady && <div className="rr-message border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 py-4"><PrimaryButton onClick={onContinue}>Continue to Co-Pilot <Icon name="sparkles" size={15} /></PrimaryButton></div>}
     </div>
   );
 }
 
 export function CopilotScreen({ onBack, onUpdate, onNavigate }: { onBack: () => void; onUpdate: () => void; onNavigate: (screen: Screen) => void }) {
-  const [phase, setPhase] = useState<"thinking" | "ready">("thinking");
+  const [phase, setPhase] = useState<"thinking" | "typing" | "ready">("thinking");
   const [prompt, setPrompt] = useState("");
   const [manualQuestion, setManualQuestion] = useState("");
   const [manualThinking, setManualThinking] = useState(false);
+  const transcript = useRef<HTMLDivElement>(null);
+  const scrollToLatest = useCallback(() => {
+    window.requestAnimationFrame(() => transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "auto" }));
+  }, []);
   useEffect(() => {
-    const timer = window.setTimeout(() => setPhase("ready"), 1100);
+    const timer = window.setTimeout(() => setPhase("typing"), 1100);
     return () => window.clearTimeout(timer);
   }, []);
   useEffect(() => {
@@ -295,23 +302,24 @@ export function CopilotScreen({ onBack, onUpdate, onNavigate }: { onBack: () => 
     const timer = window.setTimeout(() => setManualThinking(false), 850);
     return () => window.clearTimeout(timer);
   }, [manualThinking]);
+  useEffect(() => { scrollToLatest(); }, [manualQuestion, manualThinking, phase, scrollToLatest]);
   const send = () => { if (!prompt.trim()) return; setManualQuestion(prompt.trim()); setPrompt(""); setManualThinking(true); };
 
   return (
     <div className="flex h-full flex-col bg-[#f4f2ec]">
       <AppHeader title="OTW Co-Pilot" eyebrow="Los Angeles · group plan" onBack={onBack} />
-      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-5">
+      <div ref={transcript} className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-5">
         <div className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full border border-black/[.08] bg-white px-3 py-2 text-[9px] font-semibold text-[#5e5b52]"><Icon name="calendar" size={13} /> Closure detected · plan needs attention</div>
         <div className="space-y-3">
           <UserBubble>Griffith Observatory is closed today. Can you fix the plan without moving the Dodgers game?</UserBubble>
           {phase === "thinking" ? <TypingBubble /> : (
             <>
-              <AssistantBubble><p className="font-semibold text-[#0e0e0d]">I found a better plan for today.</p><p className="mt-1.5"><TypedText text="Move Griffith Observatory to tomorrow, do Hollywood and the Academy Museum today, and keep the Dodgers game at 7:10 PM." /></p><div className="mt-3 rounded-[13px] bg-[#eeecff] p-3 text-[10px] text-[#5147de]"><p className="font-bold">Why this works</p><p className="mt-1 leading-[1.45]">It keeps the fixed game time, avoids backtracking, and fills the closed stop with nearby places.</p></div></AssistantBubble>
-              <div className="rr-message pl-[40px]"><p className="mb-2 text-[9px] font-bold uppercase tracking-[.12em] text-[#837f74]">Places in this plan</p><div className="rr-scroll flex gap-2 overflow-x-auto pb-1">{[
+              <AssistantBubble><p className="font-semibold text-[#0e0e0d]">I found a better plan for today.</p><p className="mt-1.5"><TypedText text="Move Griffith Observatory to tomorrow, do Hollywood and the Academy Museum today, and keep the Dodgers game at 7:10 PM." onProgress={scrollToLatest} onComplete={() => setPhase("ready")} /></p>{phase === "ready" && <div className="rr-message mt-3 rounded-[13px] bg-[#eeecff] p-3 text-[10px] text-[#5147de]"><p className="font-bold">Why this works</p><p className="mt-1 leading-[1.45]">It keeps the fixed game time, avoids backtracking, and fills the closed stop with nearby places.</p></div>}</AssistantBubble>
+              {phase === "ready" && <div className="rr-message pl-[40px]"><p className="mb-2 text-[9px] font-bold uppercase tracking-[.12em] text-[#837f74]">Places in this plan</p><div className="rr-scroll flex gap-2 overflow-x-auto pb-1">{[
                 { name: "Hollywood", image: images.alley, detail: "11:00 · Hollywood" },
                 { name: "Academy Museum", image: images.borderless, detail: "14:00 · Miracle Mile" },
                 { name: "Dodgers vs Giants", image: images.teamlab, detail: "19:10 · Shohei" },
-              ].map((place) => <div key={place.name} className="w-[132px] shrink-0 overflow-hidden rounded-[16px] border border-black/[.08] bg-white"><div className="h-[82px] bg-cover bg-center" style={{ backgroundImage: `url(${place.image})` }} /><div className="p-2.5"><p className="truncate text-[10px] font-semibold text-[#0e0e0d]">{place.name}</p><p className="mt-0.5 text-[8px] text-[#837f74]">{place.detail}</p></div></div>)}</div></div>
+              ].map((place) => <div key={place.name} className="w-[132px] shrink-0 overflow-hidden rounded-[16px] border border-black/[.08] bg-white"><div className="h-[82px] bg-cover bg-center" style={{ backgroundImage: `url(${place.image})` }} /><div className="p-2.5"><p className="truncate text-[10px] font-semibold text-[#0e0e0d]">{place.name}</p><p className="mt-0.5 text-[8px] text-[#837f74]">{place.detail}</p></div></div>)}</div></div>}
             </>
           )}
           {manualQuestion && <UserBubble>{manualQuestion}</UserBubble>}
@@ -319,7 +327,7 @@ export function CopilotScreen({ onBack, onUpdate, onNavigate }: { onBack: () => 
         </div>
       </div>
       {phase === "ready" && <div className="px-4 pb-3"><PrimaryButton onClick={onUpdate}><Icon name="sparkles" size={15} /> Yes, update the trip</PrimaryButton></div>}
-      <ChatComposer value={prompt} onChange={setPrompt} onSend={send} disabled={manualThinking} placeholder="Ask about this plan…" />
+      <ChatComposer value={prompt} onChange={setPrompt} onSend={send} disabled={phase !== "ready" || manualThinking} placeholder={phase === "ready" ? "Ask about this plan…" : "Co-Pilot is responding…"} />
       <BottomNav active="copilot" onNavigate={onNavigate} />
     </div>
   );

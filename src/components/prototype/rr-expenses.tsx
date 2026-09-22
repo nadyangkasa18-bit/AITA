@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppHeader,
   AssistantBubble,
@@ -102,11 +102,16 @@ function ShareCard({ amount, excluded }: { amount: string; excluded: string[] })
 export function SplitChatScreen({ onBack, onUpdate }: { onBack: () => void; onUpdate: () => void }) {
   const [phase, setPhase] = useState<SplitPhase>("pizza-thinking");
   const [prompt, setPrompt] = useState("");
+  const transcript = useRef<HTMLDivElement>(null);
+  const scrollToLatest = useCallback(() => {
+    window.requestAnimationFrame(() => transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "smooth" }));
+  }, []);
   useEffect(() => {
     if (phase !== "pizza-thinking" && phase !== "drinks-thinking") return;
     const timer = window.setTimeout(() => setPhase(phase === "pizza-thinking" ? "pizza-ready" : "drinks-ready"), 1050);
     return () => window.clearTimeout(timer);
   }, [phase]);
+  useEffect(() => { scrollToLatest(); }, [phase, scrollToLatest]);
   const send = () => {
     if (!prompt.trim() || phase !== "pizza-ready") return;
     setPrompt("");
@@ -118,7 +123,7 @@ export function SplitChatScreen({ onBack, onUpdate }: { onBack: () => void; onUp
   return (
     <div className="flex h-full flex-col bg-[#f4f2ec]">
       <AppHeader title="Split with Co-Pilot" eyebrow="Cheesecake Factory · $186" onBack={onBack} trailing={false} />
-      <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-5">
+      <div ref={transcript} className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-5">
         <div className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full border border-black/[.08] bg-white px-3 py-2 text-[11px] text-[#5e5b52]"><Icon name="receipt" size={13} /> 4 people · 4 item groups</div>
         <div className="space-y-3">
           <AssistantBubble>Tell me what you did or didn’t have. I’ll reassign only those line items and keep the rest even.</AssistantBubble>

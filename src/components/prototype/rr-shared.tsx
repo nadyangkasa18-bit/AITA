@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 export type Screen =
@@ -21,14 +21,28 @@ export type Screen =
   | "updated-expense"
   | "final";
 
-export function TypedText({ text }: { text: string }) {
+export function TypedText({ text, onProgress, onComplete }: { text: string; onProgress?: () => void; onComplete?: () => void }) {
   const [count, setCount] = useState(0);
+  const onProgressRef = useRef(onProgress);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setCount(text.length); return; }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(text.length);
+      onProgressRef.current?.();
+      onCompleteRef.current?.();
+      return;
+    }
     setCount(0);
     const timer = window.setInterval(() => setCount((n) => {
-      if (n + 3 >= text.length) window.clearInterval(timer);
-      return Math.min(text.length, n + 3);
+      const next = Math.min(text.length, n + 3);
+      onProgressRef.current?.();
+      if (next >= text.length) {
+        window.clearInterval(timer);
+        onCompleteRef.current?.();
+      }
+      return next;
     }), 28);
     return () => window.clearInterval(timer);
   }, [text]);
@@ -39,14 +53,23 @@ export function CopilotChat({ screen, open, onOpen, onClose }: { screen: Screen;
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
   const [pending, setPending] = useState("");
+  const [introReady, setIntroReady] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
   const before = ["home", "collaborators", "invite-collaborators", "ideas", "add-place", "context"].includes(screen);
+  const scrollToLatest = useCallback((behavior: ScrollBehavior = "auto") => {
+    window.requestAnimationFrame(() => {
+      transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior });
+    });
+  }, []);
   useEffect(() => {
     if (open) panel.current?.querySelector<HTMLInputElement>("input")?.focus();
     else launcher.current?.focus();
   }, [open]);
+  useEffect(() => {
+    if (open && messages.length === 0) setIntroReady(false);
+  }, [open, messages.length]);
   useEffect(() => {
     if (!pending) return;
     const timer = window.setTimeout(() => {
@@ -57,14 +80,7 @@ export function CopilotChat({ screen, open, onOpen, onClose }: { screen: Screen;
     }, 1100);
     return () => window.clearTimeout(timer);
   }, [pending]);
-  useEffect(() => {
-    if (!open || !transcript.current) return;
-    const area = transcript.current;
-    const observer = new MutationObserver(() => { area.scrollTop = area.scrollHeight; });
-    observer.observe(area, { childList: true, subtree: true, characterData: true });
-    area.scrollTop = area.scrollHeight;
-    return () => observer.disconnect();
-  }, [open]);
+  useEffect(() => { if (open) scrollToLatest(); }, [introReady, messages, open, pending, scrollToLatest]);
   const send = (value: string) => {
     if (!value.trim() || pending) return;
     setMessages((items) => [...items, { role: "user", text: value.trim() }]);
@@ -89,9 +105,9 @@ export function CopilotChat({ screen, open, onOpen, onClose }: { screen: Screen;
       <header className="flex items-center gap-3 border-b border-black/10 p-4"><BrandMark /><div className="flex-1"><h2 className="text-lg font-semibold">Co-Pilot</h2><p className="text-xs text-[#5e5b52]">Your AI Co-Pilot · {before ? "Before your trip" : "During your trip"}</p></div><button onClick={onClose} aria-label="Close Co-Pilot and return to trip" className="h-11 rounded-full border border-black/10 px-4 text-sm">Close</button></header>
       <div ref={transcript} className="rr-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         <h3 className="font-display text-[28px] leading-tight">Ask anything.<br />Before, during, whenever.</h3>
-        <AssistantBubble><TypedText text="Hey Aiko, I’m your OTW Co-Pilot. Planning ahead or already out exploring? Ask me anything — I’m right here with your trip." /></AssistantBubble>
-        {messages.length === 0 && <div className="flex flex-wrap gap-2">{(before ? ["Plan Los Angeles", "Find food spots", "Help split a bill"] : ["Fix today’s plan", "Where should we eat?", "Help split a bill"]).map((item) => <button key={item} onClick={() => send(item)} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm">{item}</button>)}</div>}
-        {messages.map((message, index) => message.role === "user" ? <UserBubble key={index}>{message.text}</UserBubble> : <AssistantBubble key={index}>{index === messages.length - 1 ? <TypedText text={message.text} /> : message.text}</AssistantBubble>)}
+        <AssistantBubble><TypedText text="Hey Aiko, I’m your OTW Co-Pilot. Planning ahead or already out exploring? Ask me anything — I’m right here with your trip." onProgress={scrollToLatest} onComplete={() => setIntroReady(true)} /></AssistantBubble>
+        {messages.length === 0 && introReady && <div className="rr-message flex flex-wrap gap-2">{(before ? ["Plan Los Angeles", "Find food spots", "Help split a bill"] : ["Fix today’s plan", "Where should we eat?", "Help split a bill"]).map((item) => <button key={item} onClick={() => send(item)} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm">{item}</button>)}</div>}
+        {messages.map((message, index) => message.role === "user" ? <UserBubble key={index}>{message.text}</UserBubble> : <AssistantBubble key={index}>{index === messages.length - 1 ? <TypedText text={message.text} onProgress={scrollToLatest} /> : message.text}</AssistantBubble>)}
         {pending && <div role="status"><p className="mb-2 text-xs text-[#5e5b52]">Co-Pilot is thinking…</p><TypingBubble label="Co-Pilot is thinking" /></div>}
       </div>
       <p className="px-4 pb-2 text-[11px] text-[#837f74]">Interactive prototype · sample AI responses</p>
