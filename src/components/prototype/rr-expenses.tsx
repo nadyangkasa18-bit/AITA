@@ -1,12 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   AppHeader,
   AssistantBubble,
   Avatar,
   BottomNav,
-  BrandMark,
   ChatComposer,
   Icon,
   PrimaryButton,
@@ -81,7 +81,7 @@ export function ReceiptScreen({ onBack, onHelp }: { onBack: () => void; onHelp: 
           <div className="flex items-center justify-between"><div><p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6f6b62]">Current split</p><p className="mt-1 text-[14px] font-semibold text-[#0e0e0d]">Evenly between everyone</p></div><span className="font-display text-[23px] font-semibold tracking-[-.04em] text-[#0e0e0d]">¥4,650</span></div>
           <div className="mt-4 space-y-2.5">{people.map((person) => <div key={person.name} className="flex items-center gap-2.5"><Avatar person={person} size="sm" /><span className="flex-1 text-[13px] text-[#5e5b52]">{person.name}{person.name === "Sarah" ? " · paid" : ""}</span><span className="text-[13px] font-semibold text-[#0e0e0d]">¥4,650</span></div>)}</div>
         </div>
-        <div className="mt-4 rounded-[18px] bg-[#eeecff] p-3.5 text-[13px] leading-[1.5] text-[#5147de]"><p className="font-semibold">Not everyone shared everything?</p><p className="mt-1 opacity-80">Tell the co-pilot what you skipped. It will adjust the relevant items and show its math.</p></div>
+        <div className="mt-4 rounded-[18px] bg-[#eeecff] p-3.5 text-[13px] leading-[1.5] text-[#5147de]"><p className="font-semibold">Not everyone shared everything?</p><p className="mt-1 opacity-80">Tell the Co-Pilot what you skipped. It will adjust the relevant items and show its math.</p></div>
       </div>
       <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 py-4"><PrimaryButton onClick={onHelp}><Icon name="sparkles" size={15} /> Help split this for me</PrimaryButton></div>
     </div>
@@ -117,7 +117,7 @@ export function SplitChatScreen({ onBack, onUpdate }: { onBack: () => void; onUp
 
   return (
     <div className="flex h-full flex-col bg-[#f4f2ec]">
-      <AppHeader title="Split with co-pilot" eyebrow="Ramen Kagari · ¥18,600" onBack={onBack} trailing={false} />
+      <AppHeader title="Split with Co-Pilot" eyebrow="Ramen Kagari · ¥18,600" onBack={onBack} trailing={false} />
       <div className="rr-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-5">
         <div className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full border border-black/[.08] bg-white px-3 py-2 text-[11px] text-[#5e5b52]"><Icon name="receipt" size={13} /> 4 people · 4 item groups</div>
         <div className="space-y-3">
@@ -178,8 +178,10 @@ export function UpdatedExpenseScreen({ onBack, onFinish }: { onBack: () => void;
 export function FinalScreen({ onRestart }: { onRestart: () => void }) {
   return (
     <div className="flex h-full flex-col bg-[#0e0e0d] px-6 text-white">
-      <div className="flex flex-1 flex-col justify-center"><BrandMark size={56} label /><p className="mt-9 text-[9px] font-bold uppercase tracking-[.18em] text-[#9e97ff]">One trip · one shared memory</p><h2 className="font-display mt-3 text-[43px] font-semibold leading-[.92] tracking-[-.065em]">Plan it.<br />Live it.<br />Settle it.</h2><p className="mt-5 max-w-[310px] text-[12px] leading-[1.65] text-white/58">RoaminRabbit keeps the group aligned from the first saved place to the final split.</p><div className="mt-8 grid grid-cols-3 gap-2">{[["9", "places saved"], ["1", "plan updated"], ["¥2.7k", "final share"]].map(([value, label]) => <div key={label} className="rounded-[16px] border border-white/12 bg-white/[.05] p-3"><p className="font-display text-[20px] font-semibold">{value}</p><p className="mt-1 text-[8px] leading-[1.25] text-white/42">{label}</p></div>)}</div></div>
-      <div className="pb-9"><button type="button" onClick={onRestart} className="rr-tap h-12 w-full rounded-full bg-white text-[12px] font-semibold text-[#0e0e0d]">Replay prototype</button><p className="mt-4 text-center text-[8px] uppercase tracking-[.15em] text-white/28">RoaminRabbit · Tokyo story</p></div>
+      <div className="flex flex-1 flex-col justify-center"><div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[15px] bg-[#191919]">
+          <Image src="/otw-logo.png" alt="OTW" width={1118} height={1183} sizes="152px" className="absolute max-w-none" style={{ width: "158%", height: "auto", left: "-29%", top: "-35.3%" }} />
+        </div><p className="mt-9 text-[9px] font-bold uppercase tracking-[.18em] text-[#9e97ff]">One trip · one shared memory</p><h2 className="font-display mt-3 text-[43px] font-semibold leading-[.92] tracking-[-.065em]">Plan it.<br />Live it.<br />Settle it.</h2><p className="mt-5 max-w-[310px] text-[12px] leading-[1.65] text-white/58">OTW keeps the group aligned from the first saved place to the final split.</p><div className="mt-8 grid grid-cols-3 gap-2">{[["9", "places saved"], ["1", "plan updated"], ["¥2.7k", "final share"]].map(([value, label]) => <div key={label} className="rounded-[16px] border border-white/12 bg-white/[.05] p-3"><p className="font-display text-[20px] font-semibold">{value}</p><p className="mt-1 text-[8px] leading-[1.25] text-white/42">{label}</p></div>)}</div></div>
+      <div className="pb-9"><button type="button" onClick={onRestart} className="rr-tap h-12 w-full rounded-full bg-white text-[12px] font-semibold text-[#0e0e0d]">Replay prototype</button><p className="mt-4 text-center text-[8px] uppercase tracking-[.15em] text-white/28">OTW · Tokyo story</p></div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -35,7 +34,7 @@ export function TypedText({ text }: { text: string }) {
   return <span><span className="sr-only">{text}</span><span aria-hidden="true">{text.slice(0, count)}{count < text.length && <span className="rr-typing">▍</span>}</span></span>;
 }
 
-export function JojoChat({ screen, open, onOpen, onClose }: { screen: Screen; open: boolean; onOpen: () => void; onClose: () => void }) {
+export function CopilotChat({ screen, open, onOpen, onClose }: { screen: Screen; open: boolean; onOpen: () => void; onClose: () => void }) {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
   const [pending, setPending] = useState("");
@@ -72,11 +71,11 @@ export function JojoChat({ screen, open, onOpen, onClose }: { screen: Screen; op
   };
   return <>
     <div className="shrink-0 border-t border-black/10 bg-[#f4f2ec] px-4 pt-2 pb-5">
-      <button ref={launcher} onClick={onOpen} aria-label="Ask Jojo, your AI co-pilot" aria-haspopup="dialog" aria-expanded={open} className="rr-tap flex h-12 w-full items-center gap-3 rounded-full bg-[#0e0e0d] px-4 text-white">
-        <Icon name="sparkles" size={22} /><span className="text-[14px] font-semibold">Ask Jojo</span><span className="ml-auto text-[12px] text-white/70">Anything, anytime</span>
+      <button ref={launcher} onClick={onOpen} aria-label="Ask Co-Pilot, your AI Co-Pilot" aria-haspopup="dialog" aria-expanded={open} className="rr-tap flex h-12 w-full items-center gap-3 rounded-full bg-[#0e0e0d] px-4 text-white">
+        <span className="shrink-0"><Icon name="sparkles" size={22} /></span><span className="shrink-0 text-[14px] font-semibold">Ask Co-Pilot</span><span className="ml-auto text-right text-[11px] leading-tight text-white/70">Anything, anytime</span>
       </button>
     </div>
-    {open && <div ref={panel} role="dialog" aria-modal="true" aria-label="Jojo AI co-pilot" className="absolute inset-0 z-[110] flex flex-col bg-[#f4f2ec] pt-12" onKeyDown={(event) => {
+    {open && <div ref={panel} role="dialog" aria-modal="true" aria-label="OTW Co-Pilot chat" className="absolute inset-0 z-[110] flex flex-col bg-[#f4f2ec] pt-12" onKeyDown={(event) => {
       if (event.key === "Escape") onClose();
       if (event.key === "Tab") {
         const elements = panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)');
@@ -86,16 +85,16 @@ export function JojoChat({ screen, open, onOpen, onClose }: { screen: Screen; op
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       }
     }}>
-      <header className="flex items-center gap-3 border-b border-black/10 p-4"><BrandMark /><div className="flex-1"><h2 className="text-lg font-semibold">Jojo</h2><p className="text-xs text-[#5e5b52]">Your AI co-pilot · {before ? "Before your trip" : "During your trip"}</p></div><button onClick={onClose} aria-label="Close Jojo and return to trip" className="h-11 rounded-full border border-black/10 px-4 text-sm">Close</button></header>
+      <header className="flex items-center gap-3 border-b border-black/10 p-4"><BrandMark /><div className="flex-1"><h2 className="text-lg font-semibold">Co-Pilot</h2><p className="text-xs text-[#5e5b52]">Your AI Co-Pilot · {before ? "Before your trip" : "During your trip"}</p></div><button onClick={onClose} aria-label="Close Co-Pilot and return to trip" className="h-11 rounded-full border border-black/10 px-4 text-sm">Close</button></header>
       <div ref={transcript} className="rr-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         <h3 className="font-display text-[28px] leading-tight">Ask anything.<br />Before, during, whenever.</h3>
-        <AssistantBubble><TypedText text="Hey Nadya, I’m Jojo. Planning ahead or already out exploring? Ask me anything — I’m right here with your trip." /></AssistantBubble>
+        <AssistantBubble><TypedText text="Hey Nadya, I’m your OTW Co-Pilot. Planning ahead or already out exploring? Ask me anything — I’m right here with your trip." /></AssistantBubble>
         {messages.length === 0 && <div className="flex flex-wrap gap-2">{(before ? ["Help plan Tokyo", "Find food spots", "Help split a bill"] : ["Replan for rain", "Where should we eat?", "Help split a bill"]).map((item) => <button key={item} onClick={() => send(item)} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm">{item}</button>)}</div>}
         {messages.map((message, index) => message.role === "user" ? <UserBubble key={index}>{message.text}</UserBubble> : <AssistantBubble key={index}>{index === messages.length - 1 ? <TypedText text={message.text} /> : message.text}</AssistantBubble>)}
-        {pending && <div role="status"><p className="mb-2 text-xs text-[#5e5b52]">Jojo is thinking…</p><TypingBubble label="Jojo is thinking" /></div>}
+        {pending && <div role="status"><p className="mb-2 text-xs text-[#5e5b52]">Co-Pilot is thinking…</p><TypingBubble label="Co-Pilot is thinking" /></div>}
       </div>
       <p className="px-4 pb-2 text-[11px] text-[#837f74]">Interactive prototype · sample AI responses</p>
-      <div className="pb-4"><ChatComposer value={prompt} onChange={setPrompt} onSend={() => send(prompt)} disabled={!!pending} placeholder="Ask Jojo anything…" /></div>
+      <div className="pb-4"><ChatComposer value={prompt} onChange={setPrompt} onSend={() => send(prompt)} disabled={!!pending} placeholder="Ask Co-Pilot anything…" /></div>
     </div>}
   </>;
 }
@@ -217,8 +216,8 @@ export function AvatarStack({ small = false }: { small?: boolean }) {
 export function BrandMark({ size = 40, label = false }: { size?: number; label?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <Image src="/roaminrabbit-logo.png" alt="RoaminRabbit" width={size} height={size} className="rounded-full border border-black/[.08] bg-white object-contain p-1" style={{ width: size, height: size }} priority />
-      {label && <span className="font-display text-[17px] font-semibold tracking-[-.035em] text-[#0e0e0d]">RoaminRabbit</span>}
+      <span role="img" aria-label="OTW" className="grid shrink-0 place-items-center rounded-full border border-black/[.08] bg-white font-bold tracking-[-.06em] text-[#0e0e0d]" style={{ width: size, height: size, fontSize: size * .28 }}>OTW</span>
+      {label && <span className="font-display text-[17px] font-semibold tracking-[-.035em] text-current">OTW</span>}
     </div>
   );
 }
@@ -244,7 +243,7 @@ export function AppHeader({ title, eyebrow, onBack, trailing = true }: { title: 
 export function BottomNav({ active, onNavigate }: { active: "trip" | "copilot" | "expenses"; onNavigate: (screen: Screen) => void }) {
   const items: Array<{ id: typeof active; label: string; icon: IconName; target: Screen }> = [
     { id: "trip", label: "Trip", icon: "home", target: "home" },
-    { id: "copilot", label: "Co-pilot", icon: "sparkles", target: "copilot" },
+    { id: "copilot", label: "Co-Pilot", icon: "sparkles", target: "copilot" },
     { id: "expenses", label: "Expenses", icon: "expenses", target: "expenses" },
   ];
   return (
@@ -277,7 +276,7 @@ export function SectionTitle({ eyebrow, title, detail }: { eyebrow: string; titl
   );
 }
 
-export function TypingBubble({ label = "RoaminRabbit is thinking" }: { label?: string }) {
+export function TypingBubble({ label = "Co-Pilot is thinking" }: { label?: string }) {
   return (
     <div className="rr-message flex items-center gap-2.5">
       <BrandMark size={32} />
@@ -302,7 +301,7 @@ export function UserBubble({ children }: { children: ReactNode }) {
   return <div className="rr-message ml-auto max-w-[286px] rounded-[20px] rounded-br-[6px] bg-[#0e0e0d] px-4 py-3 text-[14px] leading-[1.5] text-white">{children}</div>;
 }
 
-export function ChatComposer({ value, onChange, onSend, placeholder = "Ask RoaminRabbit…", disabled = false }: { value: string; onChange: (value: string) => void; onSend: () => void; placeholder?: string; disabled?: boolean }) {
+export function ChatComposer({ value, onChange, onSend, placeholder = "Ask Co-Pilot…", disabled = false }: { value: string; onChange: (value: string) => void; onSend: () => void; placeholder?: string; disabled?: boolean }) {
   return (
     <div className="border-t border-black/[.08] bg-[#f4f2ec]/96 px-4 pb-4 pt-3 backdrop-blur-xl">
       <div className="flex items-center gap-2 rounded-full border border-black/[.1] bg-white p-1.5 pl-4 shadow-[0_12px_28px_-24px_rgba(14,14,13,.7)]">

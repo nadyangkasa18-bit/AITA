@@ -20,7 +20,7 @@ import {
   SplitChatScreen,
   UpdatedExpenseScreen,
 } from "./prototype/rr-expenses";
-import { JojoChat, PhoneFrame, type Screen } from "./prototype/rr-shared";
+import { CopilotChat, PhoneFrame, type Screen } from "./prototype/rr-shared";
 
 const screenOrder: Screen[] = [
   "home",
@@ -58,7 +58,7 @@ const backMap: Partial<Record<Screen, Screen>> = {
 
 export function MobileTripCompanionPrototype() {
   const [screen, setScreen] = useState<Screen>("home");
-  const [jojoOpen, setJojoOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [addedPlace, setAddedPlace] = useState(false);
   const [invitedCollaborators, setInvitedCollaborators] = useState<string[]>([]);
@@ -101,8 +101,8 @@ export function MobileTripCompanionPrototype() {
   return (
     <PhoneFrame>
       <div className="flex h-full flex-col">
-        <div inert={jojoOpen} className="min-h-0 flex-1"><div key={screen} className={`rr-screen rr-${direction}`}>{content}</div></div>
-        <JojoChat screen={screen} open={jojoOpen} onOpen={() => setJojoOpen(true)} onClose={() => setJojoOpen(false)} />
+        <div inert={copilotOpen} className="min-h-0 flex-1"><div key={screen} className={`rr-screen rr-${direction}`}>{content}</div></div>
+        <CopilotChat screen={screen} open={copilotOpen} onOpen={() => setCopilotOpen(true)} onClose={() => setCopilotOpen(false)} />
       </div>
       <style jsx global>{`
         :root {

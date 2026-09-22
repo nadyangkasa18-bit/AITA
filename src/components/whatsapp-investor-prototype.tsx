@@ -175,17 +175,15 @@ function StatusBar({ light = false }: { light?: boolean }) {
   );
 }
 
-function RoaminRabbitAvatar({ size = 40 }: { size?: number }) {
+function OtwAvatar({ size = 40 }: { size?: number }) {
   return (
     <span
-      className="grid shrink-0 place-items-center overflow-hidden rounded-full border border-black/10 bg-white"
-      style={{ width: size, height: size }}
+      role="img"
+      aria-label="OTW"
+      className="grid shrink-0 place-items-center overflow-hidden rounded-full border border-black/10 bg-white font-bold tracking-[-.06em] text-[#0e0e0d]"
+      style={{ width: size, height: size, fontSize: size * .28 }}
     >
-      <img
-        src="/roaminrabbit-logo.png"
-        alt=""
-        className="h-full w-full scale-[1.32] object-cover object-center"
-      />
+      OTW
     </span>
   );
 }
@@ -224,9 +222,9 @@ function LockScreen({ onOpen }: { onOpen: () => void }) {
               <span className="ml-auto text-[12px] text-white/55">now</span>
             </div>
             <div className="mt-3 flex gap-3">
-              <RoaminRabbitAvatar size={46} />
+              <OtwAvatar size={46} />
               <div className="min-w-0">
-                <p className="text-[16px] font-semibold">RoaminRabbit</p>
+                <p className="text-[16px] font-semibold">OTW</p>
                 <p className="mt-1 text-[14px] leading-[1.35] text-white/92">
                   Rain is expected at Disneyland from 11:00. I found 3 indoor alternatives that keep the rest of today intact.
                 </p>
@@ -246,10 +244,10 @@ function WhatsAppHeader({ typing }: { typing: boolean }) {
       <StatusBar />
       <div className="flex h-[61px] shrink-0 items-center gap-2 border-b border-[#dfe3e5] bg-[#f0f2f5] px-2.5">
         <button aria-label="Back" className="grid h-10 w-8 place-items-center text-[#008069]"><ChevronLeftIcon /></button>
-        <RoaminRabbitAvatar size={40} />
+        <OtwAvatar size={40} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-[15px] font-semibold leading-tight text-[#111b21]">RoaminRabbit</p>
+            <p className="truncate text-[15px] font-semibold leading-tight text-[#111b21]">OTW</p>
             <span className="grid h-[15px] w-[15px] place-items-center rounded-full bg-[#1da457] text-[9px] font-bold text-white" aria-label="Verified business">✓</span>
           </div>
           <p className={`mt-[2px] text-[12px] leading-tight ${typing ? "font-medium text-[#008069]" : "text-[#667781]"}`}>
@@ -284,7 +282,7 @@ function Bubble({ side = "in", children, time = "8:12" }: { side?: "in" | "out";
 
 function TypingBubble() {
   return (
-    <div className="wa-message flex justify-start" aria-label="RoaminRabbit is typing">
+    <div className="wa-message flex justify-start" aria-label="OTW is typing">
       <div className="relative rounded-[8px] rounded-tl-[2px] bg-white px-4 py-3 shadow-[0_1px_1px_rgba(11,20,26,.13)]">
         <span className="absolute -left-2 top-0 h-3 w-2.5 bg-white [clip-path:polygon(0_0,100%_0,100%_100%)]" aria-hidden="true" />
         <div className="flex h-3 items-center gap-1">
@@ -381,7 +379,7 @@ function PaymentLinkCard({ choice, paid, onOpen }: { choice: CarChoice; paid: bo
         <p className="mt-1 text-[13px] leading-[1.4] text-[#54656f]">{item.name} · {item.price}</p>
         <div className="mt-2.5 rounded-[7px] bg-[#f0f2f5] px-3 py-2.5">
           <p className="text-[11px] uppercase tracking-[.045em] text-[#667781]">Secure payment</p>
-          <p className="mt-0.5 truncate text-[13px] font-medium text-[#111b21]">pay.roaminrabbit.com</p>
+          <p className="mt-0.5 truncate text-[13px] font-medium text-[#111b21]">OTW checkout</p>
         </div>
         <p className="mt-1.5 text-right text-[10px] leading-none text-[#667781]">8:15</p>
       </div>
@@ -427,7 +425,7 @@ function Composer() {
         <button aria-label="Add attachment" className="grid h-11 w-9 shrink-0 place-items-center text-[#54656f]"><PlusIcon /></button>
         <div className="flex min-h-11 min-w-0 flex-1 items-center rounded-[22px] bg-white px-3 shadow-[0_1px_0_rgba(11,20,26,.03)]">
           <button aria-label="Emoji" className="mr-2 text-[#8696a0]"><SmileIcon /></button>
-          <input readOnly aria-label="Message RoaminRabbit" placeholder="Message" className="min-w-0 flex-1 bg-transparent text-[15px] text-[#111b21] outline-none placeholder:text-[#8696a0]" />
+          <input readOnly aria-label="Message OTW" placeholder="Message" className="min-w-0 flex-1 bg-transparent text-[15px] text-[#111b21] outline-none placeholder:text-[#8696a0]" />
           <button aria-label="Camera" className="ml-2 text-[#8696a0]"><CameraIcon /></button>
         </div>
         <button aria-label="Voice message" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#008069] text-white shadow-sm"><MicIcon /></button>
@@ -595,16 +593,16 @@ function BrowserCheckout({ choice, onBack, onConfirm }: { choice: CarChoice; onB
               <ChevronLeftIcon /> WhatsApp
             </button>
             <div className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-[#e9e9eb] px-3 text-[12px] text-[#3c3c43]">
-              <LockIcon /> <span className="truncate">pay.roaminrabbit.com</span>
+              <LockIcon /> <span className="truncate">OTW checkout</span>
             </div>
             <button aria-label="Browser options" className="grid h-9 w-8 place-items-center text-[20px] text-[#007aff]">•••</button>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-5">
           <div className="flex items-center gap-3 border-b border-[#eceff1] pb-4">
-            <RoaminRabbitAvatar size={42} />
+            <OtwAvatar size={42} />
             <div>
-              <p className="text-[15px] font-semibold text-[#172235]">RoaminRabbit</p>
+              <p className="text-[15px] font-semibold text-[#172235]">OTW</p>
               <p className="text-[12px] text-[#667085]">Secure checkout</p>
             </div>
           </div>
